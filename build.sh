@@ -50,3 +50,9 @@ CC -O2 -std=c++17 -pthread $INC "$ROOT/src/proto/lo_pool.cpp" "$ROOT/bin/shuffle
    -Wl,-rpath,"$CUQ/lib" -Wl,-rpath,"$SP/cutensor/lib" -Wl,-rpath,"$MATH" -Wl,-rpath,"$CUDA_HOME/lib64" -Wl,-rpath,"$FAB" \
    -o "$ROOT/bin/lo_pool"
 echo "built lo_pool"
+# Unified engine: general circuits, run-time windows, bucket pool, Clifford frame, checkpoint.
+CC -O2 -std=c++17 -pthread $INC "$ROOT/src/engine/pp_engine.cpp" "$ROOT/bin/shuffle.o" \
+   -L"$CUQ/lib" -l:libcupauliprop.so.0 -L"$CUDA_HOME/lib64" -lcudart -ldl \
+   -Wl,-rpath,"$CUQ/lib" -Wl,-rpath,"$SP/cutensor/lib" -Wl,-rpath,"$MATH" -Wl,-rpath,"$CUDA_HOME/lib64" -Wl,-rpath,"$FAB" \
+   -o "$ROOT/bin/pp_engine"
+echo "built pp_engine"

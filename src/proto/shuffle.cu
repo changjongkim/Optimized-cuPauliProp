@@ -100,6 +100,12 @@ int pp_partition(const uint64_t* xz, const double* coef, uint8_t* owners, int64_
   } else if (words == 2) {
     thrust::gather(thrust::device, ix, ix + n, thrust::device_pointer_cast((const Term<2>*)xz),
                    thrust::device_pointer_cast((Term<2>*)xzOut));
+  } else if (words == 6) {
+    thrust::gather(thrust::device, ix, ix + n, thrust::device_pointer_cast((const Term<6>*)xz),
+                   thrust::device_pointer_cast((Term<6>*)xzOut));
+  } else if (words == 8) {
+    thrust::gather(thrust::device, ix, ix + n, thrust::device_pointer_cast((const Term<8>*)xz),
+                   thrust::device_pointer_cast((Term<8>*)xzOut));
   } else {
     return -1;
   }
