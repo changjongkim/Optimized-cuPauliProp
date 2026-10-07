@@ -1,0 +1,358 @@
+===== cupp nodes=4 gpus=16 args: --circuit ki_lab --coef 1e-4 --cupp-tuned 1 --vram-frac 0.45
+circuit: kicked Ising, Eagle heavy-hex; 127 qubits; 5420 gates -> 2540 operations on the data (2540 branching rotations, 0 Clifford, 0 noise); 2880 Clifford gates deferred by the frame
+mode=cupp ranks=16 (one GPU each) coef=0.0001 weight=0 tuned: rank-local application, global deduplication only before each truncation
+expectation=0.153108187591
+largest_local_expansion=3139955 terms
+wall=6.909 s
+exit=0
+===== cupp nodes=4 gpus=16 args: --circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-4 --cupp-tuned 1 --vram-frac 0.45
+circuit: TFIM Trotter, Eagle heavy-hex; 127 qubits; 5420 gates -> 5420 operations on the data (5420 branching rotations, 0 Clifford, 0 noise); 0 Clifford gates deferred by the frame
+mode=cupp ranks=16 (one GPU each) coef=0.0001 weight=0 tuned: rank-local application, global deduplication only before each truncation
+expectation=0.324547666766
+largest_local_expansion=2782345 terms
+wall=10.398 s
+exit=0
+===== cupp nodes=4 gpus=16 args: --circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 1e-4 --cupp-tuned 1 --vram-frac 0.45
+circuit: TFIM Trotter, square lattice; 121 qubits; 3410 gates -> 3410 operations on the data (3410 branching rotations, 0 Clifford, 0 noise); 0 Clifford gates deferred by the frame
+mode=cupp ranks=16 (one GPU each) coef=0.0001 weight=0 tuned: rank-local application, global deduplication only before each truncation
+expectation=0.798821812544
+largest_local_expansion=1436053 terms
+wall=7.256 s
+exit=0
+===== cupp nodes=4 gpus=16 args: --circuit xxz --lx 6 --ly 6 --jxy 0.1 --jz 0.15 --steps 4 --coef 1e-3 --cupp-tuned 1 --vram-frac 0.45
+circuit: XXZ Trotter, square lattice; 36 qubits; 738 gates -> 738 operations on the data (720 branching rotations, 18 Clifford, 0 noise); 18 Clifford gates deferred by the frame
+mode=cupp ranks=16 (one GPU each) coef=0.001 weight=0 tuned: rank-local application, global deduplication only before each truncation
+expectation=-0.000927434911496
+largest_local_expansion=130082 terms
+wall=3.820 s
+exit=0
+===== cupp nodes=4 gpus=16 args: --circuit qaoa --n 60 --layers 3 --coef 1e-4 --cupp-tuned 1 --vram-frac 0.45
+circuit: QAOA MaxCut, random 3-regular graph; 60 qubits; 510 gates -> 510 operations on the data (450 branching rotations, 60 Clifford, 0 noise); 60 Clifford gates deferred by the frame
+mode=cupp ranks=16 (one GPU each) coef=0.0001 weight=0 tuned: rank-local application, global deduplication only before each truncation
+expectation=47.4783067466
+largest_local_expansion=1160411 terms
+wall=3.488 s
+exit=0
+===== cupp nodes=4 gpus=16 args: --circuit hea --n 60 --layers 8 --amp 0.3 --coef 1e-5 --cupp-tuned 1 --vram-frac 0.45
+circuit: hardware-efficient ansatz, line; 60 qubits; 1432 gates -> 960 operations on the data (960 branching rotations, 0 Clifford, 0 noise); 472 Clifford gates deferred by the frame
+mode=cupp ranks=16 (one GPU each) coef=1e-05 weight=0 tuned: rank-local application, global deduplication only before each truncation
+expectation=0.198250860182
+largest_local_expansion=68937 terms
+wall=3.983 s
+exit=0
+===== cupp nodes=4 gpus=16 args: --circuit ki_noisy --noise 0.005 --coef 1e-4 --cupp-tuned 1 --vram-frac 0.45
+circuit: noisy kicked Ising, Eagle heavy-hex; 127 qubits; 7960 gates -> 7960 operations on the data (2540 branching rotations, 2880 Clifford, 2540 noise); 2880 Clifford gates deferred by the frame
+mode=cupp ranks=16 (one GPU each) coef=0.0001 weight=0 tuned: rank-local application, global deduplication only before each truncation
+[rank 0] cuPauliProp distributed mode ran out of memory at operation 2374 of 7960 with 95903166 local terms (status 0)
+[node 0] FATAL: cuPauliProp distributed capacity (line 901)
+[rank 8] cuPauliProp distributed mode ran out of memory at operation 2374 of 7960 with 95391006 local terms (status 0)
+[node 8] FATAL: cuPauliProp distributed capacity (line 901)
+[rank 4] cuPauliProp distributed mode ran out of memory at operation 2374 of 7960 with 96535027 local terms (status 0)
+[node 4] FATAL: cuPauliProp distributed capacity (line 901)
+[rank 1] cuPauliProp distributed mode ran out of memory at operation 2374 of 7960 with 96565111 local terms (status 0)
+[node 1] FATAL: cuPauliProp distributed capacity (line 901)
+[rank 10] cuPauliProp distributed mode ran out of memory at operation 2374 of 7960 with 95977842 local terms (status 0)
+[node 10] FATAL: cuPauliProp distributed capacity (line 901)
+exit=143
+===== cupp nodes=4 gpus=16 args: --circuit ki_lab --weight 0 --coef 1e-5 --cupp-tuned 1 --vram-frac 0.45
+circuit: kicked Ising, Eagle heavy-hex; 127 qubits; 5420 gates -> 2540 operations on the data (2540 branching rotations, 0 Clifford, 0 noise); 2880 Clifford gates deferred by the frame
+mode=cupp ranks=16 (one GPU each) coef=1e-05 weight=0 tuned: rank-local application, global deduplication only before each truncation
+[rank 4] cuPauliProp distributed mode ran out of memory at operation 831 of 2540 with 101741463 local terms (status 0)
+[node 4] FATAL: cuPauliProp distributed capacity (line 901)
+[rank 0] cuPauliProp distributed mode ran out of memory at operation 831 of 2540 with 101638300 local terms (status 0)
+[node 0] FATAL: cuPauliProp distributed capacity (line 901)
+[rank 8] cuPauliProp distributed mode ran out of memory at operation 831 of 2540 with 101626085 local terms (status 0)
+[node 8] FATAL: cuPauliProp distributed capacity (line 901)
+[rank 12] cuPauliProp distributed mode ran out of memory at operation 831 of 2540 with 101855908 local terms (status 0)
+[rank 5] cuPauliProp distributed mode ran out of memory at operation 831 of 2540 with 101762449 local terms (status 0)
+[node 5] FATAL: cuPauliProp distributed capacity (line 901)
+[rank 1] cuPauliProp distributed mode ran out of memory at operation 831 of 2540 with 101950907 local terms (status 0)
+exit=255
+===== cupp nodes=4 gpus=16 args: --circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-5 --cupp-tuned 1 --vram-frac 0.45
+circuit: TFIM Trotter, Eagle heavy-hex; 127 qubits; 5420 gates -> 5420 operations on the data (5420 branching rotations, 0 Clifford, 0 noise); 0 Clifford gates deferred by the frame
+mode=cupp ranks=16 (one GPU each) coef=1e-05 weight=0 tuned: rank-local application, global deduplication only before each truncation
+[rank 12] cuPauliProp distributed mode ran out of memory at operation 2108 of 5420 with 97846771 local terms (status 0)
+[node 12] FATAL: cuPauliProp distributed capacity (line 901)
+[rank 4] cuPauliProp distributed mode ran out of memory at operation 2108 of 5420 with 97914914 local terms (status 0)
+[node 4] FATAL: cuPauliProp distributed capacity (line 901)
+[rank 8] cuPauliProp distributed mode ran out of memory at operation 2108 of 5420 with 97774615 local terms (status 0)
+[node 8] FATAL: cuPauliProp distributed capacity (line 901)
+[rank 0] cuPauliProp distributed mode ran out of memory at operation 2108 of 5420 with 97774853 local terms (status 0)
+[node 0] FATAL: cuPauliProp distributed capacity (line 901)
+[rank 13] cuPauliProp distributed mode ran out of memory at operation 2108 of 5420 with 97825999 local terms (status 0)
+[node 13] FATAL: cuPauliProp distributed capacity (line 901)
+exit=255
+===== cupp nodes=4 gpus=16 args: --circuit ki_noisy --noise 0.005 --coef 1e-5 --cupp-tuned 1 --vram-frac 0.45
+circuit: noisy kicked Ising, Eagle heavy-hex; 127 qubits; 7960 gates -> 7960 operations on the data (2540 branching rotations, 2880 Clifford, 2540 noise); 2880 Clifford gates deferred by the frame
+mode=cupp ranks=16 (one GPU each) coef=1e-05 weight=0 tuned: rank-local application, global deduplication only before each truncation
+[rank 4] cuPauliProp distributed mode ran out of memory at operation 1942 of 7960 with 124606565 local terms (status 0)
+[node 4] FATAL: cuPauliProp distributed capacity (line 901)
+[rank 12] cuPauliProp distributed mode ran out of memory at operation 1942 of 7960 with 129281154 local terms (status 0)
+[node 12] FATAL: cuPauliProp distributed capacity (line 901)
+[rank 0] cuPauliProp distributed mode ran out of memory at operation 1942 of 7960 with 125537024 local terms (status 0)
+[node 0] FATAL: cuPauliProp distributed capacity (line 901)
+[rank 8] cuPauliProp distributed mode ran out of memory at operation 1942 of 7960 with 128122505 local terms (status 0)
+[node 8] FATAL: cuPauliProp distributed capacity (line 901)
+[rank 5] cuPauliProp distributed mode ran out of memory at operation 1942 of 7960 with 128018221 local terms (status 0)
+[node 5] FATAL: cuPauliProp distributed capacity (line 901)
+exit=255
+===== cupp nodes=4 gpus=16 args: --circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 1e-5 --cupp-tuned 1 --vram-frac 0.45
+circuit: TFIM Trotter, square lattice; 121 qubits; 3410 gates -> 3410 operations on the data (3410 branching rotations, 0 Clifford, 0 noise); 0 Clifford gates deferred by the frame
+mode=cupp ranks=16 (one GPU each) coef=1e-05 weight=0 tuned: rank-local application, global deduplication only before each truncation
+[rank 8] cuPauliProp distributed mode ran out of memory at operation 1648 of 3410 with 98694194 local terms (status 0)
+[node 8] FATAL: cuPauliProp distributed capacity (line 901)
+[rank 12] cuPauliProp distributed mode ran out of memory at operation 1648 of 3410 with 98722359 local terms (status 0)
+[node 12] FATAL: cuPauliProp distributed capacity (line 901)
+[rank 0] cuPauliProp distributed mode ran out of memory at operation 1648 of 3410 with 98681229 local terms (status 0)
+[node 0] FATAL: cuPauliProp distributed capacity (line 901)
+[rank 4] cuPauliProp distributed mode ran out of memory at operation 1648 of 3410 with 98758173 local terms (status 0)
+[node 4] FATAL: cuPauliProp distributed capacity (line 901)
+[rank 9] cuPauliProp distributed mode ran out of memory at operation 1648 of 3410 with 98753271 local terms (status 0)
+[node 9] FATAL: cuPauliProp distributed capacity (line 901)
+exit=255
+===== cupp nodes=4 gpus=16 args: --circuit ki_lab --weight 0 --coef 3e-6 --cupp-tuned 1 --vram-frac 0.45
+circuit: kicked Ising, Eagle heavy-hex; 127 qubits; 5420 gates -> 2540 operations on the data (2540 branching rotations, 0 Clifford, 0 noise); 2880 Clifford gates deferred by the frame
+mode=cupp ranks=16 (one GPU each) coef=3e-06 weight=0 tuned: rank-local application, global deduplication only before each truncation
+[rank 12] cuPauliProp distributed mode ran out of memory at operation 809 of 2540 with 100155674 local terms (status 0)
+[node 12] FATAL: cuPauliProp distributed capacity (line 901)
+[rank 4] cuPauliProp distributed mode ran out of memory at operation 809 of 2540 with 100237191 local terms (status 0)
+[node 4] FATAL: cuPauliProp distributed capacity (line 901)
+[rank 0] cuPauliProp distributed mode ran out of memory at operation 809 of 2540 with 100212077 local terms (status 0)
+[node 0] FATAL: cuPauliProp distributed capacity (line 901)
+[rank 8] cuPauliProp distributed mode ran out of memory at operation 809 of 2540 with 100141727 local terms (status 0)
+[node 8] FATAL: cuPauliProp distributed capacity (line 901)
+[rank 13] cuPauliProp distributed mode ran out of memory at operation 809 of 2540 with 100219208 local terms (status 0)
+[node 13] FATAL: cuPauliProp distributed capacity (line 901)
+exit=255
+===== cupp nodes=1 gpus=4 args: --circuit ki_lab --weight 0 --coef 1e-5 --cupp-tuned 1 --vram-frac 0.45
+circuit: kicked Ising, Eagle heavy-hex; 127 qubits; 5420 gates -> 2540 operations on the data (2540 branching rotations, 0 Clifford, 0 noise); 2880 Clifford gates deferred by the frame
+mode=cupp ranks=4 (one GPU each) coef=1e-05 weight=0 tuned: rank-local application, global deduplication only before each truncation
+[rank 0] cuPauliProp distributed mode ran out of memory at operation 810 of 2540 with 113069469 local terms (status 0)
+[node 0] FATAL: cuPauliProp distributed capacity (line 901)
+[rank 1] cuPauliProp distributed mode ran out of memory at operation 810 of 2540 with 113120312 local terms (status 0)
+[node 1] FATAL: cuPauliProp distributed capacity (line 901)
+[rank 2] cuPauliProp distributed mode ran out of memory at operation 810 of 2540 with 113065947 local terms (status 0)
+[node 2] FATAL: cuPauliProp distributed capacity (line 901)
+[rank 3] cuPauliProp distributed mode ran out of memory at operation 810 of 2540 with 113128724 local terms (status 0)
+[node 3] FATAL: cuPauliProp distributed capacity (line 901)
+[2026-10-07T09:23:10.514] error: *** STEP 59475947.58 ON nid200269 CANCELLED AT 2026-10-07T09:23:10 DUE TO TASK FAILURE ***
+exit=255
+===== cupp nodes=2 gpus=8 args: --circuit ki_lab --weight 0 --coef 1e-5 --cupp-tuned 1 --vram-frac 0.45
+circuit: kicked Ising, Eagle heavy-hex; 127 qubits; 5420 gates -> 2540 operations on the data (2540 branching rotations, 0 Clifford, 0 noise); 2880 Clifford gates deferred by the frame
+mode=cupp ranks=8 (one GPU each) coef=1e-05 weight=0 tuned: rank-local application, global deduplication only before each truncation
+[rank 0] cuPauliProp distributed mode ran out of memory at operation 829 of 2540 with 105106645 local terms (status 0)
+[node 0] FATAL: cuPauliProp distributed capacity (line 901)
+[rank 4] cuPauliProp distributed mode ran out of memory at operation 829 of 2540 with 105182023 local terms (status 0)
+[node 4] FATAL: cuPauliProp distributed capacity (line 901)
+[rank 1] cuPauliProp distributed mode ran out of memory at operation 829 of 2540 with 105266647 local terms (status 0)
+[node 1] FATAL: cuPauliProp distributed capacity (line 901)
+[rank 5] cuPauliProp distributed mode ran out of memory at operation 829 of 2540 with 105155939 local terms (status 0)
+[node 5] FATAL: cuPauliProp distributed capacity (line 901)
+[rank 2] cuPauliProp distributed mode ran out of memory at operation 829 of 2540 with 105225855 local terms (status 0)
+[node 2] FATAL: cuPauliProp distributed capacity (line 901)
+exit=255
+===== engine nodes=1 gpus=4 args: --circuit ki_lab --weight 0 --coef 1e-5 --target 6000000 --vram-frac 0.45 --gpus 1
+circuit: kicked Ising, Eagle heavy-hex; 127 qubits; 5420 gates -> 2540 operations on the data (2540 branching rotations, 0 Clifford, 0 noise); 2880 Clifford gates deferred by the frame
+mode=engine nodes=1 gpus/node=1 coef=1e-05 weight=0 truncEvery=10 GPU capacity=190451073 terms/buffer bucket target=6000000 gmax=8 window=ann host=pinned chunks
+expectation=0.228607441423
+windows=20 (longest 127 operations, smallest row space 127 of 254, largest coset share 0.0000) partitioned boundaries=14
+max_terms_at_window_boundary=158924060 largest_bucket_on_a_gpu=88612139 bucket_runs=628 splits_on_gpu=13 splits_on_host=0
+integrity: 1507399953 term checks against 8 conserved parities, 0 violations (1.732 s summed over workers)
+wall=155.538 s; summed over 1 GPU workers: operations=143.348 partition=2.741 host->gpu=4.380 gpu->host=2.905 idle=0.000; planning=0.423; pilot=0.000 (0 window ends chosen)
+host memory in chunks: 8.79 GiB on the busiest node
+exit=0
+===== engine nodes=1 gpus=4 args: --circuit ki_lab --weight 0 --coef 1e-5 --target 6000000 --vram-frac 0.45 --gpus 2
+circuit: kicked Ising, Eagle heavy-hex; 127 qubits; 5420 gates -> 2540 operations on the data (2540 branching rotations, 0 Clifford, 0 noise); 2880 Clifford gates deferred by the frame
+mode=engine nodes=1 gpus/node=2 coef=1e-05 weight=0 truncEvery=10 GPU capacity=190451073 terms/buffer bucket target=6000000 gmax=8 window=ann host=pinned chunks
+expectation=0.228607441423
+windows=20 (longest 127 operations, smallest row space 127 of 254, largest coset share 0.0000) partitioned boundaries=14
+max_terms_at_window_boundary=158924060 largest_bucket_on_a_gpu=88612139 bucket_runs=628 splits_on_gpu=13 splits_on_host=0
+integrity: 1507399953 term checks against 8 conserved parities, 0 violations (1.688 s summed over workers)
+wall=82.679 s; summed over 2 GPU workers: operations=149.755 partition=2.770 host->gpu=4.490 gpu->host=3.391 idle=2.429; planning=0.412; pilot=0.000 (0 window ends chosen)
+host memory in chunks: 10.95 GiB on the busiest node
+exit=0
+===== cupp nodes=4 gpus=16 args: --circuit ki_lab --weight 0 --coef 3e-6 --vram-frac 0.9
+circuit: kicked Ising, Eagle heavy-hex; 127 qubits; 5420 gates -> 2540 operations on the data (2540 branching rotations, 0 Clifford, 0 noise); 2880 Clifford gates deferred by the frame
+mode=cupp ranks=16 (one GPU each) coef=3e-06 weight=0 default: global deduplication in every operation
+[rank 0] cuPauliProp distributed mode ran out of memory at operation 830 of 2540 with 217260267 local terms (status 8)
+[node 0] FATAL: cuPauliProp distributed capacity (line 901)
+[rank 1] cuPauliProp distributed mode ran out of memory at operation 830 of 2540 with 217282916 local terms (status 8)
+[node 1] FATAL: cuPauliProp distributed capacity (line 901)
+[rank 4] cuPauliProp distributed mode ran out of memory at operation 830 of 2540 with 217271665 local terms (status 8)
+[node 4] FATAL: cuPauliProp distributed capacity (line 901)
+[rank 9] cuPauliProp distributed mode ran out of memory at operation 830 of 2540 with 217295611 local terms (status 8)
+[node 9] FATAL: cuPauliProp distributed capacity (line 901)
+[rank 2] cuPauliProp distributed mode ran out of memory at operation 830 of 2540 with 217288498 local terms (status 8)
+[node 2] FATAL: cuPauliProp distributed capacity (line 901)
+exit=255
+===== cupp nodes=4 gpus=16 args: --circuit ki_lab --weight 0 --coef 1e-6 --vram-frac 0.9
+circuit: kicked Ising, Eagle heavy-hex; 127 qubits; 5420 gates -> 2540 operations on the data (2540 branching rotations, 0 Clifford, 0 noise); 2880 Clifford gates deferred by the frame
+mode=cupp ranks=16 (one GPU each) coef=1e-06 weight=0 default: global deduplication in every operation
+[rank 0] cuPauliProp distributed mode ran out of memory at operation 808 of 2540 with 213492871 local terms (status 8)
+[node 0] FATAL: cuPauliProp distributed capacity (line 901)
+[rank 9] cuPauliProp distributed mode ran out of memory at operation 808 of 2540 with 213471276 local terms (status 8)
+[node 9] FATAL: cuPauliProp distributed capacity (line 901)
+[rank 12] cuPauliProp distributed mode ran out of memory at operation 808 of 2540 with 213480687 local terms (status 8)
+[node 12] FATAL: cuPauliProp distributed capacity (line 901)
+[rank 4] cuPauliProp distributed mode ran out of memory at operation 808 of 2540 with 213510740 local terms (status 8)
+[node 4] FATAL: cuPauliProp distributed capacity (line 901)
+[rank 1] cuPauliProp distributed mode ran out of memory at operation 808 of 2540 with 213457299 local terms (status 8)
+[node 1] FATAL: cuPauliProp distributed capacity (line 901)
+exit=255
+===== cupp nodes=4 gpus=16 args: --circuit ki_lab --weight 0 --coef 3e-6 --cupp-tuned 1 --vram-frac 0.9
+circuit: kicked Ising, Eagle heavy-hex; 127 qubits; 5420 gates -> 2540 operations on the data (2540 branching rotations, 0 Clifford, 0 noise); 2880 Clifford gates deferred by the frame
+mode=cupp ranks=16 (one GPU each) coef=3e-06 weight=0 tuned: rank-local application, global deduplication only before each truncation
+[rank 4] cuPauliProp distributed mode ran out of memory at operation 811 of 2540 with 191649964 local terms (status 0)
+[node 4] FATAL: cuPauliProp distributed capacity (line 901)
+[rank 0] cuPauliProp distributed mode ran out of memory at operation 811 of 2540 with 191645965 local terms (status 0)
+[node 0] FATAL: cuPauliProp distributed capacity (line 901)
+[rank 8] cuPauliProp distributed mode ran out of memory at operation 811 of 2540 with 191391660 local terms (status 0)
+[node 8] FATAL: cuPauliProp distributed capacity (line 901)
+[rank 5] cuPauliProp distributed mode ran out of memory at operation 811 of 2540 with 191474199 local terms (status 0)
+[node 5] FATAL: cuPauliProp distributed capacity (line 901)
+[rank 1] cuPauliProp distributed mode ran out of memory at operation 811 of 2540 with 191549458 local terms (status 0)
+[node 1] FATAL: cuPauliProp distributed capacity (line 901)
+exit=255
+===== engine nodes=4 gpus=16 args: --circuit ki_lab --coef 1e-4 --target 1000000 --vram-frac 0.45
+circuit: kicked Ising, Eagle heavy-hex; 127 qubits; 5420 gates -> 2540 operations on the data (2540 branching rotations, 0 Clifford, 0 noise); 2880 Clifford gates deferred by the frame
+mode=engine nodes=4 gpus/node=4 coef=0.0001 weight=0 truncEvery=10 GPU capacity=190451073 terms/buffer bucket target=1000000 gmax=8 window=ann host=pinned chunks
+expectation=0.153108187591
+windows=20 (longest 127 operations, smallest row space 127 of 254, largest coset share 0.0000) partitioned boundaries=14
+max_terms_at_window_boundary=2325624 largest_bucket_on_a_gpu=8979612 bucket_runs=110 splits_on_gpu=0 splits_on_host=0
+integrity: 18886844 term checks against 8 conserved parities, 0 violations (0.222 s summed over workers)
+wall=1.293 s; summed over 16 GPU workers: operations=3.899 partition=0.173 host->gpu=0.046 gpu->host=1.123 idle=4.646; planning=0.268; pilot=0.000 (0 window ends chosen)
+host memory in chunks: 0.27 GiB on the busiest node
+between nodes: 0.554 GB sent, 0.130 s per node on average with all GPUs idle (exchange after each window)
+exit=0
+===== cupp nodes=4 gpus=16 args: --circuit ki_lab --coef 1e-4 --vram-frac 0.45
+circuit: kicked Ising, Eagle heavy-hex; 127 qubits; 5420 gates -> 2540 operations on the data (2540 branching rotations, 0 Clifford, 0 noise); 2880 Clifford gates deferred by the frame
+mode=cupp ranks=16 (one GPU each) coef=0.0001 weight=0 default: global deduplication in every operation
+expectation=0.153108187591
+largest_local_expansion=1410321 terms
+wall=24.005 s
+exit=0
+===== engine nodes=4 gpus=16 args: --circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-4 --target 1000000 --vram-frac 0.45
+circuit: TFIM Trotter, Eagle heavy-hex; 127 qubits; 5420 gates -> 5420 operations on the data (5420 branching rotations, 0 Clifford, 0 noise); 0 Clifford gates deferred by the frame
+mode=engine nodes=4 gpus/node=4 coef=0.0001 weight=0 truncEvery=10 GPU capacity=190451073 terms/buffer bucket target=1000000 gmax=8 window=ann host=pinned chunks
+expectation=0.324547666766
+windows=45 (longest 140 operations, smallest row space 127 of 254, largest coset share 0.0000) partitioned boundaries=24
+max_terms_at_window_boundary=3158929 largest_bucket_on_a_gpu=2710112 bucket_runs=233 splits_on_gpu=0 splits_on_host=0
+integrity: 32478111 term checks against 1 conserved parities, 0 violations (0.309 s summed over workers)
+wall=1.944 s; summed over 16 GPU workers: operations=4.195 partition=0.330 host->gpu=0.074 gpu->host=0.717 idle=7.283; planning=0.455; pilot=0.000 (0 window ends chosen)
+host memory in chunks: 0.55 GiB on the busiest node
+between nodes: 0.927 GB sent, 0.240 s per node on average with all GPUs idle (exchange after each window)
+exit=0
+===== cupp nodes=4 gpus=16 args: --circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-4 --vram-frac 0.45
+circuit: TFIM Trotter, Eagle heavy-hex; 127 qubits; 5420 gates -> 5420 operations on the data (5420 branching rotations, 0 Clifford, 0 noise); 0 Clifford gates deferred by the frame
+mode=cupp ranks=16 (one GPU each) coef=0.0001 weight=0 default: global deduplication in every operation
+expectation=0.324547666766
+largest_local_expansion=1328538 terms
+wall=46.814 s
+exit=0
+===== engine nodes=4 gpus=16 args: --circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 1e-4 --target 1000000 --vram-frac 0.45
+circuit: TFIM Trotter, square lattice; 121 qubits; 3410 gates -> 3410 operations on the data (3410 branching rotations, 0 Clifford, 0 noise); 0 Clifford gates deferred by the frame
+mode=engine nodes=4 gpus/node=4 coef=0.0001 weight=0 truncEvery=10 GPU capacity=190451073 terms/buffer bucket target=1000000 gmax=8 window=ann host=pinned chunks
+expectation=0.798821812544
+windows=24 (longest 220 operations, smallest row space 121 of 242, largest coset share 0.0000) partitioned boundaries=16
+max_terms_at_window_boundary=3222683 largest_bucket_on_a_gpu=2142590 bucket_runs=170 splits_on_gpu=0 splits_on_host=0
+integrity: 24678309 term checks against 1 conserved parities, 0 violations (0.170 s summed over workers)
+wall=1.438 s; summed over 16 GPU workers: operations=3.520 partition=0.241 host->gpu=0.058 gpu->host=1.325 idle=5.359; planning=0.326; pilot=0.000 (0 window ends chosen)
+host memory in chunks: 0.55 GiB on the busiest node
+between nodes: 0.730 GB sent, 0.213 s per node on average with all GPUs idle (exchange after each window)
+exit=0
+===== cupp nodes=4 gpus=16 args: --circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 1e-4 --vram-frac 0.45
+circuit: TFIM Trotter, square lattice; 121 qubits; 3410 gates -> 3410 operations on the data (3410 branching rotations, 0 Clifford, 0 noise); 0 Clifford gates deferred by the frame
+mode=cupp ranks=16 (one GPU each) coef=0.0001 weight=0 default: global deduplication in every operation
+expectation=0.798821812544
+largest_local_expansion=1064003 terms
+wall=30.576 s
+exit=0
+===== engine nodes=4 gpus=16 args: --circuit xxz --lx 6 --ly 6 --jxy 0.1 --jz 0.15 --steps 4 --coef 1e-3 --target 1000000 --vram-frac 0.45
+circuit: XXZ Trotter, square lattice; 36 qubits; 738 gates -> 738 operations on the data (720 branching rotations, 18 Clifford, 0 noise); 18 Clifford gates deferred by the frame
+mode=engine nodes=4 gpus/node=4 coef=0.001 weight=0 truncEvery=10 GPU capacity=317418455 terms/buffer bucket target=1000000 gmax=8 window=ann host=pinned chunks
+expectation=-0.000927434911496
+windows=15 (longest 50 operations, smallest row space 36 of 72, largest coset share 0.0000) partitioned boundaries=0
+max_terms_at_window_boundary=48652 largest_bucket_on_a_gpu=798281 bucket_runs=15 splits_on_gpu=0 splits_on_host=0
+integrity: 338951 term checks against 2 conserved parities, 0 violations (0.014 s summed over workers)
+wall=0.168 s; summed over 16 GPU workers: operations=0.148 partition=0.000 host->gpu=0.001 gpu->host=0.001 idle=0.490; planning=0.001; pilot=0.000 (0 window ends chosen)
+host memory in chunks: 0.01 GiB on the busiest node
+between nodes: 0.000 GB sent, 0.000 s per node on average with all GPUs idle (exchange after each window)
+exit=0
+===== cupp nodes=4 gpus=16 args: --circuit xxz --lx 6 --ly 6 --jxy 0.1 --jz 0.15 --steps 4 --coef 1e-3 --vram-frac 0.45
+circuit: XXZ Trotter, square lattice; 36 qubits; 738 gates -> 738 operations on the data (720 branching rotations, 18 Clifford, 0 noise); 18 Clifford gates deferred by the frame
+mode=cupp ranks=16 (one GPU each) coef=0.001 weight=0 default: global deduplication in every operation
+expectation=-0.000927434911496
+largest_local_expansion=50342 terms
+wall=9.554 s
+exit=0
+===== engine nodes=4 gpus=16 args: --circuit qaoa --n 60 --layers 3 --coef 1e-4 --target 1000000 --vram-frac 0.45
+circuit: QAOA MaxCut, random 3-regular graph; 60 qubits; 510 gates -> 510 operations on the data (450 branching rotations, 60 Clifford, 0 noise); 60 Clifford gates deferred by the frame
+mode=engine nodes=4 gpus/node=4 coef=0.0001 weight=0 truncEvery=10 GPU capacity=317418455 terms/buffer bucket target=1000000 gmax=8 window=ann host=pinned chunks
+expectation=47.4783067466
+windows=6 (longest 150 operations, smallest row space 60 of 120, largest coset share 0.0000) partitioned boundaries=1
+max_terms_at_window_boundary=1276745 largest_bucket_on_a_gpu=1972996 bucket_runs=37 splits_on_gpu=0 splits_on_host=0
+wall=0.418 s; summed over 16 GPU workers: operations=1.851 partition=0.003 host->gpu=0.005 gpu->host=0.129 idle=0.750; planning=0.022; pilot=0.000 (0 window ends chosen)
+host memory in chunks: 0.19 GiB on the busiest node
+between nodes: 0.023 GB sent, 0.031 s per node on average with all GPUs idle (exchange after each window)
+exit=0
+===== cupp nodes=4 gpus=16 args: --circuit qaoa --n 60 --layers 3 --coef 1e-4 --vram-frac 0.45
+circuit: QAOA MaxCut, random 3-regular graph; 60 qubits; 510 gates -> 510 operations on the data (450 branching rotations, 60 Clifford, 0 noise); 60 Clifford gates deferred by the frame
+mode=cupp ranks=16 (one GPU each) coef=0.0001 weight=0 default: global deduplication in every operation
+expectation=47.4783067466
+largest_local_expansion=943352 terms
+wall=8.095 s
+exit=0
+===== engine nodes=4 gpus=16 args: --circuit hea --n 60 --layers 8 --amp 0.3 --coef 1e-5 --target 1000000 --vram-frac 0.45
+circuit: hardware-efficient ansatz, line; 60 qubits; 1432 gates -> 960 operations on the data (960 branching rotations, 0 Clifford, 0 noise); 472 Clifford gates deferred by the frame
+mode=engine nodes=4 gpus/node=4 coef=1e-05 weight=0 truncEvery=10 GPU capacity=317418455 terms/buffer bucket target=1000000 gmax=8 window=ann host=pinned chunks
+expectation=0.198250860182
+windows=18 (longest 60 operations, smallest row space 60 of 120, largest coset share 0.0000) partitioned boundaries=0
+max_terms_at_window_boundary=144639 largest_bucket_on_a_gpu=434826 bucket_runs=18 splits_on_gpu=0 splits_on_host=0
+wall=0.107 s; summed over 16 GPU workers: operations=0.099 partition=0.000 host->gpu=0.001 gpu->host=0.001 idle=0.302; planning=0.002; pilot=0.000 (0 window ends chosen)
+host memory in chunks: 0.01 GiB on the busiest node
+between nodes: 0.000 GB sent, 0.000 s per node on average with all GPUs idle (exchange after each window)
+exit=0
+===== cupp nodes=4 gpus=16 args: --circuit hea --n 60 --layers 8 --amp 0.3 --coef 1e-5 --vram-frac 0.45
+circuit: hardware-efficient ansatz, line; 60 qubits; 1432 gates -> 960 operations on the data (960 branching rotations, 0 Clifford, 0 noise); 472 Clifford gates deferred by the frame
+mode=cupp ranks=16 (one GPU each) coef=1e-05 weight=0 default: global deduplication in every operation
+expectation=0.198250860182
+largest_local_expansion=27420 terms
+wall=12.247 s
+exit=0
+===== engine nodes=4 gpus=16 args: --circuit ki_noisy --noise 0.005 --coef 1e-4 --target 1000000 --vram-frac 0.45
+circuit: noisy kicked Ising, Eagle heavy-hex; 127 qubits; 7960 gates -> 7960 operations on the data (2540 branching rotations, 2880 Clifford, 2540 noise); 2880 Clifford gates deferred by the frame
+mode=engine nodes=4 gpus/node=4 coef=0.0001 weight=0 truncEvery=10 GPU capacity=190451073 terms/buffer bucket target=1000000 gmax=8 window=ann host=pinned chunks
+expectation=0.156114065827
+windows=20 (longest 525 operations, smallest row space 127 of 254, largest coset share 0.0000) partitioned boundaries=11
+max_terms_at_window_boundary=1346936 largest_bucket_on_a_gpu=6357942 bucket_runs=61 splits_on_gpu=0 splits_on_host=0
+integrity: 8955285 term checks against 8 conserved parities, 0 violations (0.139 s summed over workers)
+wall=2.534 s; summed over 16 GPU workers: operations=4.436 partition=0.058 host->gpu=0.021 gpu->host=0.408 idle=6.747; planning=1.011; pilot=0.000 (0 window ends chosen)
+host memory in chunks: 0.16 GiB on the busiest node
+between nodes: 0.221 GB sent, 0.068 s per node on average with all GPUs idle (exchange after each window)
+exit=0
+===== cupp nodes=4 gpus=16 args: --circuit ki_noisy --noise 0.005 --coef 1e-4 --vram-frac 0.45
+circuit: noisy kicked Ising, Eagle heavy-hex; 127 qubits; 7960 gates -> 7960 operations on the data (2540 branching rotations, 2880 Clifford, 2540 noise); 2880 Clifford gates deferred by the frame
+mode=cupp ranks=16 (one GPU each) coef=0.0001 weight=0 default: global deduplication in every operation
+expectation=0.156114065827
+largest_local_expansion=858567 terms
+wall=48.506 s
+exit=0
+===== engine nodes=4 gpus=16 args: --circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 1e-5 --target 4000000 --vram-frac 0.45
+circuit: TFIM Trotter, square lattice; 121 qubits; 3410 gates -> 3410 operations on the data (3410 branching rotations, 0 Clifford, 0 noise); 0 Clifford gates deferred by the frame
+mode=engine nodes=4 gpus/node=4 coef=1e-05 weight=0 truncEvery=10 GPU capacity=190451073 terms/buffer bucket target=4000000 gmax=8 window=ann host=pinned chunks
+expectation=0.824629850051
+windows=24 (longest 220 operations, smallest row space 121 of 242, largest coset share 0.0000) partitioned boundaries=16
+max_terms_at_window_boundary=260193707 largest_bucket_on_a_gpu=30169331 bucket_runs=1528 splits_on_gpu=0 splits_on_host=0
+integrity: 1998676430 term checks against 1 conserved parities, 0 violations (2.480 s summed over workers)
+wall=15.065 s; summed over 16 GPU workers: operations=132.604 partition=4.937 host->gpu=5.062 gpu->host=28.670 idle=5.442; planning=0.515; pilot=0.000 (0 window ends chosen)
+host memory in chunks: 4.42 GiB on the busiest node
+between nodes: 59.938 GB sent, 2.382 s per node on average with all GPUs idle (exchange after each window)
+exit=0
+===== cupp nodes=4 gpus=16 args: --circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 1e-5 --vram-frac 0.45
+circuit: TFIM Trotter, square lattice; 121 qubits; 3410 gates -> 3410 operations on the data (3410 branching rotations, 0 Clifford, 0 noise); 0 Clifford gates deferred by the frame
+mode=cupp ranks=16 (one GPU each) coef=1e-05 weight=0 default: global deduplication in every operation
+expectation=0.824629850051
+largest_local_expansion=89118937 terms
+wall=53.515 s
+exit=0
+done

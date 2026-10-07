@@ -104,6 +104,8 @@ struct Opts {
   std::string ckptFile, resume;
   int ckptWindow = -1, stopAtCkpt = 0;
   std::string profile;           // write the number of terms before every operation to this file
+  int cuppTuned = 0;             // --mode cupp: apply operations rank-locally and deduplicate globally only before truncations
+  int cuppDedupEvery = 0;        // --mode cupp, tuned: also deduplicate globally after this many operations (0 = only before truncations)
 };
 
 static Layout g_L;
@@ -872,7 +874,12 @@ static int runCuppDistributed(const Opts& o, const Problem& P) {
     else if (p.type == OP_CLIFF) CUPP(cupaulipropCreateCliffordGateOperator(handle, p.cliff, p.qubits.data(), &oper[i]));
     else CUPP(cupaulipropCreatePauliNoiseChannelOperator(handle, (int32_t)p.qubits.size(), p.qubits.data(), p.prob, &oper[i]));
   }
-  if (g_rank == 0) { printf("mode=cupp ranks=%d (one GPU each) coef=%g weight=%d\n", g_R, o.coef, o.weight); fflush(stdout); }
+  if (g_rank == 0) { printf("mode=cupp ranks=%d (one GPU each) coef=%g weight=%d %s\n", g_R, o.coef, o.weight,
+                            o.cuppTuned ? "tuned: rank-local application, global deduplication before each truncation" : "default: global deduplication in every operation");
+                     if (o.cuppTuned && o.cuppDedupEvery > 0) printf("tuned: additional global deduplication every %d operations\n", o.cuppDedupEvery);
+                     fflush(stdout); }
+  const int keepDup = o.cuppTuned ? 1 : 0;
+  int sinceDedup = 0;
   MPI_Barrier(MPI_COMM_WORLD);
   const double t0 = MPI_Wtime();
   int cur = 0;
@@ -883,13 +890,16 @@ static int runCuppDistributed(const Opts& o, const Problem& P) {
     CUPP(cupaulipropPauliExpansionGetNumTerms(handle, ex[cur], &m));
     maxLocal = std::max<long>(maxLocal, m);
     const bool dust = (op.type == OP_ROT && !op.branches);
-    const int32_t nT = op.trunc ? (int32_t)trunc.size() : (dust ? 1 : 0);
-    const cupaulipropTruncationStrategy_t* pT = op.trunc ? trunc.data() : (dust ? junk.data() : nullptr);
+    // Tuned: the coefficient cutoff is not applied inside the application (it would act on rank-local,
+    // unmerged terms). The 1e-13 cutoff that removes the vanishing branch of a Clifford-angle rotation is.
+    const bool fused = op.trunc && !keepDup;
+    const int32_t nT = fused ? (int32_t)trunc.size() : (dust ? 1 : 0);
+    const cupaulipropTruncationStrategy_t* pT = fused ? trunc.data() : (dust ? junk.data() : nullptr);
     cupaulipropPauliExpansionView_t v;
     CUPP(cupaulipropPauliExpansionGetContiguousRange(handle, ex[cur], 0, m, &v));
     int64_t rp = 0, rc = 0;
     cupaulipropStatus_t sp = cupaulipropPauliExpansionViewPrepareOperatorApplication(
-      handle, v, oper[k], CUPAULIPROP_SORT_ORDER_NONE, 0, nT, pT, wsMem, &rp, &rc, ws);
+      handle, v, oper[k], CUPAULIPROP_SORT_ORDER_NONE, keepDup, nT, pT, wsMem, &rp, &rc, ws);
     if (sp != CUPAULIPROP_STATUS_SUCCESS || rp > (int64_t)xzMem || rc > (int64_t)cfMem) {
       fprintf(stderr, "[rank %d] cuPauliProp distributed mode ran out of memory at operation %zu of %zu with %ld local terms (status %d)\n",
               g_rank, k, g_ops.size(), (long)m, (int)sp);
@@ -897,7 +907,7 @@ static int runCuppDistributed(const Opts& o, const Problem& P) {
     }
     CUPP(cupaulipropWorkspaceSetMemory(handle, ws, CUPAULIPROP_MEMSPACE_DEVICE, CUPAULIPROP_WORKSPACE_SCRATCH, dWs, wsMem));
     cupaulipropStatus_t sc = cupaulipropPauliExpansionViewComputeOperatorApplication(
-      handle, v, ex[1 - cur], oper[k], 1, CUPAULIPROP_SORT_ORDER_NONE, 0, nT, pT, ws, stream);
+      handle, v, ex[1 - cur], oper[k], 1, CUPAULIPROP_SORT_ORDER_NONE, keepDup, nT, pT, ws, stream);
     if (sc != CUPAULIPROP_STATUS_SUCCESS) {
       fprintf(stderr, "[rank %d] cuPauliProp distributed mode failed at operation %zu with %ld local terms (status %d)\n", g_rank, k, (long)m, (int)sc);
       die("cuPauliProp distributed application", __LINE__);
@@ -905,6 +915,40 @@ static int runCuppDistributed(const Opts& o, const Problem& P) {
     CUDA(cudaStreamSynchronize(stream));
     CUPP(cupaulipropDestroyPauliExpansionView(v));
     cur ^= 1;
+    if (keepDup) sinceDedup++;
+    if (keepDup && (op.trunc || k + 1 == g_ops.size() || (o.cuppDedupEvery > 0 && sinceDedup >= o.cuppDedupEvery))) {
+      sinceDedup = 0;
+      // Global deduplication, then truncation on merged coefficients.
+      int64_t m2 = 0;
+      CUPP(cupaulipropPauliExpansionGetNumTerms(handle, ex[cur], &m2));
+      cupaulipropPauliExpansionView_t v2;
+      CUPP(cupaulipropPauliExpansionGetContiguousRange(handle, ex[cur], 0, m2, &v2));
+      cupaulipropStatus_t sd = cupaulipropPauliExpansionViewPrepareDeduplication(handle, v2, CUPAULIPROP_SORT_ORDER_NONE, wsMem, ws);
+      if (sd == CUPAULIPROP_STATUS_SUCCESS) {
+        CUPP(cupaulipropWorkspaceSetMemory(handle, ws, CUPAULIPROP_MEMSPACE_DEVICE, CUPAULIPROP_WORKSPACE_SCRATCH, dWs, wsMem));
+        sd = cupaulipropPauliExpansionViewExecuteDeduplication(handle, v2, ex[1 - cur], CUPAULIPROP_SORT_ORDER_NONE, ws, stream);
+      }
+      if (sd != CUPAULIPROP_STATUS_SUCCESS) {
+        fprintf(stderr, "[rank %d] cuPauliProp distributed mode ran out of memory in deduplication at operation %zu with %ld local terms (status %d)\n", g_rank, k, (long)m2, (int)sd);
+        die("cuPauliProp distributed deduplication", __LINE__);
+      }
+      CUDA(cudaStreamSynchronize(stream));
+      CUPP(cupaulipropDestroyPauliExpansionView(v2));
+      cur ^= 1;
+      maxLocal = std::max<long>(maxLocal, m2);
+      if (op.trunc) {
+        int64_t m3 = 0;
+        CUPP(cupaulipropPauliExpansionGetNumTerms(handle, ex[cur], &m3));
+        cupaulipropPauliExpansionView_t v3;
+        CUPP(cupaulipropPauliExpansionGetContiguousRange(handle, ex[cur], 0, m3, &v3));
+        CUPP(cupaulipropPauliExpansionViewPrepareTruncation(handle, v3, (int32_t)trunc.size(), trunc.data(), wsMem, ws));
+        CUPP(cupaulipropWorkspaceSetMemory(handle, ws, CUPAULIPROP_MEMSPACE_DEVICE, CUPAULIPROP_WORKSPACE_SCRATCH, dWs, wsMem));
+        CUPP(cupaulipropPauliExpansionViewExecuteTruncation(handle, v3, ex[1 - cur], (int32_t)trunc.size(), trunc.data(), ws, stream));
+        CUDA(cudaStreamSynchronize(stream));
+        CUPP(cupaulipropDestroyPauliExpansionView(v3));
+        cur ^= 1;
+      }
+    }
   }
   int64_t m = 0;
   CUPP(cupaulipropPauliExpansionGetNumTerms(handle, ex[cur], &m));
@@ -993,6 +1037,8 @@ int main(int argc, char** argv) {
     else if (a == "--stop-at-ckpt") o.stopAtCkpt = atoi(next());
     else if (a == "--resume")      o.resume = next();
     else if (a == "--profile")     o.profile = next();
+    else if (a == "--cupp-tuned")  o.cuppTuned = atoi(next());
+    else if (a == "--cupp-dedup-every") o.cuppDedupEvery = atoi(next());
     else { fprintf(stderr, "unknown option %s\n", a.c_str()); die("bad option", __LINE__); }
   }
   const bool ref = (o.mode == "ref");

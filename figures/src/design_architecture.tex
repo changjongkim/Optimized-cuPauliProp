@@ -1,0 +1,57 @@
+\documentclass[tikz,border=5pt]{standalone}
+\input{src/common.tex}
+\begin{document}
+\begin{tikzpicture}[x=1cm,y=1cm]
+% ---------- planner ----------
+\node[frame, fill=lav, minimum width=15.4cm, minimum height=1.5cm, anchor=south west] (plan) at (0,8.3) {};
+\node[font=\bfseries\large, anchor=west] at (0.25,9.05) {Planner};
+\node[box, minimum width=2.7cm] (pw) at (4.0,9.05) {Window Length};
+\node[box, minimum width=2.7cm] (pr) at (7.2,9.05) {Parity Rows};
+\node[box, minimum width=2.7cm] (pb) at (10.4,9.05) {Bucket Count};
+\node[font=\small\itshape, anchor=west, align=left] at (12.0,9.05) {chosen at run time,\\once per window};
+% ---------- nodes ----------
+\foreach \n/\x in {1/0,2/7.9} {
+  \node[frame, fill=panel, minimum width=7.5cm, minimum height=6.1cm, anchor=south west] (N\n) at (\x,1.6) {};
+  \node[font=\bfseries\large, anchor=north west] at (\x+0.2,7.6) {Node \n};
+  % GPU workers
+  \foreach \g/\gx in {A/0.35,B/3.85} {
+    \node[frame, fill=white, minimum width=3.3cm, minimum height=1.7cm, anchor=south west] (G\n\g) at (\x+\gx,5.05) {};
+    \node[font=\bfseries, anchor=north] at ($(G\n\g.north)+(0,-0.06)$) {GPU Worker};
+    \node[frame, draw=teal, fill=tealfill, minimum width=1.5cm, minimum height=0.55cm, font=\small] (K\n\g) at ($(G\n\g.south)+(-0.55,0.55)$) {bucket};
+    \node[stepno] at ($(G\n\g.south)+(0.85,0.55)$) {2};
+  }
+  % host store
+  \node[frame, fill=sandlight, minimum width=6.8cm, minimum height=2.1cm, anchor=south west] (H\n) at (\x+0.35,1.95) {};
+  \node[font=\bfseries, anchor=north west] at ($(H\n.north west)+(0.1,-0.05)$) {Host Bucket Store};
+  \node[font=\small\itshape, anchor=north east] at ($(H\n.north east)+(-0.1,-0.07)$) {pinned chunks};
+  \foreach \k/\w in {0/1.0,1/0.7,2/1.05,3/0.85,4/1.0} {
+    \pgfmathsetmacro{\bx}{0.3+\k*1.3}
+    \node[frame, draw=teal, fill=tealfill, minimum width=\w cm, minimum height=0.5cm, anchor=west] at ($(H\n.south west)+(\bx,0.55)$) {};
+  }
+  % load / store arrows
+  \draw[flow, teal]  ($(G\n A.south)+(-0.9,0)$) ++(0,-1.0) -- ++(0,1.0);
+  \node[stepno] at ($(G\n A.south)+(-1.3,-0.5)$) {1};
+  \draw[flow, brick] ($(G\n B.south)+(0.9,0)$) -- ++(0,-1.0);
+  \node[stepno] at ($(G\n B.south)+(1.3,-0.5)$) {3};
+}
+% planner -> nodes
+\draw[thin flow, ink] (3.75,8.3) -- (3.75,7.72);
+\draw[thin flow, ink] (11.65,8.3) -- (11.65,7.72);
+% exchange between nodes
+\draw[{Latex[length=2.4mm,width=1.9mm]}-{Latex[length=2.4mm,width=1.9mm]}, line width=1.0pt, sand!60!black] (H1.east) -- (H2.west);
+\node[stepno] at (7.7,3.45) {4};
+% checkpoint
+\node[box, minimum width=3.4cm] (ck1) at (3.75,0.75) {Checkpoint File};
+\node[box, minimum width=3.4cm] (ck2) at (11.65,0.75) {Checkpoint File};
+\draw[thin flow, ink] (3.75,1.95) -- (ck1.north);
+\draw[thin flow, ink] (11.65,1.95) -- (ck2.north);
+\node[stepno] at (4.15,1.5) {5};
+\node[stepno] at (12.05,1.5) {5};
+% legend
+\node[stepno] (l1) at (0.3,-0.15) {1}; \node[anchor=west, font=\small] at (0.55,-0.15) {Load Bucket};
+\node[stepno] (l2) at (3.0,-0.15) {2}; \node[anchor=west, font=\small] at (3.25,-0.15) {Apply Gates, Merge, Truncate};
+\node[stepno] (l3) at (8.2,-0.15) {3}; \node[anchor=west, font=\small] at (8.45,-0.15) {Partition by the Next Rows};
+\node[stepno] (l4) at (0.3,-0.8) {4}; \node[anchor=west, font=\small] at (0.55,-0.8) {Exchange Buckets Between Nodes (window boundary only)};
+\node[stepno] (l5) at (10.0,-0.8) {5}; \node[anchor=west, font=\small] at (10.25,-0.8) {Checkpoint};
+\end{tikzpicture}
+\end{document}
