@@ -1,0 +1,65 @@
+% Where communication happens (Section 3.3): the same four GPUs under the two schemes.
+%   (a) cuPauliProp's distributed mode: after every gate all GPUs merge and redistribute globally
+%       (22 collective calls per gate on every rank; logs/pp_prof1-59470347.out, pp_prof4n-59470888.out)
+%   (b) SectorQ: a window of 127 gates runs inside every GPU on its own sector; one exchange per window,
+%       cut at run time right after a truncation (window 8 of job 59488608: 159 million of the 1.36 billion
+%       terms of the peak are moved)
+% Bottom rows: measured on the kicked Ising setting with 22.5 million terms on 4 GPUs
+% (collective calls per rank 119,785 against 51; data between GPUs 20.3 GB against 0.57 GB;
+% logs/pp_prof1-59470347.out and logs/pp_lo-59471256.out).
+\begin{tikzpicture}[x=1cm, y=1cm, font=\rmfamily\footnotesize]
+  \tikzset{tb/.style={draw=black!70, line width=0.3pt, anchor=west, inner sep=0pt, minimum width=0.3cm, minimum height=0.3cm},
+           rc/.style={draw=black!70, line width=0.35pt, anchor=north west, inner sep=0pt, minimum height=0.42cm,
+                      text height=0.26cm, text depth=0.08cm, font=\rmfamily\footnotesize}}
+  % ================= (a) cuPauliProp distributed =================
+  \node[frame, anchor=north west, minimum width=6.7cm, minimum height=6.05cm] at (0,0) {};
+  \node[lttl, anchor=north] at (3.35,-0.03) {cuPauliProp Distributed};
+  \node[key, anchor=north] at (3.35,-0.5) {A Global Step After Every Gate};
+  \foreach \g/\x in {0/0.2, 1/1.82, 2/3.44, 3/5.06}
+  {
+    \node[gpu, anchor=north west, minimum width=1.44cm, minimum height=1.3cm] at (\x,-1.05) {};
+    \node[cttl, anchor=north] at ({\x+0.72},-1.07) {GPU \g};
+    \foreach \i in {0,1,2}
+      \node[tb, fill=black!22] at ({\x+0.12+0.3*\i},-1.95) {};
+    \node[tb, fill=white, draw=dred, line width=0.9pt] at ({\x+1.02},-1.95) {};
+    \draw[dfat, dred] ({\x+0.72},-2.4) -- ({\x+0.72},-2.95);
+  }
+  \node[draw=dred, line width=0.9pt, fill=badc, anchor=north west, minimum width=6.3cm, minimum height=0.95cm] at (0.2,-2.95) {};
+  \node[cttl] at (3.35,-3.22) {Global Merge and Redistribution};
+  \node[note] at (3.35,-3.64) {22 Collective Calls per GPU, All GPUs Wait};
+  \node[tb, fill=white, draw=dred, line width=0.9pt] at (0.3,-4.2) {};
+  \node[inote, anchor=west] at (0.68,-4.2) {New Terms May Belong to Any GPU};
+  % measured
+  \node[rc, fill=black!10, minimum width=3.3cm] at (0.2,-4.55) {Collective Calls per GPU};
+  \node[rc, fill=white, minimum width=3.0cm, text=dred, font=\rmfamily\bfseries\footnotesize] at (3.5,-4.55) {119,785};
+  \node[rc, fill=black!10, minimum width=3.3cm] at (0.2,-4.97) {Data Between GPUs};
+  \node[rc, fill=white, minimum width=3.0cm, text=dred, font=\rmfamily\bfseries\footnotesize] at (3.5,-4.97) {20.3 GB};
+  \node[rc, fill=black!10, minimum width=3.3cm] at (0.2,-5.39) {Global Steps};
+  \node[rc, fill=white, minimum width=3.0cm] at (3.5,-5.39) {Every Gate};
+  % ================= (b) SectorQ =================
+  \node[frame, anchor=north west, minimum width=6.7cm, minimum height=6.05cm] at (7.2,0) {};
+  \node[lttl, anchor=north] at (10.55,-0.03) {SectorQ};
+  \node[key, anchor=north] at (10.55,-0.5) {One Exchange per Window of 127 Gates};
+  \foreach \g/\x/\f in {0/7.4/sa, 1/9.02/sb, 2/10.64/sc, 3/12.26/sd}
+  {
+    \node[gpu, anchor=north west, minimum width=1.44cm, minimum height=1.3cm] at (\x,-1.05) {};
+    \node[cttl, anchor=north] at ({\x+0.72},-1.07) {GPU \g};
+    \node[draw=black!70, line width=0.35pt, fill=\f, anchor=west, inner sep=0pt, minimum width=1.2cm, minimum height=0.32cm, font=\rmfamily\scriptsize] at ({\x+0.12},-1.72) {Sector \g};
+    \draw[sarr] ({\x+1.06},-1.93) arc[start angle=10, end angle=-190, x radius=0.34, y radius=0.1];
+    \node[inote, inner sep=0.5pt] at ({\x+0.72},-2.2) {127 Gates};
+  }
+  \node[key] at (10.55,-2.68) {0 MPI Calls While the Window Runs};
+  \node[draw=dblue, line width=0.9pt, fill=dblue!18, anchor=north west, minimum width=6.3cm, minimum height=0.95cm] at (7.4,-2.95) {};
+  \node[cttl] at (10.55,-3.22) {Exchange at the Window Boundary};
+  \node[note] at (10.55,-3.64) {Cut at Run Time: 159M of 1.36B Terms Move};
+  \foreach \i/\f in {0/sa, 1/sb, 2/sc, 3/sd}
+    \node[tb, fill=\f] at ({7.5+0.3*\i},-4.2) {};
+  \node[inote, anchor=west] at (8.78,-4.2) {A New Term Stays in Its Sector};
+  % measured
+  \node[rc, fill=black!10, minimum width=3.3cm] at (7.4,-4.55) {Collective Calls per GPU};
+  \node[rc, fill=white, minimum width=3.0cm, font=\rmfamily\bfseries\footnotesize] at (10.7,-4.55) {51\quad\textcolor{dred}{2,349$\times$ Fewer}};
+  \node[rc, fill=black!10, minimum width=3.3cm] at (7.4,-4.97) {Data Between GPUs};
+  \node[rc, fill=white, minimum width=3.0cm, font=\rmfamily\bfseries\footnotesize] at (10.7,-4.97) {0.57 GB\quad\textcolor{dred}{36$\times$ Less}};
+  \node[rc, fill=black!10, minimum width=3.3cm] at (7.4,-5.39) {Global Steps};
+  \node[rc, fill=white, minimum width=3.0cm] at (10.7,-5.39) {Every Window};
+\end{tikzpicture}

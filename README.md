@@ -260,7 +260,7 @@ SectorQ에는 미리 세운 계획이 없다. 하나의 고리가 구간마다 �
 | 설계 요소 | 절 | 답하는 요구사항 |
 |---|---|---|
 | 런타임 sector 재구성 | 3.2 | R1, R2, R3, R4, R6 |
-| 구간 경계의 재분배와 교환 | 3.3 | R2, R4 |
+| 통신을 구간 경계로 모으기 | 3.3 | R2, R4 |
 | Sector 단위 실행 | 3.4 | R5 |
 | Clifford frame | 3.5 | 데이터를 훑기만 하는 gate를 없앤다 |
 | Checkpoint와 검산 | 3.6 | 긴 실행의 재개와 답의 신뢰 |
@@ -292,18 +292,26 @@ SectorQ에는 미리 세운 계획이 없다. 하나의 고리가 구간마다 �
 
 **Sector 수.** 살아 있는 항의 수와 지난 구간의 증가율로 정한다. 구간이 시작될 때의 항 수를 sector당 목표 항 수(`--target`)로 나누며, 구간 하나에 최대 256개이다. 항이 아주 적은 동안은 sector 하나, GPU 하나로 돈다(R6). sector 하나가 2,000항을 넘을 만큼 되면 노드마다 sector를 하나씩 준다(`--early-per-node`). 초반 구간은 항 수가 가장 빠르게 늘어나는 곳이어서, sector 하나로 두면 GPU 한 장이 일하는 동안 나머지가 기다린다(4.5절).
 
-### 3.3 구간 경계의 재분배와 교환
+### 3.3 통신을 구간 경계로 모으기
 
-<p align="center"><img src="figures/design_rekey.png" width="860"></p>
-<p align="center"><b>그림 4.</b> 구간 경계에서 두 노드가 하는 일. 위: 구간은 실행 중에 truncation 직후에서 끊는다. 아래: GPU가 출력의 각 항에 대해 다음 구간의 행을 계산하고, 그 값이 다음 sector의 번호가 된다. 자기 노드의 sector 조각은 host의 chunk 목록에 붙이고, 다른 노드의 조각은 구간 경계에서 한 번 보낸다. 파란색은 노드 0의 sector, 초록색은 노드 1의 sector이다.</p>
+<p align="center"><img src="figures/design_comm.png" width="860"></p>
+<p align="center"><b>그림 4.</b> 같은 네 GPU가 두 방식에서 하는 일. 왼쪽: cuPauliProp 분산 모드는 gate마다 모든 GPU가 전역으로 합치고 다시 나눈다. 오른쪽: SectorQ는 구간의 gate 127개를 각 GPU 안에서 자기 sector에 적용하고, 구간이 끝날 때 한 번 교환한다. 아래 표는 kicked Ising 2,250만 항 설정을 4 GPU에서 잰 값이다.</p>
 
-**구간을 끊는 곳.** SectorQ는 rotation 목록을 앞에서부터 읽으며 생성자가 만드는 공간을 GF(2) 소거로 추적한다(`gf2.hpp`). 생성자 공간이 d차원이면 유효한 행의 공간은 2n−d차원이다. 이 공간이 n차원 이상 남아 있는 동안 구간을 늘리고, truncation 직후에서 끊는다(`--snap`, 기본). 구간 안에서 항 수는 경계의 2.9–36배까지 늘었다가 truncation에서 줄어든다. 그림 4의 구간에서는 최대 13.6억 항이 끊는 곳에서 1.59억 항이다. 옮기는 양이 가장 적은 때이다. 회로마다 규칙을 넣지 않으며, 회로 7종에서 구간 6–45개가 자동으로 잡힌다. kicked Ising은 rotation 2,540개가 구간 20개가 된다.
+**기존 방식.** cuPauliProp 분산 모드는 gate 하나를 적용할 때마다 모든 GPU가 전역 merge와 재분배에 참여한다. 새 항이 어느 GPU의 항과 합쳐질지 알 수 없기 때문이다. gate마다 rank당 22번의 전원 통신을 하고, 그동안 모든 GPU가 기다린다.
 
-**재분배(re-key).** 층이 바뀌면 보존되는 parity가 달라진다. X rotation 층은 z bit의 parity를, ZZ rotation 층은 x bit의 parity를 보존한다. 따라서 한 가지 분할을 끝까지 쓸 수 없다. (1) GPU는 sector의 출력에서 항마다 다음 구간의 행을 계산한다. 행 여섯 개의 값이 다음 sector의 번호이고, sector d는 노드 (d mod 노드 수)가 맡는다. (2) 출력을 다음 sector별로 모은다(`shuffle.cu`). (3) 자기 노드가 맡은 sector의 조각은 host memory의 chunk 목록 끝에 붙이고, 다른 노드의 조각은 outbox에 둔다.
+**SectorQ.** 구간의 gate 127개가 각 GPU 안에서 자기 sector에만 적용된다. 새 항이 sector를 벗어나지 않으므로(3.2절) 구간이 도는 동안 MPI 호출이 없다. 구간이 끝날 때 한 번, 다음 구간의 sector로 다시 나누어 교환한다. kicked Ising에서 통신 시점은 gate 2,540번에서 구간 20개의 경계로 줄어든다.
 
-**교환.** (4) 구간 경계에서 outbox의 조각을 그 sector를 맡은 노드로 보낸다. 노드 사이의 메시지는 이것뿐이다. (5) 받은 메시지는 복사하지 않고 그 sector의 chunk로 삼는다. 회로 전체에서 유효한 행은 모든 항에서 값이 같아 분할에 쓸 수 없으므로(3.7절 성질 4) 재분배는 없앨 수 없다.
+| 2,250만 항 설정, 4 GPU | cuPauliProp 분산 | SectorQ |
+|---|---:|---:|
+| GPU당 전원 통신 횟수 | 119,785회 | 51회 (2,349배 적다) |
+| GPU 사이를 오간 데이터 | 20.3 GB | 0.57 GB (36배 적다) |
+| 전역 단계 | gate마다 | 구간마다 |
 
-**통신량.** cuPauliProp 분산 모드는 gate마다 rank당 22번의 전원 통신을 한다. SectorQ는 구간이 도는 동안 MPI 호출이 없고 구간 경계마다 한 번 교환한다. kicked Ising에서 통신 시점은 gate 2,540번에서 구간 20개의 경계로 줄어든다.
+**구간을 끊는 곳은 실행 중에 정한다.** SectorQ는 rotation 목록을 앞에서부터 읽으며 생성자가 만드는 공간을 GF(2) 소거로 추적한다(`gf2.hpp`). 생성자 공간이 d차원이면 유효한 행의 공간은 2n−d차원이다. 이 공간이 n차원 이상 남아 있는 동안 구간을 늘리고, truncation 직후에서 끊는다(`--snap`, 기본). 구간 안에서 항 수는 경계의 2.9–36배까지 늘었다가 truncation에서 줄어든다. 16 GPU 실행의 구간 8에서는 최대 13.6억 항이 끊는 곳에서 1.59억 항이다. 옮기는 양이 가장 적은 때이다. 회로마다 규칙을 넣지 않으며, 회로 7종에서 구간 6–45개가 자동으로 잡힌다.
+
+**재분배(re-key).** 층이 바뀌면 보존되는 parity가 달라진다. X rotation 층은 z bit의 parity를, ZZ rotation 층은 x bit의 parity를 보존한다. 따라서 한 가지 분할을 끝까지 쓸 수 없다. GPU는 sector의 출력에서 항마다 다음 구간의 행을 계산한다. 그 값이 다음 sector의 번호이고, sector d는 노드 (d mod 노드 수)가 맡는다. 출력을 다음 sector별로 모아(`shuffle.cu`), 자기 노드가 맡은 sector의 조각은 host memory의 chunk 목록 끝에 붙인다.
+
+**교환.** 다른 노드가 맡은 sector의 조각은 구간 경계에서 한 번 보낸다. 노드 사이의 메시지는 이것뿐이다. 받은 메시지는 복사하지 않고 그 sector의 chunk로 삼는다. 회로 전체에서 유효한 행은 모든 항에서 값이 같아 분할에 쓸 수 없으므로(3.7절 성질 4) 재분배는 없앨 수 없다.
 
 ### 3.4 Sector 단위 실행
 
@@ -712,7 +720,7 @@ interactive 할당 안에서는 `jobs/inter.sh`를 source한 뒤 `eng <노드 �
 | 2. 배경 | 100 qubit 이상의 고전 시뮬레이션, Pauli propagation의 연산, 분산이 어려운 이유 | 2.1–2.3절 |
 | 3. 지금 방식의 해부 | cuPauliProp 분산 모드의 측정 | 2.4절, 그림 1 |
 | 4. 원리 | 런타임 sector 재구성, 보장과 한계(정리와 증명 스케치) | 3.1–3.2절, 3.7절, 그림 2–3 |
-| 5. 설계 | 구간 경계의 재분배와 교환, sector 단위 실행, Clifford frame, checkpoint | 3.3–3.6절, 그림 4–5 |
+| 5. 설계 | 통신을 구간 경계로 모으기, sector 단위 실행, Clifford frame, checkpoint | 3.3–3.6절, 그림 4–5 |
 | 6. 평가 | 답의 일치, 속도, GPU 수와 도달 범위, 정확도, 시간 분해 | 4절, 그림 6–9 |
 | 7. 관련 연구 | Pauli propagation 계열, state-vector 계열, database의 분할 실행 | 2.5절 |
 | 8. 한계 | | 5절 |
