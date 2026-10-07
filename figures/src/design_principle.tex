@@ -19,10 +19,10 @@
 % ---------- divider ----------
 \draw[edge, dashed, line width=0.5pt] (7.95,1.3) -- (7.95,5.8);
 % ---------- right: parity partition ----------
-\node[font=\bfseries\large] at (12.15,5.55) {Parity Partition (This Work)};
+\node[font=\bfseries\large] at (12.15,5.55) {SectorQ: Parity Sectors};
 \foreach \i/\x/\b in {0/8.4/00,1/10.9/01,2/13.4/10} {
   \node[frame, fill=teallight, minimum width=2.3cm, minimum height=3.3cm, anchor=south west] (R\i) at (\x,1.55) {};
-  \node[font=\bfseries, anchor=north] at ($(R\i.north)+(0,-0.08)$) {Bucket \b};
+  \node[font=\bfseries, anchor=north] at ($(R\i.north)+(0,-0.08)$) {Sector \b};
 }
 \foreach \i/\x in {0/9.55,1/12.05,2/14.55} {
   \node[term] (rp\i)  at (\x,3.55) {$P_{\i}$};

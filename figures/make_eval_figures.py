@@ -201,7 +201,7 @@ def speed(same16, all16, big):
     for ax in axes[1:]:
         ax.set_yticklabels([])
     handles = [plt.Rectangle((0, 0), 1, 1, color=c) for c in (OURS, TUNED, BASE)]
-    fig.legend(handles, ["This work", "cuPauliProp distributed, hand-tuned", "cuPauliProp distributed"], loc="upper center", ncol=3,
+    fig.legend(handles, ["SectorQ", "cuPauliProp distributed, hand-tuned", "cuPauliProp distributed"], loc="upper center", ncol=3,
                bbox_to_anchor=(0.5, 1.08), fontsize=12.5, columnspacing=2.2, handlelength=1.4)
     save(fig, "eval_speed.png")
     return table
@@ -269,7 +269,7 @@ def gpus_and_reach(run4, run5, allruns, big):
     ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:g}"))
     ax.yaxis.set_minor_formatter(NullFormatter())
     clean(ax)
-    fig.legend([plt.Rectangle((0, 0), 1, 1, color=c) for c in (OURS, TUNED, BASE)], ["This work", "cuPauliProp distributed, hand-tuned", "cuPauliProp distributed"],
+    fig.legend([plt.Rectangle((0, 0), 1, 1, color=c) for c in (OURS, TUNED, BASE)], ["SectorQ", "cuPauliProp distributed, hand-tuned", "cuPauliProp distributed"],
                loc="upper center", ncol=3, bbox_to_anchor=(0.5, 1.07), fontsize=12.5, columnspacing=2.2, handlelength=1.4)
     save(fig, "eval_gpus.png")
     return rows, reach
