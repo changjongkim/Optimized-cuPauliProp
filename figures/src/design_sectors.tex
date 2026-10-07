@@ -1,101 +1,99 @@
-% Forming parity sectors (Section 3.2), with a three-qubit example: one window of X rotations.
-% Bit vectors are (x1 x2 x3 | z1 z2 z3). Generators: RX on qubits 1-3. A row r is valid if r(Q) = 0 for
-% every generator Q of the window; here every parity of z bits. The planner keeps the valid rows that split
-% a sample of the terms evenly (r1 = z1 and r3 = z2 xor z3, three terms on each side; r2 = z2 splits 4 : 2).
-% Sector of a term = (r1, r3). The rotation RX1 turns P1 into P1 xor Q1, which equals P2: the new term and
-% the term it merges with are in the sector of P1. Bottom: the same quantities for the 127-qubit kicked Ising
-% circuit (254 bits, 127 generators per window, logs/pp_e10-59483161.out).
+% Runtime re-sectoring of one window (Section 3.2), with a three-qubit example. Bit vectors are (x | z).
+% The live terms and the next gates meet in one decision: a row r is valid if r(Q) = 0 for every generator
+% Q of the next gates (here: every parity of z bits), and among the valid rows SectorQ keeps those that
+% split the live terms evenly (r1 = z1 and r3 = z2 xor z3 split six terms 3 : 3; r2 = z2 splits 4 : 2).
+% The chosen rows go back to the terms: sector = (r1, r3). The rotation RX1 turns P1 into P1 xor Q1, which
+% equals P2: the new term and the term it merges with are in the sector of P1.
+% Bottom: the same decision for window 9 of the 127-qubit kicked Ising run (logs/pp_e11-59488608.out).
 \begin{tikzpicture}[x=1cm, y=1cm, font=\rmfamily\footnotesize]
   \tikzset{bc/.style={draw=black!70, line width=0.35pt, anchor=north west, inner sep=0pt, minimum height=0.34cm,
                       text height=0.21cm, text depth=0.06cm, font=\rmfamily\footnotesize},
            bh/.style={bc, fill=black!10}}
-  % ================= planner =================
-  \node[layer, anchor=north west, minimum width=6.3cm, minimum height=5.05cm] at (0,0) {};
-  \node[lttl, anchor=north] at (3.15,-0.03) {Planner};
-  % 1: generators of the window
-  \node[num] at (0.42,-0.72) {1};
-  \node[cttl, anchor=west] at (0.62,-0.72) {Generators of the Window};
-  \foreach \x/\w/\h in {0.25/0.9/Gate, 1.15/0.85/x, 2.0/0.85/z}
-    \node[bh, minimum width=\w cm] at (\x,-1.0) {\h};
-  \foreach \k/\n/\xb in {1/RX$_1$/100, 2/RX$_2$/010, 3/RX$_3$/001}
-  {
-    \node[bc, fill=white, minimum width=0.9cm] at (0.25,{-1.0-0.34*\k}) {\n};
-    \node[bc, fill=genc, minimum width=0.85cm] at (1.15,{-1.0-0.34*\k}) {\xb};
-    \node[bc, fill=white, minimum width=0.85cm] at (2.0,{-1.0-0.34*\k}) {000};
-  }
-  \node[blk, fill=white, minimum width=0.95cm, minimum height=0.46cm, font=\rmfamily\footnotesize] (rk) at (3.68,-1.68) {Rank 3};
-  \draw[arr] (2.85,-1.68) -- (rk.west);
-  \node[dia, draw=dred, line width=1.0pt, font=\rmfamily\itshape\footnotesize] (d1) at (5.38,-1.68) {$r(Q){=}0$?};
-  \draw[sarr] (rk.east) -- (d1.west);
-  \node[inote, anchor=south] at (4.75,-1.12) {GF(2) Elimination};
-  % 2: valid rows and how they split the sample
-  \draw[arr] (d1.south) -- (5.38,-2.62) -- (2.05,-2.62) -- (2.05,-2.98);
-  \node[inote, anchor=south] at (3.75,-2.62) {6 $-$ 3 = 3 Valid Rows};
-  \node[num] at (0.42,-2.72) {2};
-  \foreach \x/\w/\h in {0.25/0.8/Row, 1.05/0.8/x, 1.85/0.8/z, 2.65/1.2/Sample}
-    \node[bh, minimum width=\w cm] at (\x,-2.98) {\h};
-  \foreach \k/\n/\zb/\s/\f in {1/$r_1$/100/{3 : 3}/rowc, 2/$r_2$/010/{4 : 2}/white, 3/$r_3$/011/{3 : 3}/rowc}
-  {
-    \node[bc, fill=\f, minimum width=0.8cm] at (0.25,{-2.98-0.34*\k}) {\n};
-    \node[bc, fill=white, minimum width=0.8cm] at (1.05,{-2.98-0.34*\k}) {000};
-    \node[bc, fill=\f, minimum width=0.8cm] at (1.85,{-2.98-0.34*\k}) {\zb};
-    \node[bc, fill=white, minimum width=1.2cm] at (2.65,{-2.98-0.34*\k}) {\s};
-  }
-  \node[dia, font=\rmfamily\itshape\footnotesize] (d2) at (5.0,-3.83) {Even?};
-  \draw[arr] (3.85,-3.83) -- (d2.west);
-  \node[inote, anchor=north] at (5.0,-4.3) {Keep $r_1$, $r_3$};
-  % ================= terms and sectors =================
-  \node[layer, anchor=north west, minimum width=7.3cm, minimum height=5.05cm] at (6.6,0) {};
-  \node[lttl, anchor=north] at (10.25,-0.03) {Terms and Sectors};
-  \draw[arr] (d2.east) -- (6.45,-3.83) -- (6.45,-2.2) -- (6.85,-2.2);
-  % 3: sector of every term
-  \node[num] at (7.02,-0.72) {3};
-  \node[cttl, anchor=west] at (7.22,-0.72) {Sector = ($r_1$, $r_3$)};
-  \foreach \x/\w/\h in {6.85/0.75/Term, 7.6/0.75/x, 8.35/0.75/z, 9.1/0.45/$r_1$, 9.55/0.45/$r_3$}
-    \node[bh, minimum width=\w cm] at (\x,-1.0) {\h};
+  \node[layer, anchor=north west, minimum width=13.9cm, minimum height=5.2cm] at (0,0) {};
+  % ---- 1: the live terms ----
+  \node[num] at (0.42,-0.38) {1};
+  \node[cttl, anchor=west] at (0.62,-0.38) {Live Terms};
+  \foreach \x/\w/\h in {0.25/0.7/Term, 0.95/0.7/x, 1.65/0.7/z, 2.35/0.42/$r_1$, 2.77/0.42/$r_3$}
+    \node[bh, minimum width=\w cm] at (\x,-0.66) {\h};
   \foreach \k/\n/\xb/\zb/\a/\b/\f in {1/$P_1$/000/100/1/0/sc, 2/$P_2$/100/100/1/0/sc, 3/$P_3$/010/011/0/0/sa,
                                       4/$P_4$/000/001/0/1/sb, 5/$P_5$/001/101/1/1/sd, 6/$P_6$/011/010/0/1/sb}
   {
-    \node[bc, fill=\f, minimum width=0.75cm] at (6.85,{-1.0-0.34*\k}) {\n};
-    \node[bc, fill=white, minimum width=0.75cm] at (7.6,{-1.0-0.34*\k}) {\xb};
-    \node[bc, fill=white, minimum width=0.75cm] at (8.35,{-1.0-0.34*\k}) {\zb};
-    \node[bc, fill=\f, minimum width=0.45cm] at (9.1,{-1.0-0.34*\k}) {\a};
-    \node[bc, fill=\f, minimum width=0.45cm] at (9.55,{-1.0-0.34*\k}) {\b};
+    \node[bc, fill=\f, minimum width=0.7cm] at (0.25,{-0.66-0.34*\k}) {\n};
+    \node[bc, fill=white, minimum width=0.7cm] at (0.95,{-0.66-0.34*\k}) {\xb};
+    \node[bc, fill=white, minimum width=0.7cm] at (1.65,{-0.66-0.34*\k}) {\zb};
+    \node[bc, fill=\f, minimum width=0.42cm] at (2.35,{-0.66-0.34*\k}) {\a};
+    \node[bc, fill=\f, minimum width=0.42cm] at (2.77,{-0.66-0.34*\k}) {\b};
   }
-  % 4: the four sectors
-  \node[num] at (10.72,-0.72) {4};
-  \node[cttl, anchor=west] at (10.92,-0.72) {Independent Sectors};
+  % ---- 2: the next gates ----
+  \node[num] at (10.62,-0.38) {2};
+  \node[cttl, anchor=west] at (10.82,-0.38) {Next Gates};
+  \foreach \x/\w/\h in {10.45/0.9/Gate, 11.35/1.1/x, 12.45/1.1/z}
+    \node[bh, minimum width=\w cm] at (\x,-0.66) {\h};
+  \foreach \k/\n/\xb in {1/RX$_1$/100, 2/RX$_2$/010, 3/RX$_3$/001}
+  {
+    \node[bc, fill=white, minimum width=0.9cm] at (10.45,{-0.66-0.34*\k}) {\n};
+    \node[bc, fill=genc, minimum width=1.1cm] at (11.35,{-0.66-0.34*\k}) {\xb};
+    \node[bc, fill=white, minimum width=1.1cm] at (12.45,{-0.66-0.34*\k}) {000};
+  }
+  \node[dia, font=\rmfamily\itshape\footnotesize] (d1) at (12.0,-2.7) {$r(Q){=}0$?};
+  \draw[sarr] (12.0,-2.02) -- (d1.north);
+  \node[inote, anchor=north] at (12.0,-3.12) {GF(2) Elimination, Rank 3};
+  % ---- 3: valid rows, scored on the live terms ----
+  \node[num] at (5.1,-0.38) {3};
+  \node[cttl, anchor=west] at (5.3,-0.38) {Rows of the Next Window};
+  \foreach \x/\w/\h in {4.95/0.75/Row, 5.7/0.8/x, 6.5/0.8/z, 7.3/1.55/Live Terms}
+    \node[bh, minimum width=\w cm] at (\x,-0.66) {\h};
+  \foreach \k/\n/\zb/\s/\f in {1/$r_1$/100/{3 : 3}/rowc, 2/$r_2$/010/{4 : 2}/white, 3/$r_3$/011/{3 : 3}/rowc}
+  {
+    \node[bc, fill=\f, minimum width=0.75cm] at (4.95,{-0.66-0.34*\k}) {\n};
+    \node[bc, fill=white, minimum width=0.8cm] at (5.7,{-0.66-0.34*\k}) {000};
+    \node[bc, fill=\f, minimum width=0.8cm] at (6.5,{-0.66-0.34*\k}) {\zb};
+    \node[bc, fill=white, minimum width=1.55cm] at (7.3,{-0.66-0.34*\k}) {\s};
+  }
+  \draw[draw=dred, line width=1.0pt] (4.95,-1.0) rectangle (8.85,-1.34);
+  \draw[draw=dred, line width=1.0pt] (4.95,-1.68) rectangle (8.85,-2.02);
+  \node[key, anchor=north] at (6.9,-2.1) {Even Split: Keep $r_1$, $r_3$};
+  % valid rows come from the gates, the split from the live terms, the chosen rows go back to the terms
+  \draw[arr] (d1.west) -- (9.6,-2.7) -- (9.6,-1.51) -- (8.87,-1.51);
+  \node[inote, anchor=south] at (10.45,-2.7) {3 Valid Rows};
+  \draw[arr] (3.19,-1.17) -- (4.93,-1.17);
+  \node[inote, anchor=south] at (4.06,-1.17) {Count};
+  \draw[arr, dred] (4.93,-1.85) -- (3.19,-1.85);
+  \node[inote, text=dred, anchor=north] at (4.06,-1.85) {Rows};
+  % ---- 4: the sectors ----
+  \node[num] at (0.42,-3.5) {4};
+  \node[cttl, anchor=west] at (0.62,-3.5) {Sector = ($r_1$, $r_3$)};
   \foreach \k/\id/\f in {0/00/sa, 1/01/sb, 2/10/sc, 3/11/sd}
   {
-    \node[draw=black!70, line width=0.45pt, fill=\f!45, anchor=north west, minimum width=3.0cm, minimum height=0.5cm] at (10.6,{-1.0-0.56*\k}) {};
-    \node[ittl, anchor=west] at (10.66,{-1.25-0.56*\k}) {Sector \id};
+    \node[draw=black!70, line width=0.45pt, fill=\f!45, anchor=north west, minimum width=1.52cm, minimum height=1.1cm] at ({0.25+1.6*\k},-3.8) {};
+    \node[ittl, anchor=north] at ({1.01+1.6*\k},-3.82) {Sector \id};
   }
-  \node[blk, fill=sa, minimum width=0.5cm] at (12.3,-1.25) {$P_3$};
-  \node[blk, fill=sb, minimum width=0.5cm] at (12.3,-1.81) {$P_4$};
-  \node[blk, fill=sb, minimum width=0.5cm] at (12.85,-1.81) {$P_6$};
-  \node[blk, fill=sc, minimum width=0.5cm] (s1) at (12.3,-2.37) {$P_1$};
-  \node[blk, fill=sc, minimum width=0.5cm] (s2) at (12.85,-2.37) {$P_2$};
-  \node[blk, fill=sd, minimum width=0.5cm] at (12.3,-2.93) {$P_5$};
-  \draw[sarr] (10.0,-2.2) -- (10.6,-2.2);
-  % 5: a rotation keeps the new term and its merge partner in the sector
-  \node[draw=black!70, line width=0.45pt, fill=sc!45, anchor=north west, minimum width=6.8cm, minimum height=1.3cm] at (6.85,-3.55) {};
-  \node[num] at (7.1,-3.8) {5};
-  \node[cttl, anchor=west] at (7.3,-3.8) {RX$_1$ Inside Sector 10};
-  \node[blk, fill=sc, minimum width=1.25cm, minimum height=0.4cm, font=\rmfamily\footnotesize] (p1) at (7.75,-4.43) {000\,|\,100};
-  \node[blk, fill=genc, minimum width=1.25cm, minimum height=0.4cm, font=\rmfamily\footnotesize] (q1) at (9.55,-4.43) {100\,|\,000};
-  \node[blk, fill=sc, minimum width=1.25cm, minimum height=0.4cm, font=\rmfamily\footnotesize, draw=dred, line width=1.0pt] (p2) at (11.35,-4.43) {100\,|\,100};
-  \node[font=\rmfamily\footnotesize] at (8.65,-4.43) {$\oplus$};
-  \node[font=\rmfamily\footnotesize] at (10.45,-4.43) {$=$};
-  \node[inote, anchor=south] at (7.75,-4.23) {$P_1$};
-  \node[inote, anchor=south] at (9.55,-4.23) {$Q_1$};
-  \node[inote, anchor=south] at (11.35,-4.23) {$P_2$: Merge};
-  \node[key, anchor=west] at (12.08,-4.43) {Same Sector};
-  % ================= the same quantities for the 127-qubit circuit =================
-  \node[layer, anchor=north west, minimum width=13.9cm, minimum height=0.72cm] at (0,-5.25) {};
-  \node[cttl, anchor=west] at (0.15,-5.61) {Kicked Ising, 127 Qubits:};
-  \foreach \x/\w/\t/\f in {4.9/1.5/254 Bits/white, 7.05/1.5/Rank 127/genc, 9.4/2.1/127 Valid Rows/rowc, 12.3/2.6/Up to 256 Sectors/white}
-    \node[blk, fill=\f, minimum width=\w cm, minimum height=0.42cm, font=\rmfamily\footnotesize] at (\x,-5.61) {\t};
-  \draw[sarr] (5.65,-5.61) -- (6.3,-5.61);
-  \draw[sarr] (7.8,-5.61) -- (8.35,-5.61);
-  \draw[sarr] (10.45,-5.61) -- (11.0,-5.61);
+  \node[blk, fill=sa, minimum width=0.5cm] at (1.01,-4.5) {$P_3$};
+  \node[blk, fill=sb, minimum width=0.5cm] at (2.36,-4.5) {$P_4$};
+  \node[blk, fill=sb, minimum width=0.5cm] at (2.86,-4.5) {$P_6$};
+  \node[blk, fill=sc, minimum width=0.5cm] at (3.96,-4.5) {$P_1$};
+  \node[blk, fill=sc, minimum width=0.5cm] at (4.46,-4.5) {$P_2$};
+  \node[blk, fill=sd, minimum width=0.5cm] at (5.81,-4.5) {$P_5$};
+  \draw[arr] (1.72,-3.04) -- (1.72,-3.3);
+  % ---- 5: a rotation stays inside its sector ----
+  \node[draw=black!70, line width=0.45pt, fill=sc!45, anchor=north west, minimum width=6.75cm, minimum height=1.4cm] at (6.95,-3.5) {};
+  \node[num] at (7.2,-3.76) {5};
+  \node[cttl, anchor=west] at (7.4,-3.76) {RX$_1$ Inside Sector 10};
+  \node[blk, fill=sc, minimum width=1.25cm, minimum height=0.4cm, font=\rmfamily\footnotesize] at (7.85,-4.48) {000\,|\,100};
+  \node[blk, fill=genc, minimum width=1.25cm, minimum height=0.4cm, font=\rmfamily\footnotesize] at (9.65,-4.48) {100\,|\,000};
+  \node[blk, fill=sc, minimum width=1.25cm, minimum height=0.4cm, font=\rmfamily\footnotesize, draw=dred, line width=1.0pt] at (11.45,-4.48) {100\,|\,100};
+  \node[font=\rmfamily\footnotesize] at (8.75,-4.48) {$\oplus$};
+  \node[font=\rmfamily\footnotesize] at (10.55,-4.48) {$=$};
+  \node[inote, anchor=south] at (7.85,-4.28) {$P_1$};
+  \node[inote, anchor=south] at (9.65,-4.28) {$Q_1$};
+  \node[inote, anchor=south] at (11.45,-4.28) {$P_2$: Merge};
+  \node[key, anchor=west] at (12.15,-4.48) {Same Sector};
+  % ================= the same decision for the 127-qubit circuit =================
+  \node[layer, anchor=north west, minimum width=13.9cm, minimum height=0.72cm] at (0,-5.4) {};
+  \node[cttl, anchor=west] at (0.15,-5.76) {Window 9, 127 Qubits:};
+  \foreach \x/\w/\t/\f in {4.3/1.5/127 Gates/genc, 6.5/2.0/127 Valid Rows/rowc, 9.75/3.6/{6 Rows, Even on 200K Terms}/rowc, 12.95/1.6/64 Sectors/white}
+    \node[blk, fill=\f, minimum width=\w cm, minimum height=0.42cm, font=\rmfamily\footnotesize] at (\x,-5.76) {\t};
+  \draw[sarr] (5.05,-5.76) -- (5.5,-5.76);
+  \draw[sarr] (7.5,-5.76) -- (7.95,-5.76);
+  \draw[sarr] (11.55,-5.76) -- (12.15,-5.76);
 \end{tikzpicture}

@@ -244,41 +244,43 @@ state-vector 시뮬레이터는 이 연구와 푸는 문제가 다르며 비교 
 
 ### 3.1 전체 구조
 
-SectorQ는 하나의 순환으로 동작한다. 회로를 구간으로 자르고, 구간마다 그 구간의 gate가 보존하는 parity로 항을 sector로 나누고, 노드마다 sector를 GPU에 하나씩 올려 처리한 뒤, 구간 경계에서 다음 구간의 sector로 다시 나누어 교환한다. 설계 규칙은 2.6절의 요구사항을 하나로 묶은 것이다.
+SectorQ에는 미리 세운 계획이 없다. 하나의 고리가 구간마다 실행 중에 돈다. 구간의 gate가 보존하는 parity로 항을 sector로 나누고, 노드마다 sector를 GPU에 하나씩 올려 처리하고, 그사이에 살아 있는 항을 보고 다음 구간의 parity와 sector 수를 정한 뒤, 구간 경계에서 다음 구간의 sector로 다시 나누어 교환한다. 설계 규칙은 2.6절의 요구사항을 하나로 묶은 것이다.
 
 > 항 집합을 지금 구간의 모든 gate가 보존하는 parity의 값으로 나눈다. 이렇게 나눈 sector는 그 구간 동안 항을 주고받지도 합쳐지지도 않는다. 따라서 sector마다 따로 merge하고 truncation해도 전체를 합쳐 계산한 것과 답이 같다. 구간, parity, sector 수는 실행 중에 정하고, 통신은 구간이 바뀔 때만 한다.
 
 <p align="center"><img src="figures/design_architecture.png" width="860"></p>
-<p align="center"><b>그림 2.</b> SectorQ의 전체 구조. 위: planner가 회로를 구간으로 자르고 구간마다 parity와 sector 수를 정한다. 가운데: 구간 하나가 도는 동안 각 노드는 자기 sector만 처리한다. sector의 색은 그 sector를 맡은 노드이다. 아래: 구간 경계에서 다음 구간의 sector를 맡은 노드로 조각을 보내고 다음 구간으로 넘어간다. 숫자는 4 노드 16 GPU에서 도는 127-qubit kicked Ising 회로(cutoff 1e-5)의 구간 9의 것이다(<code>logs/pp_e11-59488608.out</code>).</p>
+<p align="center"><b>그림 2.</b> SectorQ의 전체 구조. 위: 구간 하나가 도는 동안 각 노드는 자기 sector만 처리한다. sector의 색은 그 sector를 맡은 노드이다. 아래: 런타임 sector 재구성. 살아 있는 항과 다음 gate로부터 다음 구간의 행과 sector 수를 구간마다 정해 GPU에 돌려준다. 숫자는 4 노드 16 GPU에서 도는 127-qubit kicked Ising 회로(cutoff 1e-5)의 구간 9의 것이다(<code>logs/pp_e11-59488608.out</code>).</p>
 
-**Planner.** rank 0에서 돈다. 먼저 Clifford frame이 회로의 gate 5,420개를 rotation 2,540개로 줄인다(3.5절). (1) rotation 목록을 구간으로 자르고, 구간의 생성자로부터 유효한 parity를 구한 뒤, 현재 항의 표본을 고르게 나누는 parity를 골라 sector 수와 함께 모든 노드에 알린다(3.2절, 3.3절). 이 결정은 구간마다 실행 중에 내린다. 그림의 구간에서는 항 1.59억 개를 parity 6개로 64 sector로 나누었고, 가장 큰 sector는 평균의 1.01배이다.
+**구간 실행.** 노드마다 프로세스 하나, GPU마다 worker 하나가 있다. sector d는 노드 (d mod 노드 수)의 host memory에 있다. (1) worker는 자기 노드의 sector를 하나 꺼내 GPU에 올리고, 구간의 gate를 적용하며 그 sector 안에서 merge와 truncation을 수행한다. (2) 출력은 GPU에서 다음 구간의 행으로 나뉘어 host memory에 내려온다(3.4절). 이 동안 노드 사이에 오가는 것은 없다. 구간 중간에 GPU보다 커진 sector는 그 자리에서 둘로 나눈다.
 
-**구간 실행.** 노드마다 프로세스 하나, GPU마다 worker 하나가 있다. sector d는 노드 (d mod 노드 수)의 host memory에 있다. (2) worker는 자기 노드의 sector를 하나 꺼내 GPU에 올린다. (3) 구간의 gate를 적용하며 그 sector 안에서 merge와 truncation을 수행한다. (4) 출력을 다음 구간의 parity로 나누어 host memory에 내린다(3.4절). 이 동안 노드 사이에 오가는 것은 없다.
+**런타임 sector 재구성.** 다음 구간을 어떻게 나눌지는 실행 중에, 살아 있는 항을 보고 정한다. (3) 살아 있는 항의 표본과 항 수를 본다. (4) 다음 gate들이 보존하는 행 가운데 표본을 고르게 나누는 것을 고르고, 항 수로 sector 수를 정해 모든 노드의 GPU에 돌려준다(3.2절). 그림의 구간에서는 항 1.59억 개를 행 6개로 64 sector로 나누었고, 가장 큰 sector는 평균의 1.01배이다. 구간의 끝도 실행 중에 정한다(3.3절).
 
-**구간 경계.** 각 노드의 출력에는 다음 구간의 모든 sector의 조각이 섞여 있다. (5) 조각을 그 sector를 맡은 노드로 보낸다. 통신은 여기에서만 일어난다. (6) 이 시점의 sector 집합을 checkpoint로 쓰고(3.6절) 다음 구간으로 넘어간다. 마지막 구간이 끝나면 초기 상태에 대한 기대값을 구한다.
+**구간 경계.** 각 노드의 출력에는 다음 구간의 모든 sector의 조각이 섞여 있다. (5) 조각을 그 sector를 맡은 노드로 보낸다. 통신은 여기에서만 일어난다. 이 시점의 sector 집합을 checkpoint로 쓰고(3.6절) 다음 구간으로 넘어간다. 마지막 구간이 끝나면 초기 상태에 대한 기대값을 구한다.
 
 | 설계 요소 | 절 | 답하는 요구사항 |
 |---|---|---|
-| Parity sector | 3.2 | R1, R2, R3, R4, R6 |
-| 구간과 재분배 | 3.3 | R2, R4 |
+| 런타임 sector 재구성 | 3.2 | R1, R2, R3, R4, R6 |
+| 구간 경계의 재분배와 교환 | 3.3 | R2, R4 |
 | Sector 단위 실행 | 3.4 | R5 |
 | Clifford frame | 3.5 | 데이터를 훑기만 하는 gate를 없앤다 |
 | Checkpoint와 검산 | 3.6 | 긴 실행의 재개와 답의 신뢰 |
 
-### 3.2 Parity sector
+### 3.2 런타임 sector 재구성
 
 <p align="center"><img src="figures/design_sectors.png" width="860"></p>
-<p align="center"><b>그림 3.</b> Sector를 만드는 과정. qubit 3개에 X rotation 셋을 적용하는 구간의 예이며 bit 벡터는 (x | z)이다. 아래 줄은 127-qubit kicked Ising 회로에서의 같은 양이다.</p>
+<p align="center"><b>그림 3.</b> 구간 하나의 sector를 실행 중에 정하는 과정. qubit 3개의 예이며 bit 벡터는 (x | z)이다. 살아 있는 항과 다음 gate가 한 결정에서 만난다. 아래 줄은 127-qubit kicked Ising 실행의 구간 9에서의 같은 결정이다.</p>
 
 - **행(row).** bit 벡터에 대한 parity 함수 하나이다. r(P)는 P와 mask를 AND한 결과에서 1의 개수의 홀짝이다.
 - **Sector.** 행 g개의 값이 같은 항들의 모음이다. 최대 2^g개이다.
 - **구간(window).** 같은 행을 쓰는 연속된 연산들이다.
 
-**유효한 행.** (1) planner는 구간의 생성자를 모은다. 그림 3의 X rotation은 생성자의 x bit 하나만 1이다. 생성자를 GF(2)로 소거하면 rank가 3이다. (2) 모든 생성자 Q에 대해 r(Q)=0인 행의 공간은 6−3=3차원이다. 이 예에서는 z bit만 보는 행이 모두 유효하다.
+**입력.** (1) 지금 살아 있는 항이다. 어떤 항이 살아 있는지는 실행해야 안다. (2) 다음 gate들이다. 그림 3에서는 X rotation 셋이며 생성자의 x bit 하나만 1이다.
 
-**행 고르기.** 유효한 행은 여러 개이며, 어느 행을 쓰는지에 따라 sector의 크기가 달라진다. planner는 현재 항의 표본을 가장 고르게 나누는 행을 하나씩 고른다. 그림 3에서 r₁과 r₃은 표본을 3:3으로, r₂는 4:2로 나누므로 r₁과 r₃을 쓴다. 16분할에서 고정 bit는 최대/평균이 1.4–4.9배이고 고른 행은 1.00–1.01배이다.
+**유효한 행.** 다음 gate의 생성자를 GF(2)로 소거하면 rank가 3이다. 모든 생성자 Q에 대해 r(Q)=0인 행의 공간은 6−3=3차원이다. 이 예에서는 z bit만 보는 행이 모두 유효하다.
 
-**Sector.** (3) 항의 sector는 고른 행들의 값이다. (4) 항 여섯 개가 네 sector로 나뉜다.
+**살아 있는 항으로 고르기.** 유효한 행은 여러 개이며, 어느 행을 쓰는지에 따라 sector의 크기가 달라진다. (3) 유효한 행마다 살아 있는 항이 어떻게 나뉘는지 센다. r₁과 r₃은 3:3으로, r₂는 4:2로 나누므로 r₁과 r₃을 쓴다. 실제 실행에서는 항 20만 개의 표본으로 센다. 16분할에서 고정 bit는 최대/평균이 1.4–4.9배이고 이렇게 고른 행은 1.00–1.01배이다.
+
+**Sector.** (4) 고른 행이 항으로 돌아간다. 항의 sector는 그 행들의 값이다. 항 여섯 개가 네 sector로 나뉜다.
 
 **닫힘.** (5) RX₁은 P₁=000|100을 P₁⊕Q₁=100|100으로 만든다. 이 항은 P₂와 같아 계수가 합쳐진다. 새 항도, 합쳐질 상대도 P₁의 sector 안에 있다. 일반적으로는 다음과 같다.
 
@@ -288,18 +290,18 @@ SectorQ는 하나의 순환으로 동작한다. 회로를 구간으로 자르고
 
 이 성질이 R1, R2, R3을 함께 만족시킨다. sector 안에서 gate마다 합치므로 truncation은 항상 합쳐진 계수를 본다(R1). 다른 sector와 주고받을 것이 없으므로 구간 동안 통신하지 않는다(R2). 합치기를 미루지 않으므로 합쳐지지 않은 항이 쌓이지 않는다(R3). hash 분할과의 차이는 무엇을 key로 삼는가에 있다. hash는 Pauli string 전체를 key로 삼아, gate가 string을 바꾸면 배정도 바뀐다. sector는 string 가운데 구간의 gate가 바꾸지 않는 부분만 key로 삼는다.
 
-**Sector 수.** 구간이 시작될 때의 항 수를 sector당 목표 항 수(`--target`)로 나누어 정한다. 구간 하나에 최대 256개이다. 항이 아주 적은 동안은 sector 하나, GPU 하나로 돈다(R6). sector 하나가 2,000항을 넘을 만큼 되면 노드마다 sector를 하나씩 준다(`--early-per-node`). 초반 구간은 항 수가 가장 빠르게 늘어나는 곳이어서, sector 하나로 두면 GPU 한 장이 일하는 동안 나머지가 기다린다(4.5절).
+**Sector 수.** 살아 있는 항의 수와 지난 구간의 증가율로 정한다. 구간이 시작될 때의 항 수를 sector당 목표 항 수(`--target`)로 나누며, 구간 하나에 최대 256개이다. 항이 아주 적은 동안은 sector 하나, GPU 하나로 돈다(R6). sector 하나가 2,000항을 넘을 만큼 되면 노드마다 sector를 하나씩 준다(`--early-per-node`). 초반 구간은 항 수가 가장 빠르게 늘어나는 곳이어서, sector 하나로 두면 GPU 한 장이 일하는 동안 나머지가 기다린다(4.5절).
 
-### 3.3 구간과 재분배
+### 3.3 구간 경계의 재분배와 교환
 
-<p align="center"><img src="figures/design_window.png" width="860"></p>
-<p align="center"><b>그림 4.</b> 통신이 일어나는 시점. 위: cuPauliProp 분산 모드는 gate마다 모든 GPU에 걸쳐 합친다. 가운데: SectorQ의 네 노드와 세 구간. 구간 안에서 각 노드는 자기 sector만 처리하고, 구간 끝의 출력은 다음 구간의 모든 sector의 조각으로 나뉘어 있으며, 경계에서 한 번 교환한다. 아래: 같은 세 구간의 항 수 실측값(kicked Ising, cutoff 1e-5). 구간은 truncation 직후에 끝나므로 교환하는 시점의 항 수는 구간 안 최대의 약 9분의 1이다.</p>
+<p align="center"><img src="figures/design_rekey.png" width="860"></p>
+<p align="center"><b>그림 4.</b> 구간 경계에서 두 노드가 하는 일. 위: 구간은 실행 중에 truncation 직후에서 끊는다. 아래: GPU가 출력의 각 항에 대해 다음 구간의 행을 계산하고, 그 값이 다음 sector의 번호가 된다. 자기 노드의 sector 조각은 host의 chunk 목록에 붙이고, 다른 노드의 조각은 구간 경계에서 한 번 보낸다. 파란색은 노드 0의 sector, 초록색은 노드 1의 sector이다.</p>
 
-**구간의 자동 결정.** planner는 rotation 목록을 앞에서부터 읽으며 생성자가 만드는 공간을 GF(2) 소거로 추적한다(`gf2.hpp`). 생성자 공간이 d차원이면 유효한 행의 공간은 2n−d차원이다. 이 공간이 n차원 이상 남아 있는 동안 구간을 늘린다. 구간 안의 Clifford 연산은 행을 bit 변환으로 따라가게 한다. 회로마다 규칙을 넣지 않으며, 회로 7종에서 구간 6–45개가 자동으로 잡힌다. kicked Ising은 rotation 2,540개가 구간 20개가 된다.
+**구간을 끊는 곳.** SectorQ는 rotation 목록을 앞에서부터 읽으며 생성자가 만드는 공간을 GF(2) 소거로 추적한다(`gf2.hpp`). 생성자 공간이 d차원이면 유효한 행의 공간은 2n−d차원이다. 이 공간이 n차원 이상 남아 있는 동안 구간을 늘리고, truncation 직후에서 끊는다(`--snap`, 기본). 구간 안에서 항 수는 경계의 2.9–36배까지 늘었다가 truncation에서 줄어든다. 그림 4의 구간에서는 최대 13.6억 항이 끊는 곳에서 1.59억 항이다. 옮기는 양이 가장 적은 때이다. 회로마다 규칙을 넣지 않으며, 회로 7종에서 구간 6–45개가 자동으로 잡힌다. kicked Ising은 rotation 2,540개가 구간 20개가 된다.
 
-**재분배(re-key).** 층이 바뀌면 보존되는 parity가 달라진다. X rotation 층은 z bit의 parity를, ZZ rotation 층은 x bit의 parity를 보존한다. 따라서 한 가지 분할을 끝까지 쓸 수 없다. 구간이 끝나면 각 sector의 출력을 다음 구간의 행으로 다시 나눈다. GPU에서 행의 값을 계산해 sector별로 모은 뒤(`shuffle.cu`) host memory의 다음 sector에 붙이고, 경계에서 그 sector를 맡은 노드로 보낸다. 이때 모든 항이 한 번 이동한다. 회로 전체에서 유효한 행은 모든 항에서 값이 같아 분할에 쓸 수 없으므로(3.7절 성질 4) 재분배는 없앨 수 없다.
+**재분배(re-key).** 층이 바뀌면 보존되는 parity가 달라진다. X rotation 층은 z bit의 parity를, ZZ rotation 층은 x bit의 parity를 보존한다. 따라서 한 가지 분할을 끝까지 쓸 수 없다. (1) GPU는 sector의 출력에서 항마다 다음 구간의 행을 계산한다. 행 여섯 개의 값이 다음 sector의 번호이고, sector d는 노드 (d mod 노드 수)가 맡는다. (2) 출력을 다음 sector별로 모은다(`shuffle.cu`). (3) 자기 노드가 맡은 sector의 조각은 host memory의 chunk 목록 끝에 붙이고, 다른 노드의 조각은 outbox에 둔다.
 
-**재분배 시점.** 구간 안에서 항 수는 경계의 2.9–36배까지 늘었다가 truncation에서 줄어든다. 그림 4의 구간에서는 최대 13.6억 항이 경계에서 1.59억 항이 된다. SectorQ는 구간을 truncation 직후에서 끝낸다(`--snap`, 기본). 옮기는 양이 가장 적은 때이다.
+**교환.** (4) 구간 경계에서 outbox의 조각을 그 sector를 맡은 노드로 보낸다. 노드 사이의 메시지는 이것뿐이다. (5) 받은 메시지는 복사하지 않고 그 sector의 chunk로 삼는다. 회로 전체에서 유효한 행은 모든 항에서 값이 같아 분할에 쓸 수 없으므로(3.7절 성질 4) 재분배는 없앨 수 없다.
 
 **통신량.** cuPauliProp 분산 모드는 gate마다 rank당 22번의 전원 통신을 한다. SectorQ는 구간이 도는 동안 MPI 호출이 없고 구간 경계마다 한 번 교환한다. kicked Ising에서 통신 시점은 gate 2,540번에서 구간 20개의 경계로 줄어든다.
 
@@ -326,7 +328,7 @@ Clifford gate와 Clifford 각도의 rotation은 항 수를 바꾸지 않고 bit�
 
 ### 3.6 Checkpoint와 검산
 
-- **Checkpoint.** 구간 경계에서 sector 집합과 그 구간의 행을 노드별 파일로 쓴다. 이 시점은 항 수가 가장 적은 때이다(그림 4). 같은 노드 수 또는 한 노드로 재개한다.
+- **Checkpoint.** 구간 경계에서 sector 집합과 그 구간의 행을 노드별 파일로 쓴다. 이 시점은 항 수가 가장 적은 때이다(3.3절). 같은 노드 수 또는 한 노드로 재개한다.
 - **보존 parity 검산.** 회로의 모든 생성자에 대해 r(Q)=0인 행은 모든 항에서 값이 같아야 한다. heavy-hex kicked Ising에는 이런 행이 19개 있고 SectorQ는 그 가운데 8개를 쓴다. sector를 GPU에 올릴 때마다 모든 항을 이 행으로 검사한다(`--verify`, 기본).
 - **기준 모드.** 같은 연산 목록을 sector 하나와 GPU 하나로(`--mode ref`), 또는 cuPauliProp 분산 모드로(`--mode cupp`) 실행하여 답과 시간을 대조한다.
 
@@ -709,8 +711,8 @@ interactive 할당 안에서는 `jobs/inter.sh`를 source한 뒤 `eng <노드 �
 | 1. 서론 | 고전 시뮬레이션의 필요, 항 수가 정확도를 정한다, 나누기 어려운 세 가지 이유, 관찰과 규칙, 결과 | 1절 |
 | 2. 배경 | 100 qubit 이상의 고전 시뮬레이션, Pauli propagation의 연산, 분산이 어려운 이유 | 2.1–2.3절 |
 | 3. 지금 방식의 해부 | cuPauliProp 분산 모드의 측정 | 2.4절, 그림 1 |
-| 4. 원리 | 보존 parity sector, 보장과 한계(정리와 증명 스케치) | 3.1–3.2절, 3.7절, 그림 2–3 |
-| 5. 설계 | 구간과 재분배, sector 단위 실행, Clifford frame, checkpoint | 3.3–3.6절, 그림 4–5 |
+| 4. 원리 | 런타임 sector 재구성, 보장과 한계(정리와 증명 스케치) | 3.1–3.2절, 3.7절, 그림 2–3 |
+| 5. 설계 | 구간 경계의 재분배와 교환, sector 단위 실행, Clifford frame, checkpoint | 3.3–3.6절, 그림 4–5 |
 | 6. 평가 | 답의 일치, 속도, GPU 수와 도달 범위, 정확도, 시간 분해 | 4절, 그림 6–9 |
 | 7. 관련 연구 | Pauli propagation 계열, state-vector 계열, database의 분할 실행 | 2.5절 |
 | 8. 한계 | | 5절 |
