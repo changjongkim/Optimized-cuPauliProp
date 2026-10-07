@@ -8,6 +8,8 @@
 #include <thrust/copy.h>
 #include <thrust/count.h>
 #include <thrust/device_ptr.h>
+#include <thrust/device_vector.h>
+#include <thrust/host_vector.h>
 #include <thrust/execution_policy.h>
 #include <thrust/binary_search.h>
 #include <thrust/gather.h>
@@ -69,22 +71,30 @@ void pp_owners_strided(const uint64_t* xz, int64_t n, int64_t stride, int words,
                     thrust::device_pointer_cast(owners), f);
 }
 
-// Counts per owner id from owner ids that are already sorted (after pp_partition).
-void pp_counts_sorted(const uint8_t* owners, int64_t n, int R, int64_t* cnt) {
-  auto o = thrust::device_pointer_cast(owners);
-  int64_t prev = 0;
-  for (int r = 0; r < R; r++) {
-    const int64_t ub = thrust::upper_bound(thrust::device, o, o + n, (uint8_t)r) - o;
-    cnt[r] = ub - prev; prev = ub;
-  }
-}
-
 // hist[r] = number of terms owned by r, for r < R (host memory).
 void pp_hist(const uint8_t* owners, int64_t n, int R, int64_t* hist) {
   auto o = thrust::device_pointer_cast(owners);
   for (int r = 0; r < R; r++) hist[r] = thrust::count(thrust::device, o, o + n, (uint8_t)r);
 }
 
+// Counts per owner id from owner ids that are already sorted (after pp_partition).
+// One vectorized search for all ids instead of one kernel launch per id.
+void pp_counts_sorted(const uint8_t* owners, int64_t n, int R, int64_t* cnt) {
+  auto o = thrust::device_pointer_cast(owners);
+  thrust::device_vector<uint8_t> ids(R);
+  thrust::sequence(ids.begin(), ids.end());
+  thrust::device_vector<int64_t> ub(R);
+  thrust::upper_bound(thrust::device, o, o + n, ids.begin(), ids.end(), ub.begin());
+  thrust::host_vector<int64_t> h = ub;
+  int64_t prev = 0;
+  for (int r = 0; r < R; r++) { cnt[r] = h[r] - prev; prev = h[r]; }
+}
+
+// Number of owner ids different from the expected one (integrity check with conserved rows).
+int64_t pp_count_ne(const uint8_t* owners, int64_t n, int expected) {
+  auto o = thrust::device_pointer_cast(owners);
+  return n - thrust::count(thrust::device, o, o + n, (uint8_t)expected);
+}
 // Reorders terms so that owner ids are non-decreasing. owners is overwritten (sorted);
 // idx is scratch for n int32 values. Supports words == 2 or 4.
 int pp_partition(const uint64_t* xz, const double* coef, uint8_t* owners, int64_t n, int words,

@@ -329,12 +329,13 @@ inline int phaseG(int x1, int z1, int x2, int z2) {
   return x2 * (1 - 2 * z2);
 }
 
-// P <- G P G^dagger for a Clifford operation G (a Clifford gate or a rotation by a multiple of pi/2).
-// Returns false if the gate kind is not supported in the frame.
-inline bool conjugate(const Op& g, SignedPauli& P, const Layout& L) {
+// P <- G P G^dagger for a Clifford operation G (a Clifford gate or a rotation by a multiple of pi/2);
+// with inverse, P <- G^dagger P G. Returns false if the gate kind is not supported in the frame.
+inline bool conjugate(const Op& g, SignedPauli& P, const Layout& L, bool inverse = false) {
   uint64_t* v = P.bits.data();
   if (g.type == OP_ROT) {
-    const long k = ((long)std::llround(g.angle / (PI_ / 2)) % 4 + 4) % 4;
+    long k = ((long)std::llround(g.angle / (PI_ / 2)) % 4 + 4) % 4;
+    if (inverse) k = (4 - k) % 4;
     if (k == 0 || !symplectic(v, g.gen.data(), L)) return true;
     if (k == 2) { P.sign = -P.sign; return true; }
     int G = 0;                                     // R * P = i^G * (letters of the XOR)
@@ -360,7 +361,7 @@ inline bool conjugate(const Op& g, SignedPauli& P, const Layout& L) {
       if (x != z) { flipX(v, a); flipZ(v, L, a); }
       return true;
     case CUPAULIPROP_CLIFFORD_GATE_S:
-      if (x && z) P.sign = -P.sign;
+      if (inverse ? (x && !z) : (x && z)) P.sign = -P.sign;   // S: X->Y, Y->-X ; S^dagger: X->-Y, Y->X
       if (x) flipZ(v, L, a);
       return true;
     case CUPAULIPROP_CLIFFORD_GATE_CZ: {
@@ -394,8 +395,30 @@ inline std::vector<Op> compileForEngine(const Problem& P, bool useFrame, int* de
   std::vector<Op> out;
   std::vector<const Op*> frame;          // deferred Clifford operations, in processing order
   int deferred = 0;
+  // Applying the frame to the data means D <- A^dagger D A with A = G_1 ... G_m. If that map leaves
+  // every string's bits unchanged it is a Pauli conjugation, i.e. only signs: it is emitted as at most
+  // 2n single-qubit Pauli gates instead of the m deferred gates.
   auto flush = [&]() {
-    for (const Op* g : frame) { Op c = *g; c.trunc = false; out.push_back(c); }
+    if (frame.empty()) return;
+    bool pauliOnly = true;
+    std::vector<int> signX(L.n, 1), signZ(L.n, 1);
+    for (int q = 0; q < L.n && pauliOnly; q++)
+      for (int t = 0; t < 2 && pauliOnly; t++) {
+        SignedPauli b; b.bits.assign(L.words(), 0); b.sign = 1;
+        if (t == 0) flipX(b.bits.data(), q); else flipZ(b.bits.data(), L, q);
+        const BV before = b.bits;
+        for (const Op* g : frame) conjugate(*g, b, L, true);
+        if (b.bits != before) pauliOnly = false;
+        (t == 0 ? signX[q] : signZ[q]) = b.sign;
+      }
+    if (pauliOnly) {
+      for (int32_t q = 0; q < L.n; q++) {
+        if (signX[q] < 0) out.push_back(cliff(CUPAULIPROP_CLIFFORD_GATE_Z, {q}));   // Z flips the sign of X and Y
+        if (signZ[q] < 0) out.push_back(cliff(CUPAULIPROP_CLIFFORD_GATE_X, {q}));   // X flips the sign of Z and Y
+      }
+    } else {
+      for (const Op* g : frame) { Op c = *g; c.trunc = false; out.push_back(c); }
+    }
     frame.clear();
   };
   for (int i = (int)P.ops.size() - 1; i >= 0; --i) {
