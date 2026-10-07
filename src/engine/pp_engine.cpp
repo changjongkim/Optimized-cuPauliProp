@@ -11,6 +11,11 @@
 //             annihilator of their generators) can still split the terms: either a fixed number of
 //             free dimensions is kept (--window ann) or the terms must stay spread over the cosets
 //             of the generator span, measured on a sample (--window coset)
+//   pilot     buckets of one window are independent copies of the same dynamics in miniature, so one
+//             bucket is run ahead through the longest allowed window and the window is ended at the
+//             truncation after which that bucket is smallest: every term is moved at a re-key, so
+//             the re-key is placed where there are fewest terms (--pilot; without it --snap ends
+//             the window at the last truncation)
 //   rows      random elements of that annihilator, the best-balanced set on a sample of terms
 //   overflow  a bucket that outgrows its GPU is split by one more row and requeued
 //   frame     Clifford operations are deferred and folded into later rotations
@@ -89,10 +94,13 @@ struct Opts {
   std::string window = "ann";    // ann | coset
   double kappa = 4.0;            // coset rule: the largest coset may hold 1/(kappa * buckets) of the sample
   long sample = 200000;
+  int snap = 1;                  // end a window right after a truncation, where the operator is locally smallest
+  int pilot = 1;                 // run one bucket ahead through the window and end the window where it is smallest
   long chunk = 262144;           // terms per host chunk
   int pinned = 1, verify = 1;
   std::string ckptFile, resume;
   int ckptWindow = -1, stopAtCkpt = 0;
+  std::string profile;           // write the number of terms before every operation to this file
 };
 
 static Layout g_L;
@@ -282,6 +290,14 @@ static Window planWindow(int b, int gWanted, const std::vector<uint64_t>& sample
   return w;
 }
 
+// Without a pilot: end the window right after the last truncation in its second half.
+static int snapEnd(const Window& w) {
+  const int M = (int)g_ops.size();
+  if (w.e >= M) return w.e;
+  for (int k = w.e - 1; k >= w.b + (w.e - w.b) / 2; --k) if (g_ops[k].trunc) return k + 1;
+  return w.e;
+}
+
 static void packWindow(const Window& w, int hdr[6], std::vector<uint64_t>& payload) {
   const int W = g_L.words();
   hdr[0] = w.b; hdr[1] = w.e; hdr[2] = w.g; hdr[3] = w.annDim; hdr[4] = w.generators; hdr[5] = (int)w.spare.size();
@@ -384,6 +400,7 @@ struct Shared {
   // conserved rows as masks for strings at the start of the current window, and their expected values
   std::vector<uint64_t> checkRows;
   int checkG = 0, checkExpected = 0;
+  std::atomic<long>* popAt = nullptr;   // terms seen before each operation, summed over buckets
 };
 
 struct Worker {
@@ -477,6 +494,48 @@ struct Worker {
     }
   }
 
+  // Runs a copy of the bucket through the window and records the number of terms after every
+  // operation. Returns how many operations it completed (it stops if the bucket outgrows the GPU).
+  int pilot(const Window& w, const Bucket& b, std::vector<double>& after) {
+    CUDA(cudaSetDevice(dev));
+    if (b.n == 0 || b.n > capTerms / 2) return 0;
+    long off = 0;
+    for (auto& k : b.ch) {
+      if (k.n == 0) continue;
+      CUDA(cudaMemcpy((char*)xz[0] + off * xzPerTerm, k.xz, (size_t)k.n * xzPerTerm, cudaMemcpyHostToDevice));
+      CUDA(cudaMemcpy((char*)cf[0] + off * sizeof(double), k.cf, (size_t)k.n * sizeof(double), cudaMemcpyHostToDevice));
+      off += k.n;
+    }
+    makeExpansions(b.n);
+    for (int k = w.b; k < w.e; k++) {
+      const Op& op = g_ops[k];
+      const long m = numTerms();
+      if (m == 0) return w.e - w.b;
+      const bool dust = (op.type == OP_ROT && !op.branches);
+      const int32_t nT = op.trunc ? (int32_t)trunc.size() : (dust ? 1 : 0);
+      const cupaulipropTruncationStrategy_t* pT = op.trunc ? trunc.data() : (dust ? junk.data() : nullptr);
+      cupaulipropPauliExpansionView_t v;
+      CUPP(cupaulipropPauliExpansionGetContiguousRange(handle, ex[cur], 0, m, &v));
+      int64_t rp = 0, rc = 0, need = 0;
+      cupaulipropStatus_t sp = cupaulipropPauliExpansionViewPrepareOperatorApplication(
+        handle, v, oper[k], CUPAULIPROP_SORT_ORDER_NONE, 0, nT, pT, wsMem, &rp, &rc, ws);
+      if (sp == CUPAULIPROP_STATUS_SUCCESS)
+        CUPP(cupaulipropWorkspaceGetMemorySize(handle, ws, CUPAULIPROP_MEMSPACE_DEVICE, CUPAULIPROP_WORKSPACE_SCRATCH, &need));
+      if (sp != CUPAULIPROP_STATUS_SUCCESS || rp > (int64_t)xzMem || rc > (int64_t)cfMem || need > (int64_t)wsMem) {
+        CUPP(cupaulipropDestroyPauliExpansionView(v));
+        return k - w.b;
+      }
+      CUPP(cupaulipropWorkspaceSetMemory(handle, ws, CUPAULIPROP_MEMSPACE_DEVICE, CUPAULIPROP_WORKSPACE_SCRATCH, dWs, wsMem));
+      CUPP(cupaulipropPauliExpansionViewComputeOperatorApplication(
+        handle, v, ex[1 - cur], oper[k], 1, CUPAULIPROP_SORT_ORDER_NONE, 0, nT, pT, ws, stream));
+      CUDA(cudaStreamSynchronize(stream));
+      CUPP(cupaulipropDestroyPauliExpansionView(v));
+      cur ^= 1;
+      after[k - w.b] = (double)numTerms();
+    }
+    return w.e - w.b;
+  }
+
   void run(const Window& w, const Window* next, Shared& sh, bool allowSplit) {
     CUDA(cudaSetDevice(dev));
     while (true) {
@@ -541,6 +600,7 @@ struct Worker {
       const long m = numTerms();
       if (m == 0) break;
       peak = std::max(peak, m);
+      if (sh.popAt) sh.popAt[k] += m;
       // Truncation: the scheduled one, or only numerical dust after a Clifford-angle rotation.
       const bool dust = (op.type == OP_ROT && !op.branches);
       const int32_t nT = op.trunc ? (int32_t)trunc.size() : (dust ? 1 : 0);
@@ -803,6 +863,8 @@ int main(int argc, char** argv) {
     else if (a == "--ann-min")     o.annMin = atoi(next());
     else if (a == "--window")      o.window = next();
     else if (a == "--kappa")       o.kappa = atof(next());
+    else if (a == "--snap")        o.snap = atoi(next());
+    else if (a == "--pilot")       o.pilot = atoi(next());
     else if (a == "--chunk")       o.chunk = atol(next());
     else if (a == "--pinned")      o.pinned = atoi(next());
     else if (a == "--verify")      o.verify = atoi(next());
@@ -810,6 +872,7 @@ int main(int argc, char** argv) {
     else if (a == "--ckpt-file")   o.ckptFile = next();
     else if (a == "--stop-at-ckpt") o.stopAtCkpt = atoi(next());
     else if (a == "--resume")      o.resume = next();
+    else if (a == "--profile")     o.profile = next();
     else { fprintf(stderr, "unknown option %s\n", a.c_str()); die("bad option", __LINE__); }
   }
   const bool ref = (o.mode == "ref");
@@ -847,6 +910,9 @@ int main(int argc, char** argv) {
 
   Shared sh;
   std::mt19937_64 rng(o.seed);
+  std::vector<std::atomic<long>> popAt(o.profile.empty() ? 0 : M);
+  std::vector<int> windowStarts;
+  if (!o.profile.empty()) { for (auto& x : popAt) x = 0; sh.popAt = popAt.data(); }
 
   // Parities conserved by every branching rotation of the whole run, as masks for strings at
   // position 0. With a single-term observable every term must keep the observable's values.
@@ -946,7 +1012,8 @@ int main(int argc, char** argv) {
     if (g_rank == 0) printf("resumed at operation %d with %ld terms on %d node(s) (checkpoint was written by %d)\n", pos, tg, g_R, files);
   }
 
-  double tPlan = 0, growth = 2.0, tExchange = 0, bytesMoved = 0, worstCoset = 0;
+  double tPlan = 0, growth = 2.0, tExchange = 0, bytesMoved = 0, worstCoset = 0, tPilot = 0, pilotGrowth = -1;
+  long pilotEnds = 0;
   long maxBoundary = 0, movedBuckets = 0;
   int windows = 0, maxWindowOps = 0, minAnn = 2 * g_L.n;
   MPI_Barrier(MPI_COMM_WORLD);
@@ -959,6 +1026,44 @@ int main(int argc, char** argv) {
     for (auto& b : pool) NinLocal += b.n;
     MPI_Allreduce(&NinLocal, &Nin, 1, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
     maxBoundary = std::max(maxBoundary, Nin);
+
+    // Where should this window end? Its rows stay valid for any shorter window. With several buckets,
+    // every node runs one of its buckets ahead and the window ends at the truncation after which those
+    // pilots are smallest (in the second half of the window). Otherwise at the last truncation.
+    if (!ref && w.e - w.b > 1) {
+      const double tq = now();
+      int newEnd = o.snap ? snapEnd(w) : w.e;
+      if (o.pilot && w.g > 0 && Nin >= o.target) {
+        const int len = w.e - w.b;
+        std::vector<double> after(len, 0.0), tot(len, 0.0);
+        std::vector<const Bucket*> cand;
+        for (auto& b : pool) if (b.n > 0) cand.push_back(&b);
+        int done = len;
+        double scale = 0;
+        if (!cand.empty()) {
+          std::sort(cand.begin(), cand.end(), [](const Bucket* a, const Bucket* b) { return a->n < b->n; });
+          const Bucket* pb = cand[cand.size() / 2];
+          done = workers[0].pilot(w, *pb, after);
+          CUDA(cudaSetDevice(0));
+          scale = (double)pb->n;
+        }
+        int doneMin = len; double scaleTot = 0;
+        MPI_Allreduce(&done, &doneMin, 1, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
+        MPI_Allreduce(after.data(), tot.data(), len, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+        MPI_Allreduce(&scale, &scaleTot, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+        if (scaleTot > 0 && doneMin > len / 2) {
+          double best = 1e300; int bestEnd = -1;
+          for (int i = len / 2; i < doneMin; i++) {
+            const int k = w.b + i;
+            const bool candidate = g_ops[k].trunc || (k + 1 == w.e && doneMin == len);
+            if (candidate && tot[i] < best) { best = tot[i]; bestEnd = k + 1; }
+          }
+          if (bestEnd > 0) { newEnd = bestEnd; pilotEnds++; pilotGrowth = best / scaleTot; }
+        }
+      }
+      w.e = newEnd;
+      tPilot += now() - tq;
+    }
     const bool last = (w.e >= M);
 
     // Plan the next window: its rows are scored on a sample of the current terms, moved through the
@@ -967,7 +1072,9 @@ int main(int argc, char** argv) {
     if (!last) {
       const double tp = now();
       int gWanted = 0;
-      if (!ref) { const double est = Nin * growth; while (gWanted < o.gmax && est / (double)(1L << gWanted) > (double)o.target) gWanted++; }
+      // Terms expected at the end of this window: from the pilot if there was one, else from the last ratio.
+      if (!ref) { const double est = Nin * (pilotGrowth > 0 ? pilotGrowth * 1.3 : growth); while (gWanted < o.gmax && est / (double)(1L << gWanted) > (double)o.target) gWanted++; }
+      pilotGrowth = -1;
       std::vector<uint64_t> sample;
       if (gWanted > 0) {
         const long stride = std::max<long>(1, Nin / std::max<long>(1, o.sample));
@@ -982,6 +1089,7 @@ int main(int argc, char** argv) {
       tPlan += now() - tp;
     }
     windows++;
+    windowStarts.push_back(w.b);
     maxWindowOps = std::max(maxWindowOps, w.e - w.b);
     minAnn = std::min(minAnn, w.annDim);
     worstCoset = std::max(worstCoset, w.cosetFrac);
@@ -1029,10 +1137,24 @@ int main(int argc, char** argv) {
            maxBoundary, mc[3], sc[0], sc[1], sc[2]);
     if (!conserved.empty())
       printf("integrity: %ld term checks against %zu conserved parities, %ld violations\n", sc[4], conserved.size(), sc[5]);
-    printf("wall=%.3f s; summed over %d GPU workers: operations=%.3f partition=%.3f host->gpu=%.3f gpu->host=%.3f idle=%.3f; planning=%.3f\n",
-           wall, o.gpus * g_R, sum[0], sum[1], sum[2], sum[3], sum[4], tPlan);
+    printf("wall=%.3f s; summed over %d GPU workers: operations=%.3f partition=%.3f host->gpu=%.3f gpu->host=%.3f idle=%.3f; planning=%.3f; pilot=%.3f (%ld window ends chosen)\n",
+           wall, o.gpus * g_R, sum[0], sum[1], sum[2], sum[3], sum[4], tPlan, tPilot, pilotEnds);
     printf("host memory in chunks: %.2f GiB on the busiest node\n",
            mc[6] * (double)o.chunk * (words * 8 + 8) / 1073741824.0);
+    if (!o.profile.empty() && g_R == 1) {
+      FILE* f = fopen(o.profile.c_str(), "w");
+      if (f) {
+        fprintf(f, "op,branching,trunc,window_start,terms_before\n");
+        size_t wi2 = 0;
+        for (int k = 0; k < M; k++) {
+          int ws = 0;
+          while (wi2 < windowStarts.size() && windowStarts[wi2] < k) wi2++;
+          if (wi2 < windowStarts.size() && windowStarts[wi2] == k) ws = 1;
+          fprintf(f, "%d,%d,%d,%d,%ld\n", k, (int)(g_ops[k].type == OP_ROT && g_ops[k].branches), (int)g_ops[k].trunc, ws, popAt[k].load());
+        }
+        fclose(f);
+      }
+    }
     if (g_R > 1)
       printf("between nodes: %.3f GB sent, %.3f s per node on average (%.2f GB/s per node while exchanging); MPI calls while a window runs: 0\n",
              sum[6] / 1e9, sum[5] / g_R, sum[5] > 0 ? sum[6] / 1e9 / (sum[5] / g_R) / g_R : 0.0);
