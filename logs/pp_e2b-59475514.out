@@ -1,0 +1,130 @@
+===== engine nodes=4 gpus=16 args: --circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-5 --target 4000000
+circuit: TFIM Trotter, Eagle heavy-hex; 127 qubits; 5420 gates -> 5420 operations on the data (5420 branching rotations, 0 Clifford, 0 noise); 0 Clifford gates deferred by the frame
+mode=engine nodes=4 gpus/node=4 coef=1e-05 weight=0 truncEvery=10 GPU capacity=380902146 terms/buffer bucket target=4000000 gmax=8 window=ann host=pinned chunks
+expectation=0.451392373925
+windows=55 (longest 140 operations, smallest row space 127 of 254, largest coset share 0.0000) partitioned boundaries=43
+max_terms_at_window_boundary=226040228 largest_bucket_on_a_gpu=54587012 bucket_runs=1550 splits_on_gpu=0 splits_on_host=0
+integrity: 3201482081 term checks against 1 conserved parities, 0 violations
+wall=24.461 s; summed over 16 GPU workers: operations=143.227 partition=7.081 host->gpu=8.409 gpu->host=14.125 idle=23.795; planning=1.032; pilot=6.018 (42 window ends chosen)
+host memory in chunks: 4.38 GiB on the busiest node
+between nodes: 95.997 GB sent, 3.897 s per node on average (6.16 GB/s per node while exchanging); MPI calls while a window runs: 0
+exit=0
+===== engine nodes=4 gpus=16 args: --circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 1e-5 --target 4000000
+circuit: TFIM Trotter, square lattice; 121 qubits; 3410 gates -> 3410 operations on the data (3410 branching rotations, 0 Clifford, 0 noise); 0 Clifford gates deferred by the frame
+mode=engine nodes=4 gpus/node=4 coef=1e-05 weight=0 truncEvery=10 GPU capacity=380902146 terms/buffer bucket target=4000000 gmax=8 window=ann host=pinned chunks
+expectation=0.824629850051
+windows=29 (longest 220 operations, smallest row space 121 of 242, largest coset share 0.0000) partitioned boundaries=21
+max_terms_at_window_boundary=253909277 largest_bucket_on_a_gpu=116142826 bucket_runs=1194 splits_on_gpu=0 splits_on_host=0
+integrity: 2440812501 term checks against 1 conserved parities, 0 violations
+wall=20.622 s; summed over 16 GPU workers: operations=127.187 partition=5.373 host->gpu=6.319 gpu->host=16.337 idle=10.542; planning=0.599; pilot=4.160 (21 window ends chosen)
+host memory in chunks: 4.38 GiB on the busiest node
+between nodes: 73.033 GB sent, 3.414 s per node on average (5.35 GB/s per node while exchanging); MPI calls while a window runs: 0
+exit=0
+===== engine nodes=4 gpus=16 args: --circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 3e-6 --target 4000000
+circuit: TFIM Trotter, square lattice; 121 qubits; 3410 gates -> 3410 operations on the data (3410 branching rotations, 0 Clifford, 0 noise); 0 Clifford gates deferred by the frame
+mode=engine nodes=4 gpus/node=4 coef=3e-06 weight=0 truncEvery=10 GPU capacity=380902146 terms/buffer bucket target=4000000 gmax=8 window=ann host=pinned chunks
+expectation=0.780394015937
+windows=29 (longest 220 operations, smallest row space 121 of 242, largest coset share 0.0000) partitioned boundaries=21
+max_terms_at_window_boundary=2689261371 largest_bucket_on_a_gpu=147411780 bucket_runs=5142 splits_on_gpu=6 splits_on_host=0
+integrity: 24442546166 term checks against 1 conserved parities, 0 violations
+wall=159.001 s; summed over 16 GPU workers: operations=1302.284 partition=31.275 host->gpu=52.414 gpu->host=164.938 idle=56.896; planning=0.814; pilot=8.037 (20 window ends chosen)
+host memory in chunks: 45.95 GiB on the busiest node
+between nodes: 732.604 GB sent, 38.777 s per node on average (4.72 GB/s per node while exchanging); MPI calls while a window runs: 0
+exit=0
+===== engine nodes=4 gpus=16 args: --circuit xxz --lx 8 --ly 8 --jxy 0.1 --jz 0.15 --steps 6 --coef 1e-4 --target 4000000
+circuit: XXZ Trotter, square lattice; 64 qubits; 2048 gates -> 2048 operations on the data (2016 branching rotations, 32 Clifford, 0 noise); 32 Clifford gates deferred by the frame
+mode=engine nodes=4 gpus/node=4 coef=0.0001 weight=0 truncEvery=10 GPU capacity=634836910 terms/buffer bucket target=4000000 gmax=8 window=ann host=pinned chunks
+expectation=0.00558248729487
+windows=23 (longest 90 operations, smallest row space 64 of 128, largest coset share 0.0000) partitioned boundaries=5
+max_terms_at_window_boundary=3735532 largest_bucket_on_a_gpu=45792832 bucket_runs=30 splits_on_gpu=0 splits_on_host=0
+integrity: 29523506 term checks against 2 conserved parities, 0 violations
+wall=2.192 s; summed over 16 GPU workers: operations=2.873 partition=0.026 host->gpu=0.030 gpu->host=0.081 idle=9.162; planning=0.048; pilot=0.000 (0 window ends chosen)
+host memory in chunks: 0.07 GiB on the busiest node
+between nodes: 0.269 GB sent, 0.053 s per node on average (1.26 GB/s per node while exchanging); MPI calls while a window runs: 0
+exit=0
+===== engine nodes=4 gpus=16 args: --circuit qaoa --n 100 --layers 4 --coef 1e-4 --target 4000000
+circuit: QAOA MaxCut, random 3-regular graph; 100 qubits; 1100 gates -> 1100 operations on the data (1000 branching rotations, 100 Clifford, 0 noise); 100 Clifford gates deferred by the frame
+mode=engine nodes=4 gpus/node=4 coef=0.0001 weight=0 truncEvery=10 GPU capacity=380902146 terms/buffer bucket target=4000000 gmax=8 window=ann host=pinned chunks
+expectation=81.8841164502
+windows=9 (longest 150 operations, smallest row space 100 of 200, largest coset share 0.0000) partitioned boundaries=4
+max_terms_at_window_boundary=26581853 largest_bucket_on_a_gpu=11284037 bucket_runs=31 splits_on_gpu=0 splits_on_host=0
+wall=2.355 s; summed over 16 GPU workers: operations=3.307 partition=0.061 host->gpu=0.128 gpu->host=0.557 idle=8.872; planning=0.073; pilot=0.639 (3 window ends chosen)
+host memory in chunks: 0.55 GiB on the busiest node
+between nodes: 1.572 GB sent, 0.323 s per node on average (1.22 GB/s per node while exchanging); MPI calls while a window runs: 0
+exit=0
+===== engine nodes=4 gpus=16 args: --circuit hea --n 100 --layers 16 --amp 0.4 --coef 1e-5 --target 4000000
+circuit: hardware-efficient ansatz, line; 100 qubits; 4784 gates -> 3200 operations on the data (3200 branching rotations, 0 Clifford, 0 noise); 1584 Clifford gates deferred by the frame
+mode=engine nodes=4 gpus/node=4 coef=1e-05 weight=0 truncEvery=10 GPU capacity=380902146 terms/buffer bucket target=4000000 gmax=8 window=ann host=pinned chunks
+expectation=-0.165478238238
+windows=41 (longest 100 operations, smallest row space 100 of 200, largest coset share 0.0000) partitioned boundaries=21
+max_terms_at_window_boundary=50090500 largest_bucket_on_a_gpu=18598728 bucket_runs=232 splits_on_gpu=0 splits_on_host=0
+wall=5.699 s; summed over 16 GPU workers: operations=10.989 partition=0.815 host->gpu=1.143 gpu->host=1.289 idle=10.680; planning=0.374; pilot=1.913 (20 window ends chosen)
+host memory in chunks: 1.09 GiB on the busiest node
+between nodes: 12.252 GB sent, 1.012 s per node on average (3.03 GB/s per node while exchanging); MPI calls while a window runs: 0
+exit=0
+===== engine nodes=4 gpus=16 args: --circuit ki_noisy --noise 0.005 --coef 1e-5 --target 6000000
+circuit: noisy kicked Ising, Eagle heavy-hex; 127 qubits; 7960 gates -> 7960 operations on the data (2540 branching rotations, 2880 Clifford, 2540 noise); 2880 Clifford gates deferred by the frame
+mode=engine nodes=4 gpus/node=4 coef=1e-05 weight=0 truncEvery=10 GPU capacity=380902146 terms/buffer bucket target=6000000 gmax=8 window=ann host=pinned chunks
+expectation=0.173318829841
+windows=21 (longest 525 operations, smallest row space 127 of 254, largest coset share 0.0000) partitioned boundaries=15
+max_terms_at_window_boundary=72405771 largest_bucket_on_a_gpu=125315174 bucket_runs=170 splits_on_gpu=0 splits_on_host=0
+integrity: 590177906 term checks against 8 conserved parities, 0 violations
+wall=25.103 s; summed over 16 GPU workers: operations=99.400 partition=0.688 host->gpu=1.539 gpu->host=2.558 idle=68.376; planning=0.818; pilot=9.831 (15 window ends chosen)
+host memory in chunks: 1.37 GiB on the busiest node
+between nodes: 17.641 GB sent, 0.911 s per node on average (4.84 GB/s per node while exchanging); MPI calls while a window runs: 0
+exit=0
+===== engine nodes=4 gpus=16 args: --circuit tfim_sq --lx 5 --ly 6 --theta 0.2 --phi -0.3 --steps 6 --coef 1e-5 --target 4000000
+circuit: TFIM Trotter, square lattice; 30 qubits; 474 gates -> 474 operations on the data (474 branching rotations, 0 Clifford, 0 noise); 0 Clifford gates deferred by the frame
+mode=engine nodes=4 gpus/node=4 coef=1e-05 weight=0 truncEvery=10 GPU capacity=634836910 terms/buffer bucket target=4000000 gmax=8 window=ann host=pinned chunks
+expectation=0.780881001464
+windows=17 (longest 44 operations, smallest row space 30 of 60, largest coset share 0.0000) partitioned boundaries=9
+max_terms_at_window_boundary=299394521 largest_bucket_on_a_gpu=62544427 bucket_runs=498 splits_on_gpu=0 splits_on_host=0
+integrity: 1108093441 term checks against 1 conserved parities, 0 violations
+wall=6.976 s; summed over 16 GPU workers: operations=26.440 partition=1.832 host->gpu=1.509 gpu->host=3.427 idle=5.590; planning=0.144; pilot=0.822 (9 window ends chosen)
+host memory in chunks: 3.94 GiB on the busiest node
+between nodes: 19.896 GB sent, 3.026 s per node on average (1.64 GB/s per node while exchanging); MPI calls while a window runs: 0
+exit=0
+===== engine nodes=4 gpus=16 args: --circuit tfim_sq --lx 5 --ly 6 --theta 0.2 --phi -0.3 --steps 6 --coef 3e-6 --target 4000000
+circuit: TFIM Trotter, square lattice; 30 qubits; 474 gates -> 474 operations on the data (474 branching rotations, 0 Clifford, 0 noise); 0 Clifford gates deferred by the frame
+mode=engine nodes=4 gpus/node=4 coef=3e-06 weight=0 truncEvery=10 GPU capacity=634836910 terms/buffer bucket target=4000000 gmax=8 window=ann host=pinned chunks
+expectation=0.778587986317
+windows=17 (longest 44 operations, smallest row space 30 of 60, largest coset share 0.0000) partitioned boundaries=9
+max_terms_at_window_boundary=2966954266 largest_bucket_on_a_gpu=137210075 bucket_runs=1706 splits_on_gpu=0 splits_on_host=0
+integrity: 8806615348 term checks against 1 conserved parities, 0 violations
+wall=45.255 s; summed over 16 GPU workers: operations=202.313 partition=9.314 host->gpu=11.814 gpu->host=51.709 idle=6.479; planning=0.192; pilot=1.461 (9 window ends chosen)
+host memory in chunks: 31.50 GiB on the busiest node
+between nodes: 158.420 GB sent, 24.423 s per node on average (1.62 GB/s per node while exchanging); MPI calls while a window runs: 0
+exit=0
+===== engine nodes=4 gpus=16 args: --circuit tfim_sq --lx 5 --ly 6 --theta 0.2 --phi -0.3 --steps 6 --coef 1e-6 --target 4000000
+circuit: TFIM Trotter, square lattice; 30 qubits; 474 gates -> 474 operations on the data (474 branching rotations, 0 Clifford, 0 noise); 0 Clifford gates deferred by the frame
+mode=engine nodes=4 gpus/node=4 coef=1e-06 weight=0 truncEvery=10 GPU capacity=634836910 terms/buffer bucket target=4000000 gmax=8 window=ann host=pinned chunks
+srun: forcing job termination
+srun: got SIGCONT
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+[2026-10-07T08:25:21.616] error: *** STEP 59475514.9 ON nid008285 CANCELLED AT 2026-10-07T08:25:21 DUE to SIGNAL Killed ***
+srun: error: Timed out waiting for job step to complete
+exit=124
+===== engine nodes=4 gpus=16 args: --circuit tfim_sq --lx 5 --ly 6 --theta 0.2 --phi -0.3 --steps 4 --coef 1e-6 --target 4000000
+srun: Step created for StepId=59475514.10
+circuit: TFIM Trotter, square lattice; 30 qubits; 316 gates -> 316 operations on the data (316 branching rotations, 0 Clifford, 0 noise); 0 Clifford gates deferred by the frame
+mode=engine nodes=4 gpus/node=4 coef=1e-06 weight=0 truncEvery=10 GPU capacity=634836910 terms/buffer bucket target=4000000 gmax=8 window=ann host=pinned chunks
+expectation=0.801551429518
+windows=9 (longest 50 operations, smallest row space 30 of 60, largest coset share 0.0000) partitioned boundaries=1
+max_terms_at_window_boundary=130356422 largest_bucket_on_a_gpu=296454173 bucket_runs=38 splits_on_gpu=14 splits_on_host=0
+integrity: 131308002 term checks against 1 conserved parities, 0 violations
+wall=23.918 s; summed over 16 GPU workers: operations=106.387 partition=0.057 host->gpu=5.767 gpu->host=2.204 idle=27.263; planning=0.013; pilot=0.274 (0 window ends chosen)
+host memory in chunks: 23.51 GiB on the busiest node
+between nodes: 1.564 GB sent, 0.577 s per node on average (0.68 GB/s per node while exchanging); MPI calls while a window runs: 0
+exit=0
+===== engine nodes=4 gpus=16 args: --circuit tfim_sq --lx 5 --ly 6 --theta 0.2 --phi -0.3 --steps 4 --coef 1e-7 --target 4000000
+circuit: TFIM Trotter, square lattice; 30 qubits; 316 gates -> 316 operations on the data (316 branching rotations, 0 Clifford, 0 noise); 0 Clifford gates deferred by the frame
+mode=engine nodes=4 gpus/node=4 coef=1e-07 weight=0 truncEvery=10 GPU capacity=634836910 terms/buffer bucket target=4000000 gmax=8 window=ann host=pinned chunks
+expectation=0.802795344445
+windows=9 (longest 50 operations, smallest row space 30 of 60, largest coset share 0.0000) partitioned boundaries=1
+max_terms_at_window_boundary=560842785 largest_bucket_on_a_gpu=250814245 bucket_runs=268 splits_on_gpu=129 splits_on_host=21
+integrity: 561809755 term checks against 1 conserved parities, 0 violations
+wall=121.077 s; summed over 16 GPU workers: operations=476.190 partition=0.302 host->gpu=53.067 gpu->host=14.139 idle=56.109; planning=0.012; pilot=0.422 (0 window ends chosen)
+host memory in chunks: 91.03 GiB on the busiest node
+between nodes: 6.730 GB sent, 2.460 s per node on average (0.68 GB/s per node while exchanging); MPI calls while a window runs: 0
+exit=0
+done

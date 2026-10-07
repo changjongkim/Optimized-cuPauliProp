@@ -1,0 +1,73 @@
+===== engine nodes=1 gpus=4 args: --circuit ki_lab --weight 0 --coef 1e-5 --target 6000000
+circuit: kicked Ising, Eagle heavy-hex; 127 qubits; 5420 gates -> 2540 operations on the data (2540 branching rotations, 0 Clifford, 0 noise); 2880 Clifford gates deferred by the frame
+mode=engine nodes=1 gpus/node=4 coef=1e-05 weight=0 truncEvery=10 GPU capacity=380902146 terms/buffer bucket target=6000000 gmax=8 window=ann host=pinned chunks
+expectation=0.228607441423
+windows=23 (longest 127 operations, smallest row space 127 of 254, largest coset share 0.0000) partitioned boundaries=17
+max_terms_at_window_boundary=148567463 largest_bucket_on_a_gpu=177097466 bucket_runs=562 splits_on_gpu=4 splits_on_host=0
+integrity: 1676785314 term checks against 8 conserved parities, 0 violations
+wall=60.750 s; summed over 4 GPU workers: operations=200.878 partition=2.159 host->gpu=4.454 gpu->host=4.256 idle=8.242; planning=0.481; pilot=4.900 (16 window ends chosen)
+host memory in chunks: 27.10 GiB on the busiest node
+exit=0
+===== engine nodes=2 gpus=8 args: --circuit ki_lab --weight 0 --coef 1e-5 --target 6000000
+circuit: kicked Ising, Eagle heavy-hex; 127 qubits; 5420 gates -> 2540 operations on the data (2540 branching rotations, 0 Clifford, 0 noise); 2880 Clifford gates deferred by the frame
+mode=engine nodes=2 gpus/node=4 coef=1e-05 weight=0 truncEvery=10 GPU capacity=380902146 terms/buffer bucket target=6000000 gmax=8 window=ann host=pinned chunks
+expectation=0.228607441423
+windows=23 (longest 127 operations, smallest row space 127 of 254, largest coset share 0.0000) partitioned boundaries=17
+max_terms_at_window_boundary=148567463 largest_bucket_on_a_gpu=177097466 bucket_runs=562 splits_on_gpu=4 splits_on_host=0
+integrity: 1676785314 term checks against 8 conserved parities, 0 violations
+wall=33.673 s; summed over 8 GPU workers: operations=153.237 partition=3.194 host->gpu=6.075 gpu->host=5.581 idle=30.585; planning=0.453; pilot=5.151 (16 window ends chosen)
+host memory in chunks: 8.17 GiB on the busiest node
+between nodes: 33.492 GB sent, 1.324 s per node on average (12.65 GB/s per node while exchanging); MPI calls while a window runs: 0
+exit=0
+===== engine nodes=4 gpus=16 args: --circuit ki_lab --weight 0 --coef 1e-5 --target 6000000
+circuit: kicked Ising, Eagle heavy-hex; 127 qubits; 5420 gates -> 2540 operations on the data (2540 branching rotations, 0 Clifford, 0 noise); 2880 Clifford gates deferred by the frame
+mode=engine nodes=4 gpus/node=4 coef=1e-05 weight=0 truncEvery=10 GPU capacity=380902146 terms/buffer bucket target=6000000 gmax=8 window=ann host=pinned chunks
+expectation=0.228607441423
+windows=23 (longest 127 operations, smallest row space 127 of 254, largest coset share 0.0000) partitioned boundaries=17
+max_terms_at_window_boundary=148567463 largest_bucket_on_a_gpu=177097466 bucket_runs=562 splits_on_gpu=4 splits_on_host=0
+integrity: 1676785314 term checks against 8 conserved parities, 0 violations
+wall=22.390 s; summed over 16 GPU workers: operations=144.903 partition=3.109 host->gpu=6.054 gpu->host=5.361 idle=55.817; planning=0.440; pilot=5.153 (16 window ends chosen)
+host memory in chunks: 4.15 GiB on the busiest node
+between nodes: 50.239 GB sent, 1.096 s per node on average (11.46 GB/s per node while exchanging); MPI calls while a window runs: 0
+exit=0
+===== engine nodes=4 gpus=16 args: --circuit ki_lab --weight 0 --coef 1e-5 --target 6000000 --pinned 0
+circuit: kicked Ising, Eagle heavy-hex; 127 qubits; 5420 gates -> 2540 operations on the data (2540 branching rotations, 0 Clifford, 0 noise); 2880 Clifford gates deferred by the frame
+mode=engine nodes=4 gpus/node=4 coef=1e-05 weight=0 truncEvery=10 GPU capacity=380902146 terms/buffer bucket target=6000000 gmax=8 window=ann host=pageable chunks
+expectation=0.228607441423
+windows=23 (longest 127 operations, smallest row space 127 of 254, largest coset share 0.0000) partitioned boundaries=17
+max_terms_at_window_boundary=148567463 largest_bucket_on_a_gpu=177097466 bucket_runs=562 splits_on_gpu=4 splits_on_host=0
+integrity: 1676785314 term checks against 8 conserved parities, 0 violations
+wall=21.863 s; summed over 16 GPU workers: operations=141.570 partition=2.939 host->gpu=19.130 gpu->host=15.662 idle=45.747; planning=0.441; pilot=5.030 (16 window ends chosen)
+host memory in chunks: 7.75 GiB on the busiest node
+between nodes: 50.239 GB sent, 0.905 s per node on average (13.88 GB/s per node while exchanging); MPI calls while a window runs: 0
+exit=0
+===== engine nodes=4 gpus=16 args: --circuit ki_lab --weight 0 --coef 3e-6 --target 6000000
+circuit: kicked Ising, Eagle heavy-hex; 127 qubits; 5420 gates -> 2540 operations on the data (2540 branching rotations, 0 Clifford, 0 noise); 2880 Clifford gates deferred by the frame
+mode=engine nodes=4 gpus/node=4 coef=3e-06 weight=0 truncEvery=10 GPU capacity=380902146 terms/buffer bucket target=6000000 gmax=8 window=ann host=pinned chunks
+expectation=0.289217470624
+windows=24 (longest 127 operations, smallest row space 127 of 254, largest coset share 0.0000) partitioned boundaries=18
+max_terms_at_window_boundary=1484188830 largest_bucket_on_a_gpu=149362521 bucket_runs=4424 splits_on_gpu=31 splits_on_host=2
+integrity: 18280385272 term checks against 8 conserved parities, 0 violations
+wall=149.147 s; summed over 16 GPU workers: operations=1602.985 partition=24.118 host->gpu=46.768 gpu->host=73.131 idle=105.967; planning=0.692; pilot=7.320 (17 window ends chosen)
+host memory in chunks: 27.73 GiB on the busiest node
+between nodes: 548.348 GB sent, 14.860 s per node on average (9.23 GB/s per node while exchanging); MPI calls while a window runs: 0
+exit=0
+===== engine nodes=4 gpus=16 args: --circuit ki_lab --weight 0 --coef 1e-5 --target 6000000 --ckpt-window 12 --ckpt-file /pscratch/sd/s/sgkim/kcj/pauliprop/results/proto/ki_b_4node.ckpt --stop-at-ckpt 1
+circuit: kicked Ising, Eagle heavy-hex; 127 qubits; 5420 gates -> 2540 operations on the data (2540 branching rotations, 0 Clifford, 0 noise); 2880 Clifford gates deferred by the frame
+mode=engine nodes=4 gpus/node=4 coef=1e-05 weight=0 truncEvery=10 GPU capacity=380902146 terms/buffer bucket target=6000000 gmax=8 window=ann host=pinned chunks
+checkpoint written at operation 1598: 108887765 terms on 4 node(s)
+stopped at checkpoint
+exit=0
+===== engine nodes=4 gpus=16 args: --circuit ki_lab --weight 0 --coef 1e-5 --target 6000000 --resume /pscratch/sd/s/sgkim/kcj/pauliprop/results/proto/ki_b_4node.ckpt
+circuit: kicked Ising, Eagle heavy-hex; 127 qubits; 5420 gates -> 2540 operations on the data (2540 branching rotations, 0 Clifford, 0 noise); 2880 Clifford gates deferred by the frame
+mode=engine nodes=4 gpus/node=4 coef=1e-05 weight=0 truncEvery=10 GPU capacity=380902146 terms/buffer bucket target=6000000 gmax=8 window=ann host=pinned chunks
+resumed at operation 1598 with 108887765 terms on 4 node(s) (checkpoint was written by 4)
+expectation=0.228607441423
+windows=10 (longest 126 operations, smallest row space 127 of 254, largest coset share 0.0000) partitioned boundaries=9
+max_terms_at_window_boundary=108887765 largest_bucket_on_a_gpu=36824974 bucket_runs=288 splits_on_gpu=0 splits_on_host=0
+integrity: 861256305 term checks against 8 conserved parities, 0 violations
+wall=7.964 s; summed over 16 GPU workers: operations=60.363 partition=1.313 host->gpu=2.568 gpu->host=2.175 idle=0.496; planning=0.213; pilot=2.226 (10 window ends chosen)
+host memory in chunks: 2.19 GiB on the busiest node
+between nodes: 22.572 GB sent, 1.198 s per node on average (4.71 GB/s per node while exchanging); MPI calls while a window runs: 0
+exit=0
+done

@@ -11,19 +11,18 @@
 //             annihilator of their generators) can still split the terms: either a fixed number of
 //             free dimensions is kept (--window ann) or the terms must stay spread over the cosets
 //             of the generator span, measured on a sample (--window coset)
-//   pilot     buckets of one window are independent copies of the same dynamics in miniature, so one
-//             bucket is run ahead through the longest allowed window and the window is ended at the
-//             truncation after which that bucket is smallest: every term is moved at a re-key, so
-//             the re-key is placed where there are fewest terms (--pilot; without it --snap ends
-//             the window at the last truncation)
+//   timing    every term is moved at a re-key, so a window ends right after a truncation, where there
+//             are fewest terms (--snap). --pilot 1 instead runs part of one bucket ahead through the
+//             longest allowed window (buckets are independent miniatures of the same dynamics) and
+//             ends the window where that pilot is smallest
 //   rows      random elements of that annihilator, the best-balanced set on a sample of terms
 //   overflow  a bucket that outgrows its GPU is split by one more row and requeued
 //   frame     Clifford operations are deferred and folded into later rotations
 //   storage   buckets are lists of fixed-size host chunks that are pinned once and reused, for
 //             GPU copies and for messages between nodes
-//   nodes     bucket d belongs to node d mod (number of nodes); after a window every node sends the
-//             pieces it produced for other nodes' buckets chunk by chunk. GPUs never send to each
-//             other and no MPI call happens while a window runs
+//   nodes     bucket d belongs to node d mod (number of nodes). After a window every node sends the
+//             chunks it produced for other nodes' buckets and adopts the arriving ones (--stream 1 does
+//             this while the window runs). GPUs never send to each other; workers make no MPI call
 //   restart   the pool at a window boundary, with the window's rows, is a checkpoint
 //   verify    parities that the whole circuit conserves are checked on every bucket
 //
@@ -95,7 +94,11 @@ struct Opts {
   double kappa = 4.0;            // coset rule: the largest coset may hold 1/(kappa * buckets) of the sample
   long sample = 200000;
   int snap = 1;                  // end a window right after a truncation, where the operator is locally smallest
-  int pilot = 1;                 // run one bucket ahead through the window and end the window where it is smallest
+  int pilot = 0;                 // run one bucket ahead through the window and end the window where it is smallest
+  int pilotRows = 4;             // the pilot runs on 1/2^pilotRows of that bucket (a sub-bucket by further rows)
+  int perGpu = 2;                // at least this many buckets per GPU once there are enough terms
+  int stream = 0;                // 1: exchange between nodes while the window runs instead of after it
+  long minBucket = 200000;       // ... but never buckets smaller than this at a window start
   long chunk = 262144;           // terms per host chunk
   int pinned = 1, verify = 1;
   std::string ckptFile, resume;
@@ -110,8 +113,8 @@ static std::vector<Op> g_ops;       // operations in processing order
 // Buckets are lists of fixed-size chunks. Chunks are pinned once and recycled, so copies to and
 // from the GPUs and messages between nodes always use memory that is already locked.
 
-struct Chunk { uint64_t* xz = nullptr; double* cf = nullptr; long n = 0; };
-struct Seg { uint64_t* xz; double* cf; long n; };
+struct Chunk { uint64_t* xz = nullptr; double* cf = nullptr; long n = 0; std::atomic<int>* writers = nullptr; };
+struct Seg { uint64_t* xz; double* cf; long n; std::atomic<int>* writers; };   // writers: copies into the chunk still in flight
 
 struct ChunkPool {
   std::mutex m;
@@ -130,6 +133,7 @@ struct ChunkPool {
     else if (posix_memalign(&p, 4096, bytes)) die("host allocation failed", __LINE__);
     Chunk c;
     c.xz = (uint64_t*)p; c.cf = (double*)((char*)p + (size_t)cap * g_L.words() * sizeof(uint64_t));
+    c.writers = new std::atomic<int>(0);
     return c;
   }
   void put(Chunk c) { std::lock_guard<std::mutex> lk(m); c.n = 0; freeList.push_back(c); }
@@ -146,7 +150,8 @@ static void reserveTail(Bucket& b, long c, std::vector<Seg>& out) {
     if (b.ch.empty() || b.ch.back().n == g_pool.cap) b.ch.push_back(g_pool.get());
     Chunk& k = b.ch.back();
     const long take = std::min(c, g_pool.cap - k.n);
-    out.push_back({k.xz + (size_t)k.n * W, k.cf + k.n, take});
+    k.writers->fetch_add(1);
+    out.push_back({k.xz + (size_t)k.n * W, k.cf + k.n, take, k.writers});
     k.n += take; b.n += take; c -= take;
   }
 }
@@ -159,6 +164,7 @@ static void appendHost(Bucket& b, const uint64_t* xz, const double* cf, long c) 
     memcpy(s.xz, xz + (size_t)off * W, (size_t)s.n * W * sizeof(uint64_t));
     memcpy(s.cf, cf + off, (size_t)s.n * sizeof(double));
     off += s.n;
+    s.writers->fetch_sub(1);
   }
 }
 static void releaseBucket(Bucket& b) { for (auto& c : b.ch) g_pool.put(c); b.ch.clear(); b.n = 0; }
@@ -385,6 +391,92 @@ static void exchangeBuckets(std::vector<Bucket>& nb, double& seconds, double& by
   seconds += MPI_Wtime() - t0;
 }
 
+// Optional (--stream 1): while the workers of this node run the window, the main thread
+// ships every finished chunk of other nodes' buckets and adopts the chunks that arrive for its own
+// buckets, so the exchange overlaps the computation instead of following it. `finished` counts the
+// workers that have returned. Each chunk travels as two messages with the bucket id as tag (bits,
+// then coefficients); a final message per peer says how many chunks were sent to it.
+static void streamExchange(std::vector<Bucket>& nb, std::vector<std::mutex>& bm, const std::atomic<int>& finished, int nWorkers,
+                           double& tailSeconds, double& bytes) {
+  const int B = (int)nb.size(), W = g_L.words(), END = 1000;
+  struct Flight { MPI_Request r[2]; Chunk c; };
+  std::vector<Flight> flights;
+  std::vector<long> sentTo(g_R, 0), recvFrom(g_R, 0), expectFrom(g_R, -1);
+  bool endSent = false;
+  double tDone = -1;
+  auto shipReady = [&](bool flushAll) {
+    for (int d = 0; d < B; d++) {
+      if (d % g_R == g_rank) continue;
+      std::vector<Chunk> ready;
+      {
+        std::lock_guard<std::mutex> lk(bm[d]);
+        auto& ch = nb[d].ch;
+        for (size_t i = 0; i < ch.size();) {
+          const bool sealed = ch[i].writers->load() == 0 && (flushAll || ch[i].n == g_pool.cap);
+          if (sealed) { ready.push_back(ch[i]); nb[d].n -= ch[i].n; ch.erase(ch.begin() + i); } else i++;
+        }
+      }
+      for (auto& k : ready) {
+        if (k.n == 0) { g_pool.put(k); continue; }
+        flights.emplace_back();
+        Flight& f = flights.back(); f.c = k;
+        MPI_Isend(k.xz, (int)(k.n * W), MPI_UINT64_T, d % g_R, d, MPI_COMM_WORLD, &f.r[0]);
+        MPI_Isend(k.cf, (int)k.n, MPI_DOUBLE, d % g_R, d, MPI_COMM_WORLD, &f.r[1]);
+        sentTo[d % g_R]++;
+        bytes += (double)k.n * (W * 8 + 8);
+      }
+    }
+  };
+  auto retire = [&]() {
+    for (size_t i = 0; i < flights.size();) {
+      int done = 0;
+      MPI_Testall(2, flights[i].r, &done, MPI_STATUSES_IGNORE);
+      if (done) { g_pool.put(flights[i].c); flights[i] = flights.back(); flights.pop_back(); } else i++;
+    }
+  };
+  auto receive = [&]() {
+    while (true) {
+      int flag = 0; MPI_Status st;
+      MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &flag, &st);
+      if (!flag) return;
+      if (st.MPI_TAG == END) {
+        long n = 0;
+        MPI_Recv(&n, 1, MPI_LONG, st.MPI_SOURCE, END, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        expectFrom[st.MPI_SOURCE] = n;
+        continue;
+      }
+      int cnt = 0;
+      MPI_Get_count(&st, MPI_UINT64_T, &cnt);
+      const int d = st.MPI_TAG;
+      Chunk k = g_pool.get();
+      k.n = cnt / W;
+      MPI_Recv(k.xz, cnt, MPI_UINT64_T, st.MPI_SOURCE, d, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      MPI_Recv(k.cf, (int)k.n, MPI_DOUBLE, st.MPI_SOURCE, d, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      { std::lock_guard<std::mutex> lk(bm[d]); nb[d].ch.push_back(k); nb[d].n += k.n; }
+      recvFrom[st.MPI_SOURCE]++;
+    }
+  };
+  while (true) {
+    const bool workersDone = finished.load() == nWorkers;
+    if (workersDone && tDone < 0) tDone = MPI_Wtime();
+    shipReady(workersDone);
+    receive();
+    retire();
+    if (workersDone && !endSent) {
+      shipReady(true);
+      for (int r = 0; r < g_R; r++) if (r != g_rank) MPI_Send(&sentTo[r], 1, MPI_LONG, r, END, MPI_COMM_WORLD);
+      endSent = true;
+    }
+    if (endSent && flights.empty()) {
+      bool all = true;
+      for (int r = 0; r < g_R; r++) if (r != g_rank && recvFrom[r] != expectFrom[r]) all = false;
+      if (all) break;
+    }
+    if (!workersDone) std::this_thread::sleep_for(std::chrono::microseconds(200));
+  }
+  tailSeconds += MPI_Wtime() - tDone;
+}
+
 // ---------------------------------------------------------------- workers
 
 struct Shared {
@@ -397,6 +489,7 @@ struct Shared {
   std::mutex em;
   double expec = 0;
   std::atomic<long> nout{0}, splits{0}, runs{0}, peak{0}, hostSplits{0}, verified{0}, violations{0};
+  std::atomic<int> finished{0};
   // conserved rows as masks for strings at the start of the current window, and their expected values
   std::vector<uint64_t> checkRows;
   int checkG = 0, checkExpected = 0;
@@ -422,7 +515,7 @@ struct Worker {
   std::vector<cupaulipropTruncationStrategy_t> trunc, junk;
   std::vector<cupaulipropQuantumOperator_t> oper;
   std::mt19937_64 rng;
-  double tOps = 0, tPart = 0, tH2D = 0, tD2H = 0, tIdle = 0;
+  double tOps = 0, tPart = 0, tH2D = 0, tD2H = 0, tIdle = 0, tVerify = 0;
 
   void init(int device, const Opts& opts) {
     dev = device; o = opts;
@@ -491,13 +584,17 @@ struct Worker {
       CUDA(cudaMemcpy(s.xz, (const char*)srcXz + off * xzPerTerm, (size_t)s.n * xzPerTerm, cudaMemcpyDeviceToHost));
       CUDA(cudaMemcpy(s.cf, (const char*)srcCf + off * sizeof(double), (size_t)s.n * sizeof(double), cudaMemcpyDeviceToHost));
       off += s.n;
+      s.writers->fetch_sub(1);
     }
   }
 
   // Runs a copy of the bucket through the window and records the number of terms after every
   // operation. Returns how many operations it completed (it stops if the bucket outgrows the GPU).
-  int pilot(const Window& w, const Bucket& b, std::vector<double>& after) {
+  // The pilot is the part of the bucket on which `rows` further rows of the window are all zero: a
+  // smaller sub-bucket that is just as independent. `used` returns its size.
+  int pilot(const Window& w, const Bucket& b, int rows, std::vector<double>& after, double& used) {
     CUDA(cudaSetDevice(dev));
+    used = 0;
     if (b.n == 0 || b.n > capTerms / 2) return 0;
     long off = 0;
     for (auto& k : b.ch) {
@@ -506,7 +603,24 @@ struct Worker {
       CUDA(cudaMemcpy((char*)cf[0] + off * sizeof(double), k.cf, (size_t)k.n * sizeof(double), cudaMemcpyHostToDevice));
       off += k.n;
     }
-    makeExpansions(b.n);
+    long n0 = b.n;
+    rows = std::min<int>(rows, (int)w.spare.size());
+    if (rows > 0 && n0 > 100000) {
+      const int words = g_L.words();
+      std::vector<uint64_t> m((size_t)rows * words);
+      for (int j = 0; j < rows; j++) std::copy(w.spare[j].begin(), w.spare[j].end(), m.begin() + (size_t)j * words);
+      std::vector<int64_t> c((size_t)1 << rows, 0);
+      pp_owners((const uint64_t*)xz[0], n0, words, m.data(), rows, dOwners);
+      if (pp_partition((const uint64_t*)xz[0], (const double*)cf[0], dOwners, n0, words, (uint64_t*)xz[1], (double*)cf[1], dIdx) != 0) die("partition", __LINE__);
+      pp_counts_sorted(dOwners, n0, 1 << rows, c.data());
+      if (c[0] > 0) {
+        CUDA(cudaMemcpy(xz[0], xz[1], (size_t)c[0] * xzPerTerm, cudaMemcpyDeviceToDevice));
+        CUDA(cudaMemcpy(cf[0], cf[1], (size_t)c[0] * sizeof(double), cudaMemcpyDeviceToDevice));
+        n0 = c[0];
+      }
+    }
+    used = (double)n0;
+    makeExpansions(n0);
     for (int k = w.b; k < w.e; k++) {
       const Op& op = g_ops[k];
       const long m = numTerms();
@@ -588,9 +702,11 @@ struct Worker {
 
     // Integrity: every term must carry the expected values of the parities the circuit conserves.
     if (sh.checkG > 0 && wk.startOp == w.b) {
+      const double tv = now();
       pp_owners((const uint64_t*)xz[0], nb0, words, sh.checkRows.data(), sh.checkG, dOwners);
       sh.violations += pp_count_ne(dOwners, nb0, sh.checkExpected);
       sh.verified += nb0;
+      tVerify += now() - tv;
     }
 
     t0 = now();
@@ -865,6 +981,10 @@ int main(int argc, char** argv) {
     else if (a == "--kappa")       o.kappa = atof(next());
     else if (a == "--snap")        o.snap = atoi(next());
     else if (a == "--pilot")       o.pilot = atoi(next());
+    else if (a == "--pilot-rows")  o.pilotRows = atoi(next());
+    else if (a == "--per-gpu")     o.perGpu = atoi(next());
+    else if (a == "--stream")      o.stream = atoi(next());
+    else if (a == "--min-bucket")  o.minBucket = atol(next());
     else if (a == "--chunk")       o.chunk = atol(next());
     else if (a == "--pinned")      o.pinned = atoi(next());
     else if (a == "--verify")      o.verify = atoi(next());
@@ -1043,9 +1163,8 @@ int main(int argc, char** argv) {
         if (!cand.empty()) {
           std::sort(cand.begin(), cand.end(), [](const Bucket* a, const Bucket* b) { return a->n < b->n; });
           const Bucket* pb = cand[cand.size() / 2];
-          done = workers[0].pilot(w, *pb, after);
+          done = workers[0].pilot(w, *pb, o.pilotRows, after, scale);
           CUDA(cudaSetDevice(0));
-          scale = (double)pb->n;
         }
         int doneMin = len; double scaleTot = 0;
         MPI_Allreduce(&done, &doneMin, 1, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
@@ -1073,7 +1192,13 @@ int main(int argc, char** argv) {
       const double tp = now();
       int gWanted = 0;
       // Terms expected at the end of this window: from the pilot if there was one, else from the last ratio.
-      if (!ref) { const double est = Nin * (pilotGrowth > 0 ? pilotGrowth * 1.3 : growth); while (gWanted < o.gmax && est / (double)(1L << gWanted) > (double)o.target) gWanted++; }
+      if (!ref) {
+        const double est = Nin * (pilotGrowth > 0 ? pilotGrowth * 1.3 : growth);
+        while (gWanted < o.gmax && est / (double)(1L << gWanted) > (double)o.target) gWanted++;
+        // Enough buckets that every GPU has several tasks per window, as long as buckets stay reasonably large.
+        const double tasks = (double)o.perGpu * o.gpus * g_R;
+        while (gWanted < o.gmax && (double)(1L << gWanted) < tasks && est / (double)(2L << gWanted) >= (double)o.minBucket) gWanted++;
+      }
       pilotGrowth = -1;
       std::vector<uint64_t> sample;
       if (gWanted > 0) {
@@ -1103,14 +1228,16 @@ int main(int argc, char** argv) {
       else releaseBucket(b);
     sh.active = 0;
     std::vector<std::thread> th;
-    for (int t = 0; t < o.gpus; t++) th.emplace_back([&, t] { workers[t].run(w, last ? nullptr : &nextW, sh, !ref); });
+    sh.finished = 0;
+    for (int t = 0; t < o.gpus; t++) th.emplace_back([&, t] { workers[t].run(w, last ? nullptr : &nextW, sh, !ref); sh.finished++; });
+    if (g_R > 1 && !last && o.stream) streamExchange(sh.nextB, sh.bm, sh.finished, o.gpus, tExchange, bytesMoved);
     for (auto& x : th) x.join();
 
     long NoutLocal = sh.nout.load(), Nout = 0;
     MPI_Allreduce(&NoutLocal, &Nout, 1, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
     if (Nin > 0 && Nout > 0) growth = std::max(1.0, std::min(8.0, (double)Nout / (double)Nin * 1.3));
     if (last) break;
-    exchangeBuckets(sh.nextB, tExchange, bytesMoved);
+    if (!o.stream) exchangeBuckets(sh.nextB, tExchange, bytesMoved);
     pool.swap(sh.nextB);
     if (nextW.g > 0) movedBuckets++;
     pos = w.e;
@@ -1124,7 +1251,7 @@ int main(int argc, char** argv) {
   const double wall = now() - tBegin;
 
   double loc[9] = {0, 0, 0, 0, 0, tExchange, bytesMoved, sh.expec, 0}, sum[9];
-  for (auto& x : workers) { loc[0] += x.tOps; loc[1] += x.tPart; loc[2] += x.tH2D; loc[3] += x.tD2H; loc[4] += x.tIdle; }
+  for (auto& x : workers) { loc[0] += x.tOps; loc[1] += x.tPart; loc[2] += x.tH2D; loc[3] += x.tD2H; loc[4] += x.tIdle; loc[8] += x.tVerify; }
   MPI_Allreduce(loc, sum, 9, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
   long lc[7] = {sh.runs.load(), sh.splits.load(), sh.hostSplits.load(), sh.peak.load(), sh.verified.load(), sh.violations.load(), g_pool.allocated}, sc[7], mc[7];
   MPI_Allreduce(lc, sc, 7, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
@@ -1136,7 +1263,7 @@ int main(int argc, char** argv) {
     printf("max_terms_at_window_boundary=%ld largest_bucket_on_a_gpu=%ld bucket_runs=%ld splits_on_gpu=%ld splits_on_host=%ld\n",
            maxBoundary, mc[3], sc[0], sc[1], sc[2]);
     if (!conserved.empty())
-      printf("integrity: %ld term checks against %zu conserved parities, %ld violations\n", sc[4], conserved.size(), sc[5]);
+      printf("integrity: %ld term checks against %zu conserved parities, %ld violations (%.3f s summed over workers)\n", sc[4], conserved.size(), sc[5], sum[8]);
     printf("wall=%.3f s; summed over %d GPU workers: operations=%.3f partition=%.3f host->gpu=%.3f gpu->host=%.3f idle=%.3f; planning=%.3f; pilot=%.3f (%ld window ends chosen)\n",
            wall, o.gpus * g_R, sum[0], sum[1], sum[2], sum[3], sum[4], tPlan, tPilot, pilotEnds);
     printf("host memory in chunks: %.2f GiB on the busiest node\n",
@@ -1156,8 +1283,8 @@ int main(int argc, char** argv) {
       }
     }
     if (g_R > 1)
-      printf("between nodes: %.3f GB sent, %.3f s per node on average (%.2f GB/s per node while exchanging); MPI calls while a window runs: 0\n",
-             sum[6] / 1e9, sum[5] / g_R, sum[5] > 0 ? sum[6] / 1e9 / (sum[5] / g_R) / g_R : 0.0);
+      printf("between nodes: %.3f GB sent, %.3f s per node on average with all GPUs idle (%s)\n",
+             sum[6] / 1e9, sum[5] / g_R, o.stream ? "exchange overlapped with the windows; this is the wait for the last chunks" : "exchange after each window");
   }
   MPI_Finalize();
   return 0;
