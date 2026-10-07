@@ -1,0 +1,43 @@
+               total        used        free      shared  buff/cache   available
+Mem:             251          19         238           1           2         231
+===== B (coef 1e-5): cuPauliProp fails on 1/4/8/16 GPUs
+config: steps=20 theta=0.2500pi coef=1e-05 weight=0 truncEvery=10 GPU capacity=188801777 terms/buffer workspace=19.2 GiB bucket target=6000000 gmax=8
+layer 19: terms in=1 out=2 buckets next=1 elapsed=0.2 s
+layer 18: terms in=2 out=10 buckets next=1 elapsed=0.3 s
+layer 17: terms in=10 out=48 buckets next=1 elapsed=0.3 s
+layer 16: terms in=48 out=2582 buckets next=1 elapsed=0.3 s
+layer 15: terms in=2582 out=2146372 buckets next=1 elapsed=0.3 s
+layer 14: terms in=2146372 out=35930513 buckets next=4 elapsed=3.2 s
+layer 13: terms in=35930513 out=108287276 buckets next=64 elapsed=25.9 s
+layer 12: terms in=108287276 out=151203327 buckets next=128 elapsed=44.9 s
+layer 11: terms in=151203327 out=158924060 buckets next=64 elapsed=69.2 s
+layer 10: terms in=158924060 out=146839005 buckets next=64 elapsed=88.1 s
+layer  9: terms in=146839005 out=133005210 buckets next=32 elapsed=104.3 s
+layer  8: terms in=133005210 out=120522709 buckets next=32 elapsed=118.3 s
+layer  7: terms in=120522709 out=110316483 buckets next=32 elapsed=131.9 s
+layer  6: terms in=110316483 out=95647971 buckets next=32 elapsed=145.1 s
+layer  5: terms in=95647971 out=81236389 buckets next=32 elapsed=158.1 s
+layer  4: terms in=81236389 out=90049862 buckets next=16 elapsed=168.6 s
+layer  3: terms in=90049862 out=103334041 buckets next=32 elapsed=180.9 s
+layer  2: terms in=103334041 out=92371508 buckets next=32 elapsed=194.7 s
+layer  1: terms in=92371508 out=77582584 buckets next=32 elapsed=205.4 s
+layer  0: terms in=77582584 out=64063520 buckets next=1 elapsed=212.1 s
+expectation=0.228607441423
+max_global_terms_at_layer_boundary=158924060 largest_bucket_on_gpu=88782429 terms (3.31 GiB) host_peak=7.02 GiB bucket_runs=628 mid_layer_splits=13
+wall=212.119 s: gates=159.703 partition=22.377 host->gpu=8.664 gpu->host=4.779 host append=15.519 row selection=1.068
+exit=0
+===== C (coef 3e-6)
+config: steps=20 theta=0.2500pi coef=3e-06 weight=0 truncEvery=10 GPU capacity=188801777 terms/buffer workspace=19.2 GiB bucket target=6000000 gmax=8
+layer 19: terms in=1 out=2 buckets next=1 elapsed=0.0 s
+layer 18: terms in=2 out=10 buckets next=1 elapsed=0.0 s
+layer 17: terms in=10 out=48 buckets next=1 elapsed=0.1 s
+layer 16: terms in=48 out=2582 buckets next=1 elapsed=0.1 s
+layer 15: terms in=2582 out=2146372 buckets next=1 elapsed=0.1 s
+layer 14: terms in=2146372 out=170752192 buckets next=4 elapsed=15.5 s
+layer 13: terms in=170752192 out=729750880 buckets next=256 elapsed=146.7 s
+layer 12: terms in=729750880 out=1244549105 buckets next=256 elapsed=292.2 s
+layer 11: terms in=1244549105 out=1501893640 buckets next=256 elapsed=494.6 s
+layer 10: terms in=1501893640 out=1477252076 buckets next=256 elapsed=702.9 s
+layer  9: terms in=1477252076 out=1399859858 buckets next=256 elapsed=902.2 s
+exit=0
+done

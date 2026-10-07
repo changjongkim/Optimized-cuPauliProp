@@ -1,0 +1,363 @@
+===== lo_mpi FR_A_r1 nodes=1 ranks=1 args: --coef 1e-4 --weight 0 --frame 1
+config: ranks=1 steps=20 theta=0.2500pi coef=0.0001 weight=0 truncEvery=10 capTerms/rank=178312790 workspace=18.1 GiB nmin=100000 cands=8
+expectation=0.153108187591
+final_global_terms=539005 max_local_terms=22525673 wall=1.8795 s
+re-keys=0 (skipped while on one rank: 20) moved_terms=0 (0.000e+00 bytes) worst max/mean bucket=1.000
+collective MPI calls per rank=21, point-to-point messages sent (all ranks)=0, MPI calls during gates=0
+time per rank: gates mean=1.8755 max=1.8755 s, re-key mean=0.0002 max=0.0002 s (row selection mean=0.0000, exchange mean=0.0000)
+exit=0
+===== lo_mpi FR_A_r4 nodes=1 ranks=4 args: --coef 1e-4 --weight 0 --frame 1
+config: ranks=4 steps=20 theta=0.2500pi coef=0.0001 weight=0 truncEvery=10 capTerms/rank=178312511 workspace=18.1 GiB nmin=100000 cands=8
+expectation=0.153108187591
+final_global_terms=539005 max_local_terms=5730484 wall=2.2939 s
+re-keys=15 (skipped while on one rank: 5) moved_terms=14162694 (5.665e+08 bytes) worst max/mean bucket=1.002
+collective MPI calls per rank=51, point-to-point messages sent (all ranks)=342, MPI calls during gates=0
+time per rank: gates mean=0.6441 max=0.8299 s, re-key mean=1.6470 max=1.7139 s (row selection mean=0.0808, exchange mean=1.1826)
+exit=0
+===== lo_mpi FR_A_r8 nodes=2 ranks=8 args: --coef 1e-4 --weight 0 --frame 1
+config: ranks=8 steps=20 theta=0.2500pi coef=0.0001 weight=0 truncEvery=10 capTerms/rank=178312511 workspace=18.1 GiB nmin=100000 cands=8
+expectation=0.153108187591
+final_global_terms=539005 max_local_terms=2865048 wall=2.5298 s
+re-keys=15 (skipped while on one rank: 5) moved_terms=16524611 (6.610e+08 bytes) worst max/mean bucket=1.004
+collective MPI calls per rank=51, point-to-point messages sent (all ranks)=1582, MPI calls during gates=0
+time per rank: gates mean=0.5518 max=0.6555 s, re-key mean=1.9742 max=2.1263 s (row selection mean=0.0547, exchange mean=1.2677)
+exit=0
+===== lo_mpi FR_A_r16 nodes=4 ranks=16 args: --coef 1e-4 --weight 0 --frame 1
+config: ranks=16 steps=20 theta=0.2500pi coef=0.0001 weight=0 truncEvery=10 capTerms/rank=178312511 workspace=18.1 GiB nmin=100000 cands=8
+expectation=0.153108187591
+final_global_terms=539005 max_local_terms=1452761 wall=2.3936 s
+re-keys=15 (skipped while on one rank: 5) moved_terms=17704328 (7.082e+08 bytes) worst max/mean bucket=1.012
+collective MPI calls per rank=51, point-to-point messages sent (all ranks)=6750, MPI calls during gates=0
+time per rank: gates mean=0.3200 max=0.3566 s, re-key mean=2.0718 max=2.0775 s (row selection mean=0.0333, exchange mean=1.3577)
+exit=0
+===== lo_mpi LAB_A_r4 nodes=1 ranks=4 args: --coef 1e-4 --weight 0 --frame 0
+config: ranks=4 steps=20 theta=0.2500pi coef=0.0001 weight=0 truncEvery=10 capTerms/rank=178312511 workspace=18.1 GiB nmin=100000 cands=8
+expectation=0.153108187591
+final_global_terms=539005 max_local_terms=5730484 wall=2.1594 s
+re-keys=15 (skipped while on one rank: 5) moved_terms=14163901 (5.666e+08 bytes) worst max/mean bucket=1.002
+collective MPI calls per rank=51, point-to-point messages sent (all ranks)=342, MPI calls during gates=0
+time per rank: gates mean=1.0438 max=1.1259 s, re-key mean=1.1139 max=1.1516 s (row selection mean=0.0799, exchange mean=0.7029)
+exit=0
+===== lo_mpi LAB_A_r16 nodes=4 ranks=16 args: --coef 1e-4 --weight 0 --frame 0
+config: ranks=16 steps=20 theta=0.2500pi coef=0.0001 weight=0 truncEvery=10 capTerms/rank=178312511 workspace=18.1 GiB nmin=100000 cands=8
+expectation=0.153108187591
+final_global_terms=539005 max_local_terms=1452761 wall=2.3604 s
+re-keys=15 (skipped while on one rank: 5) moved_terms=17704328 (7.082e+08 bytes) worst max/mean bucket=1.012
+collective MPI calls per rank=51, point-to-point messages sent (all ranks)=6750, MPI calls during gates=0
+time per rank: gates mean=0.5725 max=0.6649 s, re-key mean=1.7859 max=1.7978 s (row selection mean=0.0339, exchange mean=0.7017)
+exit=0
+===== lo_mpi FR_B_r4 nodes=1 ranks=4 args: --coef 1e-5 --weight 0 --frame 1
+config: ranks=4 steps=20 theta=0.2500pi coef=1e-05 weight=0 truncEvery=10 capTerms/rank=178312511 workspace=18.1 GiB nmin=100000 cands=8
+[rank 3] capacity exceeded: local terms=95502929 capacity=178312511
+[rank 3] FATAL: capacity (line 229)
+MPICH ERROR [Rank 3] [job id 59472166.6] [Tue Oct  6 23:20:05 2026] [nid001584] - Abort(1) (rank 3 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 3
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 3
+[rank 1] capacity exceeded: local terms=96161671 capacity=178312511
+[rank 1] FATAL: capacity (line 229)
+MPICH ERROR [Rank 1] [job id 59472166.6] [Tue Oct  6 23:20:05 2026] [nid001584] - Abort(1) (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 1
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 1
+[rank 0] capacity exceeded: local terms=95479375 capacity=178312511
+[rank 0] FATAL: capacity (line 229)
+MPICH ERROR [Rank 0] [job id 59472166.6] [Tue Oct  6 23:20:05 2026] [nid001584] - Abort(1) (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 0
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 0
+[rank 2] capacity exceeded: local terms=96144719 capacity=178312511
+[rank 2] FATAL: capacity (line 229)
+MPICH ERROR [Rank 2] [job id 59472166.6] [Tue Oct  6 23:20:05 2026] [nid001584] - Abort(1) (rank 2 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 2
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 2
+srun: error: nid001584: tasks 1,3: Exited with exit code 255
+srun: Terminating StepId=59472166.6
+[2026-10-07T06:20:05.641] error: *** STEP 59472166.6 ON nid001584 CANCELLED AT 2026-10-07T06:20:05 DUE TO TASK FAILURE ***
+srun: error: nid001584: task 0: Exited with exit code 255
+srun: error: nid001584: task 2: Exited with exit code 255
+exit=255
+===== lo_mpi FR_B_r8 nodes=2 ranks=8 args: --coef 1e-5 --weight 0 --frame 1
+config: ranks=8 steps=20 theta=0.2500pi coef=1e-05 weight=0 truncEvery=10 capTerms/rank=178312511 workspace=18.1 GiB nmin=100000 cands=8
+[rank 0] capacity exceeded: local terms=103530948 capacity=178312511
+[rank 0] FATAL: capacity (line 229)
+MPICH ERROR [Rank 0] [job id 59472166.7] [Tue Oct  6 23:20:10 2026] [nid001644] - Abort(1) (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 0
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 0
+[rank 2] capacity exceeded: local terms=103871504 capacity=178312511
+[rank 2] FATAL: capacity (line 229)
+MPICH ERROR [Rank 2] [job id 59472166.7] [Tue Oct  6 23:20:10 2026] [nid001644] - Abort(1) (rank 2 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 2
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 2
+[rank 1] capacity exceeded: local terms=104254363 capacity=178312511
+[rank 1] FATAL: capacity (line 229)
+MPICH ERROR [Rank 1] [job id 59472166.7] [Tue Oct  6 23:20:10 2026] [nid001644] - Abort(1) (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 1
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 1
+[rank 3] capacity exceeded: local terms=103705242 capacity=178312511
+[rank 3] FATAL: capacity (line 229)
+MPICH ERROR [Rank 3] [job id 59472166.7] [Tue Oct  6 23:20:10 2026] [nid001644] - Abort(1) (rank 3 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 3
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 3
+[rank 5] capacity exceeded: local terms=102804951 capacity=178312511
+[rank 5] FATAL: capacity (line 229)
+MPICH ERROR [Rank 5] [job id 59472166.7] [Tue Oct  6 23:20:11 2026] [nid003080] - Abort(1) (rank 5 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 5
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 5
+[rank 6] capacity exceeded: local terms=103559386 capacity=178312511
+[rank 6] FATAL: capacity (line 229)
+MPICH ERROR [Rank 6] [job id 59472166.7] [Tue Oct  6 23:20:11 2026] [nid003080] - Abort(1) (rank 6 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 6
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 6
+[rank 4] capacity exceeded: local terms=104500988 capacity=178312511
+[rank 4] FATAL: capacity (line 229)
+MPICH ERROR [Rank 4] [job id 59472166.7] [Tue Oct  6 23:20:11 2026] [nid003080] - Abort(1) (rank 4 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 4
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 4
+[rank 7] capacity exceeded: local terms=103622432 capacity=178312511
+[rank 7] FATAL: capacity (line 229)
+MPICH ERROR [Rank 7] [job id 59472166.7] [Tue Oct  6 23:20:11 2026] [nid003080] - Abort(1) (rank 7 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 7
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 7
+srun: error: nid001644: task 0: Exited with exit code 255
+srun: Terminating StepId=59472166.7
+[2026-10-07T06:20:11.472] error: *** STEP 59472166.7 ON nid001644 CANCELLED AT 2026-10-07T06:20:11 DUE TO TASK FAILURE ***
+srun: error: nid003080: task 5: Exited with exit code 255
+srun: error: nid001644: tasks 1,3: Exited with exit code 255
+srun: error: nid003080: tasks 4,6: Exited with exit code 255
+srun: error: nid001644: task 2: Exited with exit code 255
+srun: error: nid003080: task 7: Exited with exit code 255
+exit=255
+===== lo_mpi FR_B_r16 nodes=4 ranks=16 args: --coef 1e-5 --weight 0 --frame 1
+config: ranks=16 steps=20 theta=0.2500pi coef=1e-05 weight=0 truncEvery=10 capTerms/rank=178312511 workspace=18.1 GiB nmin=100000 cands=8
+expectation=0.228607441423
+final_global_terms=64063520 max_local_terms=88345707 wall=11.8257 s
+re-keys=15 (skipped while on one rank: 5) moved_terms=1413179019 (5.653e+10 bytes) worst max/mean bucket=1.004
+collective MPI calls per rank=51, point-to-point messages sent (all ranks)=6750, MPI calls during gates=0
+time per rank: gates mean=8.8993 max=8.9946 s, re-key mean=2.9189 max=2.9578 s (row selection mean=0.0669, exchange mean=1.7562)
+exit=0
+===== lo_mpi FR_C_r16 nodes=4 ranks=16 args: --coef 3e-6 --weight 0 --frame 1
+config: ranks=16 steps=20 theta=0.2500pi coef=3e-06 weight=0 truncEvery=10 capTerms/rank=178312511 workspace=18.1 GiB nmin=100000 cands=8
+[rank 4] capacity exceeded: local terms=96827082 capacity=178312511
+[rank 4] FATAL: capacity (line 229)
+MPICH ERROR [Rank 4] [job id 59472166.9] [Tue Oct  6 23:20:35 2026] [nid001644] - Abort(1) (rank 4 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 4
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 4
+[rank 0] capacity exceeded: local terms=96714592 capacity=178312511
+[rank 0] FATAL: capacity (line 229)
+MPICH ERROR [Rank 0] [job id 59472166.9] [Tue Oct  6 23:20:35 2026] [nid001584] - Abort(1) (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 0
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 0
+[rank 3] capacity exceeded: local terms=96548866 capacity=178312511
+[rank 3] FATAL: capacity (line 229)
+MPICH ERROR [Rank 3] [job id 59472166.9] [Tue Oct  6 23:20:35 2026] [nid001584] - Abort(1) (rank 3 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 3
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 3
+[rank 2] capacity exceeded: local terms=96879102 capacity=178312511
+[rank 2] FATAL: capacity (line 229)
+MPICH ERROR [Rank 2] [job id 59472166.9] [Tue Oct  6 23:20:35 2026] [nid001584] - Abort(1) (rank 2 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 2
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 2
+[rank 6] capacity exceeded: local terms=96950823 capacity=178312511
+[rank 6] FATAL: capacity (line 229)
+MPICH ERROR [Rank 6] [job id 59472166.9] [Tue Oct  6 23:20:35 2026] [nid001644] - Abort(1) (rank 6 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 6
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 6
+[rank 5] capacity exceeded: local terms=96865269 capacity=178312511
+[rank 5] FATAL: capacity (line 229)
+MPICH ERROR [Rank 5] [job id 59472166.9] [Tue Oct  6 23:20:35 2026] [nid001644] - Abort(1) (rank 5 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 5
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 5
+[rank 11] capacity exceeded: local terms=96841848 capacity=178312511
+[rank 11] FATAL: capacity (line 229)
+MPICH ERROR [Rank 11] [job id 59472166.9] [Tue Oct  6 23:20:35 2026] [nid003080] - Abort(1) (rank 11 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 11
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 11
+[rank 15] capacity exceeded: local terms=96736070 capacity=178312511
+[rank 15] FATAL: capacity (line 229)
+MPICH ERROR [Rank 15] [job id 59472166.9] [Tue Oct  6 23:20:35 2026] [nid003081] - Abort(1) (rank 15 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 15
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 15
+[rank 8] capacity exceeded: local terms=96736264 capacity=178312511
+[rank 8] FATAL: capacity (line 229)
+MPICH ERROR [Rank 8] [job id 59472166.9] [Tue Oct  6 23:20:35 2026] [nid003080] - Abort(1) (rank 8 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 8
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 8
+[rank 1] capacity exceeded: local terms=96694341 capacity=178312511
+[rank 1] FATAL: capacity (line 229)
+MPICH ERROR [Rank 1] [job id 59472166.9] [Tue Oct  6 23:20:35 2026] [nid001584] - Abort(1) (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 1
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 1
+[rank 10] capacity exceeded: local terms=96829109 capacity=178312511
+[rank 10] FATAL: capacity (line 229)
+MPICH ERROR [Rank 10] [job id 59472166.9] [Tue Oct  6 23:20:35 2026] [nid003080] - Abort(1) (rank 10 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 10
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 10
+[rank 9] capacity exceeded: local terms=96958220 capacity=178312511
+[rank 9] FATAL: capacity (line 229)
+MPICH ERROR [Rank 9] [job id 59472166.9] [Tue Oct  6 23:20:35 2026] [nid003080] - Abort(1) (rank 9 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 9
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 9
+[rank 14] capacity exceeded: local terms=96704025 capacity=178312511
+[rank 14] FATAL: capacity (line 229)
+MPICH ERROR [Rank 14] [job id 59472166.9] [Tue Oct  6 23:20:35 2026] [nid003081] - Abort(1) (rank 14 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 14
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 14
+[rank 12] capacity exceeded: local terms=96573621 capacity=178312511
+[rank 12] FATAL: capacity (line 229)
+MPICH ERROR [Rank 12] [job id 59472166.9] [Tue Oct  6 23:20:35 2026] [nid003081] - Abort(1) (rank 12 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 12
+[rank 13] capacity exceeded: local terms=96795686 capacity=178312511
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 12
+[rank 13] FATAL: capacity (line 229)
+MPICH ERROR [Rank 13] [job id 59472166.9] [Tue Oct  6 23:20:35 2026] [nid003081] - Abort(1) (rank 13 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 13
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 13
+[rank 7] capacity exceeded: local terms=96690595 capacity=178312511
+[rank 7] FATAL: capacity (line 229)
+MPICH ERROR [Rank 7] [job id 59472166.9] [Tue Oct  6 23:20:35 2026] [nid001644] - Abort(1) (rank 7 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 7
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 7
+srun: error: nid001644: task 4: Exited with exit code 255
+srun: Terminating StepId=59472166.9
+srun: error: nid001584: task 0: Exited with exit code 255
+srun: error: nid003081: task 15: Exited with exit code 255
+srun: error: nid003080: task 11: Exited with exit code 255
+srun: error: nid001644: tasks 5-7: Exited with exit code 255
+srun: error: nid001584: tasks 1-3: Exited with exit code 255
+srun: error: nid003080: tasks 8-10: Exited with exit code 255
+srun: error: nid003081: tasks 12-14: Exited with exit code 255
+exit=255
+===== ki_prof REF_FR_A_r1 nodes=1 ranks=1 args: --coef 1e-4 --weight 0 --vram-frac 0.9 --dist 0 --frame 1
+config: ranks=1 distributed=0 profiler_kinds=0 steps=20 theta=0.2500pi coef=0.0001 weight=0 truncEvery=10 keepDup=0 dedupEvery=0
+memory per rank: free=40012.3 MiB capTerms=188801777 (7202.2 MiB per expansion) workspace=21606.6 MiB
+gates=2540
+expectation=0.153108187591
+gates_applied=2540 final_global_terms=539005 max_local_terms=22525673 wall=1.6407 s
+mean per rank: prepare=0.0220 s compute=1.6130 s
+exit=0
+===== ki_prof REF_FR_A_r4 nodes=1 ranks=4 args: --coef 1e-4 --weight 0 --vram-frac 0.9 --frame 1
+config: ranks=4 distributed=1 profiler_kinds=12 steps=20 theta=0.2500pi coef=0.0001 weight=0 truncEvery=10 keepDup=0 dedupEvery=0
+memory per rank: free=40012.2 MiB capTerms=188801482 (7202.2 MiB per expansion) workspace=21606.6 MiB
+gates=2540
+expectation=0.153108187591
+gates_applied=2540 final_global_terms=539005 max_local_terms=5632904 wall=17.1491 s
+mean per rank: prepare=2.3990 s compute=14.7183 s
+  mpi wait       calls/rank=12977 time/rank=0.6743 s (3.9% of wall) bytes/rank=0.000e+00
+  mpi isend      calls/rank=6488 time/rank=1.4222 s (8.3% of wall) bytes/rank=3.360e+09
+  mpi irecv      calls/rank=6488 time/rank=0.0012 s (0.0% of wall) bytes/rank=3.360e+09
+  mpi allred     calls/rank=1 time/rank=0.0000 s (0.0% of wall) bytes/rank=8.000e+00
+  mpi allgather  calls/rank=56155 time/rank=1.6973 s (9.9% of wall) bytes/rank=3.974e+05
+mpi total time/rank=3.7951 s (22.1% of wall)
+exit=0
+===== ki_prof REF_FR_A_r16 nodes=4 ranks=16 args: --coef 1e-4 --weight 0 --vram-frac 0.9 --frame 1
+config: ranks=16 distributed=1 profiler_kinds=12 steps=20 theta=0.2500pi coef=0.0001 weight=0 truncEvery=10 keepDup=0 dedupEvery=0
+memory per rank: free=38746.1 MiB capTerms=182826860 (6974.3 MiB per expansion) workspace=20922.9 MiB
+gates=2540
+expectation=0.153108187591
+gates_applied=2540 final_global_terms=539005 max_local_terms=1410321 wall=41.1930 s
+mean per rank: prepare=6.2161 s compute=34.9452 s
+  mpi wait       calls/rank=60339 time/rank=1.4258 s (3.5% of wall) bytes/rank=0.000e+00
+  mpi isend      calls/rank=30170 time/rank=0.7487 s (1.8% of wall) bytes/rank=1.050e+09
+  mpi irecv      calls/rank=30170 time/rank=0.1120 s (0.3% of wall) bytes/rank=1.050e+09
+  mpi allred     calls/rank=1 time/rank=0.0001 s (0.0% of wall) bytes/rank=8.000e+00
+  mpi allgather  calls/rank=56155 time/rank=19.6996 s (47.8% of wall) bytes/rank=6.412e+05
+mpi total time/rank=21.9860 s (53.4% of wall)
+exit=0
+===== ki_prof REF_FR_B_r16 nodes=4 ranks=16 args: --coef 1e-5 --weight 0 --vram-frac 0.9 --frame 1
+config: ranks=16 distributed=1 profiler_kinds=12 steps=20 theta=0.2500pi coef=1e-05 weight=0 truncEvery=10 keepDup=0 dedupEvery=0
+memory per rank: free=38746.1 MiB capTerms=182826860 (6974.3 MiB per expansion) workspace=20922.9 MiB
+gates=2540
+[rank 12] prepare failed with status 8 at gate 1582 (applied 957): local nin=87953595 (3.277 GiB live), expansion capacity=182826860 terms, workspace=20.43 GiB
+[rank 4] prepare failed with status 8 at gate 1582 (applied 957): local nin=87929591 (3.276 GiB live), expansion capacity=182826860 terms, workspace=20.43 GiB
+[rank 13] prepare failed with status 8 at gate 1582 (applied 957): local nin=87947454 (3.276 GiB live), expansion capacity=188801482 terms, workspace=21.10 GiB
+[rank 5] prepare failed with status 8 at gate 1582 (applied 957): local nin=87952044 (3.276 GiB live), expansion capacity=188801482 terms, workspace=21.10 GiB
+[rank 14] prepare failed with status 8 at gate 1582 (applied 957): local nin=87939973 (3.276 GiB live), expansion capacity=188801482 terms, workspace=21.10 GiB
+[rank 6] prepare failed with status 8 at gate 1582 (applied 957): local nin=87927033 (3.276 GiB live), expansion capacity=188801482 terms, workspace=21.10 GiB
+[rank 15] prepare failed with status 8 at gate 1582 (applied 957): local nin=87946966 (3.276 GiB live), expansion capacity=188801482 terms, workspace=21.10 GiB
+[rank 7] prepare failed with status 8 at gate 1582 (applied 957): local nin=87944041 (3.276 GiB live), expansion capacity=188801482 terms, workspace=21.10 GiB
+[rank 0] prepare failed with status 8 at gate 1582 (applied 957): local nin=87934416 (3.276 GiB live), expansion capacity=182826860 terms, workspace=20.43 GiB
+[rank 1] prepare failed with status 8 at gate 1582 (applied 957): local nin=87941040 (3.276 GiB live), expansion capacity=188801482 terms, workspace=21.10 GiB
+[rank 3] prepare failed with status 8 at gate 1582 (applied 957): local nin=87937065 (3.276 GiB live), expansion capacity=188801482 terms, workspace=21.10 GiB
+[rank 2] prepare failed with status 8 at gate 1582 (applied 957): local nin=87956143 (3.277 GiB live), expansion capacity=188801482 terms, workspace=21.10 GiB
+[rank 8] prepare failed with status 8 at gate 1582 (applied 957): local nin=87948453 (3.276 GiB live), expansion capacity=182826860 terms, workspace=20.43 GiB
+[rank 9] prepare failed with status 8 at gate 1582 (applied 957): local nin=87939430 (3.276 GiB live), expansion capacity=188801482 terms, workspace=21.10 GiB
+[rank 10] prepare failed with status 8 at gate 1582 (applied 957): local nin=87930907 (3.276 GiB live), expansion capacity=188801482 terms, workspace=21.10 GiB
+[rank 11] prepare failed with status 8 at gate 1582 (applied 957): local nin=87947526 (3.276 GiB live), expansion capacity=188801482 terms, workspace=21.10 GiB
+[rank 4] FATAL: prepare operator application (line 350)
+MPICH ERROR [Rank 4] [job id 59472166.13] [Tue Oct  6 23:22:27 2026] [nid001644] - Abort(1) (rank 4 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 4
+[rank 12] FATAL: prepare operator application (line 350)
+MPICH ERROR [Rank 12] [job id 59472166.13] [Tue Oct  6 23:22:27 2026] [nid003081] - Abort(1) (rank 12 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 12
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 4
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 12
+[rank 13] FATAL: prepare operator application (line 350)
+[rank 5] FATAL: prepare operator application (line 350)
+MPICH ERROR [Rank 5] [job id 59472166.13] [Tue Oct  6 23:22:27 2026] [nid001644] - Abort(1) (rank 5 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 5
+[rank 14] FATAL: prepare operator application (line 350)
+MPICH ERROR [Rank 14] [job id 59472166.13] [Tue Oct  6 23:22:27 2026] [nid003081] - Abort(1) (rank 14 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 14
+[rank 7] FATAL: prepare operator application (line 350)
+MPICH ERROR [Rank 7] [job id 59472166.13] [Tue Oct  6 23:22:27 2026] [nid001644] - Abort(1) (rank 7 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 7
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 7
+MPICH ERROR [Rank 13] [job id 59472166.13] [Tue Oct  6 23:22:27 2026] [nid003081] - Abort(1) (rank 13 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 13
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 5
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 14
+[rank 6] FATAL: prepare operator application (line 350)
+MPICH ERROR [Rank 6] [job id 59472166.13] [Tue Oct  6 23:22:27 2026] [nid001644] - Abort(1) (rank 6 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 6
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 6
+[rank 15] FATAL: prepare operator application (line 350)
+MPICH ERROR [Rank 15] [job id 59472166.13] [Tue Oct  6 23:22:27 2026] [nid003081] - Abort(1) (rank 15 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 15
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 13
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 15
+[rank 0] FATAL: prepare operator application (line 350)
+MPICH ERROR [Rank 0] [job id 59472166.13] [Tue Oct  6 23:22:27 2026] [nid001584] - Abort(1) (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 0
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 0
+[rank 8] FATAL: prepare operator application (line 350)
+MPICH ERROR [Rank 8] [job id 59472166.13] [Tue Oct  6 23:22:27 2026] [nid003080] - Abort(1) (rank 8 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 8
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 8
+[rank 1] FATAL: prepare operator application (line 350)
+MPICH ERROR [Rank 1] [job id 59472166.13] [Tue Oct  6 23:22:27 2026] [nid001584] - Abort(1) (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 1
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 1
+[rank 2] FATAL: prepare operator application (line 350)
+MPICH ERROR [Rank 2] [job id 59472166.13] [Tue Oct  6 23:22:27 2026] [nid001584] - Abort(1) (rank 2 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 2
+[rank 3] FATAL: prepare operator application (line 350)
+MPICH ERROR [Rank 3] [job id 59472166.13] [Tue Oct  6 23:22:27 2026] [nid001584] - Abort(1) (rank 3 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 3
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 2
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 3
+[rank 9] FATAL: prepare operator application (line 350)
+[rank 10] FATAL: prepare operator application (line 350)
+MPICH ERROR [Rank 10] [job id 59472166.13] [Tue Oct  6 23:22:27 2026] [nid003080] - Abort(1) (rank 10 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 10
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 10
+[rank 11] FATAL: prepare operator application (line 350)
+MPICH ERROR [Rank 11] [job id 59472166.13] [Tue Oct  6 23:22:27 2026] [nid003080] - Abort(1) (rank 11 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 11
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 11
+MPICH ERROR [Rank 9] [job id 59472166.13] [Tue Oct  6 23:22:27 2026] [nid003080] - Abort(1) (rank 9 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 9
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 9
+srun: error: nid003081: task 12: Exited with exit code 255
+srun: Terminating StepId=59472166.13
+srun: error: nid001644: task 4: Exited with exit code 255
+srun: error: nid003080: task 8: Exited with exit code 255
+srun: error: nid001584: task 0: Exited with exit code 255
+[2026-10-07T06:22:28.594] error: *** STEP 59472166.13 ON nid001584 CANCELLED AT 2026-10-07T06:22:28 DUE TO TASK FAILURE ***
+srun: error: nid001644: tasks 6-7: Exited with exit code 255
+srun: error: nid003081: tasks 13-14: Exited with exit code 255
+srun: error: nid003080: tasks 9-10: Exited with exit code 255
+srun: error: nid001584: tasks 1-2: Exited with exit code 255
+srun: error: nid001644: task 5: Exited with exit code 255
+srun: error: nid003081: task 15: Exited with exit code 255
+srun: error: nid003080: task 11: Exited with exit code 255
+srun: error: nid001584: task 3: Exited with exit code 255
+exit=255
+done

@@ -1,0 +1,544 @@
+===== S_r4 nodes=1 ranks=4 args: --coef 1e-4 --weight 8 --vram-frac 0.9 --max-gates 1500
+config: ranks=4 distributed=1 profiler_kinds=12 steps=20 theta=0.2500pi coef=0.0001 weight=8 truncEvery=10 keepDup=0 dedupEvery=0
+memory per rank: free=40012.2 MiB capTerms=188801482 (7202.2 MiB per expansion) workspace=21606.6 MiB
+gates=5420
+[1] This process is not using the same device it did during gtl_init.
+ Current device_id 1 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[2] This process is not using the same device it did during gtl_init.
+ Current device_id 2 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[3] This process is not using the same device it did during gtl_init.
+ Current device_id 3 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+expectation=0.50961406691
+gates_applied=1500 final_global_terms=2220 max_local_terms=3576 wall=10.6564 s
+mean per rank: prepare=1.5610 s compute=9.0772 s
+  mpi wait       calls/rank=1068 time/rank=1.1455 s (10.7% of wall) bytes/rank=0.000e+00
+  mpi isend      calls/rank=534 time/rank=0.8747 s (8.2% of wall) bytes/rank=3.340e+05
+  mpi irecv      calls/rank=534 time/rank=0.0047 s (0.0% of wall) bytes/rank=3.340e+05
+  mpi allred     calls/rank=1 time/rank=0.0000 s (0.0% of wall) bytes/rank=8.000e+00
+  mpi allgather  calls/rank=33153 time/rank=1.3960 s (13.1% of wall) bytes/rank=2.346e+05
+mpi total time/rank=3.4209 s (32.1% of wall)
+exit=0
+===== S_r8 nodes=2 ranks=8 args: --coef 1e-4 --weight 8 --vram-frac 0.9 --max-gates 1500
+config: ranks=8 distributed=1 profiler_kinds=12 steps=20 theta=0.2500pi coef=0.0001 weight=8 truncEvery=10 keepDup=0 dedupEvery=0
+memory per rank: free=38746.1 MiB capTerms=182826860 (6974.3 MiB per expansion) workspace=20922.9 MiB
+gates=5420
+[6] This process is not using the same device it did during gtl_init.
+ Current device_id 2 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[2] This process is not using the same device it did during gtl_init.
+ Current device_id 2 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[7] This process is not using the same device it did during gtl_init.
+ Current device_id 3 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[1] This process is not using the same device it did during gtl_init.
+ Current device_id 1 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[3] This process is not using the same device it did during gtl_init.
+ Current device_id 3 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[5] This process is not using the same device it did during gtl_init.
+ Current device_id 1 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+expectation=0.50961406691
+gates_applied=1500 final_global_terms=2220 max_local_terms=1817 wall=33.9172 s
+mean per rank: prepare=6.6685 s compute=27.2309 s
+  mpi wait       calls/rank=1875 time/rank=1.0672 s (3.1% of wall) bytes/rank=0.000e+00
+  mpi isend      calls/rank=938 time/rank=0.8274 s (2.4% of wall) bytes/rank=1.949e+05
+  mpi irecv      calls/rank=938 time/rank=0.0753 s (0.2% of wall) bytes/rank=1.949e+05
+  mpi allred     calls/rank=1 time/rank=0.0001 s (0.0% of wall) bytes/rank=8.000e+00
+  mpi allgather  calls/rank=33153 time/rank=14.7533 s (43.5% of wall) bytes/rank=2.826e+05
+mpi total time/rank=16.7233 s (49.3% of wall)
+exit=0
+===== S_r16 nodes=4 ranks=16 args: --coef 1e-4 --weight 8 --vram-frac 0.9 --max-gates 1500
+config: ranks=16 distributed=1 profiler_kinds=12 steps=20 theta=0.2500pi coef=0.0001 weight=8 truncEvery=10 keepDup=0 dedupEvery=0
+memory per rank: free=38746.1 MiB capTerms=182826860 (6974.3 MiB per expansion) workspace=20922.9 MiB
+gates=5420
+expectation=0.50961406691
+gates_applied=1500 final_global_terms=2220 max_local_terms=935 wall=44.4375 s
+mean per rank: prepare=9.2230 s compute=35.1971 s
+  mpi wait       calls/rank=2692 time/rank=0.0196 s (0.0% of wall) bytes/rank=0.000e+00
+  mpi isend      calls/rank=1346 time/rank=0.0300 s (0.1% of wall) bytes/rank=1.044e+05
+  mpi irecv      calls/rank=1346 time/rank=0.0918 s (0.2% of wall) bytes/rank=1.044e+05
+  mpi allred     calls/rank=1 time/rank=0.0003 s (0.0% of wall) bytes/rank=8.000e+00
+  mpi allgather  calls/rank=33153 time/rank=25.7104 s (57.9% of wall) bytes/rank=3.786e+05
+mpi total time/rank=25.8522 s (58.2% of wall)
+exit=0
+===== A_r8 nodes=2 ranks=8 args: --coef 1e-4 --weight 0 --vram-frac 0.9
+config: ranks=8 distributed=1 profiler_kinds=12 steps=20 theta=0.2500pi coef=0.0001 weight=0 truncEvery=10 keepDup=0 dedupEvery=0
+memory per rank: free=38746.1 MiB capTerms=182826860 (6974.3 MiB per expansion) workspace=20922.9 MiB
+gates=5420
+[3] This process is not using the same device it did during gtl_init.
+ Current device_id 3 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[1] This process is not using the same device it did during gtl_init.
+ Current device_id 1 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[2] This process is not using the same device it did during gtl_init.
+ Current device_id 2 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[6] This process is not using the same device it did during gtl_init.
+ Current device_id 2 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[5] This process is not using the same device it did during gtl_init.
+ Current device_id 1 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[7] This process is not using the same device it did during gtl_init.
+ Current device_id 3 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+expectation=0.153108187591
+gates_applied=5420 final_global_terms=539005 max_local_terms=2818115 wall=64.8036 s
+mean per rank: prepare=11.7657 s compute=52.9685 s
+  mpi wait       calls/rank=61973 time/rank=1.3993 s (2.2% of wall) bytes/rank=0.000e+00
+  mpi isend      calls/rank=30986 time/rank=0.7108 s (1.1% of wall) bytes/rank=2.954e+09
+  mpi irecv      calls/rank=30986 time/rank=0.0854 s (0.1% of wall) bytes/rank=2.954e+09
+  mpi allred     calls/rank=1 time/rank=0.0001 s (0.0% of wall) bytes/rank=8.000e+00
+  mpi allgather  calls/rank=119785 time/rank=24.5650 s (37.9% of wall) bytes/rank=1.021e+06
+mpi total time/rank=26.7607 s (41.3% of wall)
+exit=0
+===== A_r16 nodes=4 ranks=16 args: --coef 1e-4 --weight 0 --vram-frac 0.9
+config: ranks=16 distributed=1 profiler_kinds=12 steps=20 theta=0.2500pi coef=0.0001 weight=0 truncEvery=10 keepDup=0 dedupEvery=0
+memory per rank: free=38746.1 MiB capTerms=182826860 (6974.3 MiB per expansion) workspace=20922.9 MiB
+gates=5420
+[1] This process is not using the same device it did during gtl_init.
+ Current device_id 1 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[2] This process is not using the same device it did during gtl_init.
+ Current device_id 2 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[6] This process is not using the same device it did during gtl_init.
+ Current device_id 2 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[10] This process is not using the same device it did during gtl_init.
+ Current device_id 2 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[3] This process is not using the same device it did during gtl_init.
+ Current device_id 3 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[7] This process is not using the same device it did during gtl_init.
+ Current device_id 3 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[14] This process is not using the same device it did during gtl_init.
+ Current device_id 2 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[11] This process is not using the same device it did during gtl_init.
+ Current device_id 3 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[15] This process is not using the same device it did during gtl_init.
+ Current device_id 3 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[9] This process is not using the same device it did during gtl_init.
+ Current device_id 1 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[13] This process is not using the same device it did during gtl_init.
+ Current device_id 1 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[5] This process is not using the same device it did during gtl_init.
+ Current device_id 1 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+expectation=0.153108187591
+gates_applied=5420 final_global_terms=539005 max_local_terms=1410321 wall=71.1804 s
+mean per rank: prepare=12.4180 s compute=58.6928 s
+  mpi wait       calls/rank=126858 time/rank=1.1862 s (1.7% of wall) bytes/rank=0.000e+00
+  mpi isend      calls/rank=63429 time/rank=0.9746 s (1.4% of wall) bytes/rank=1.582e+09
+  mpi irecv      calls/rank=63429 time/rank=0.1226 s (0.2% of wall) bytes/rank=1.582e+09
+  mpi allred     calls/rank=1 time/rank=0.0001 s (0.0% of wall) bytes/rank=8.000e+00
+  mpi allgather  calls/rank=119785 time/rank=31.2016 s (43.8% of wall) bytes/rank=1.368e+06
+mpi total time/rank=33.4851 s (47.0% of wall)
+exit=0
+===== A_r16_kd10 nodes=4 ranks=16 args: --coef 1e-4 --weight 0 --vram-frac 0.9 --keepdup 1 --dedup-every 10
+config: ranks=16 distributed=1 profiler_kinds=12 steps=20 theta=0.2500pi coef=0.0001 weight=0 truncEvery=10 keepDup=1 dedupEvery=10
+memory per rank: free=38746.1 MiB capTerms=182826860 (6974.3 MiB per expansion) workspace=20922.9 MiB
+gates=5420
+[6] This process is not using the same device it did during gtl_init.
+ Current device_id 2 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[11] This process is not using the same device it did during gtl_init.
+ Current device_id 3 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[14] This process is not using the same device it did during gtl_init.
+ Current device_id 2 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[1] This process is not using the same device it did during gtl_init.
+ Current device_id 1 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[3] This process is not using the same device it did during gtl_init.
+ Current device_id 3 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[2] This process is not using the same device it did during gtl_init.
+ Current device_id 2 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[7] This process is not using the same device it did during gtl_init.
+ Current device_id 3 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[15] This process is not using the same device it did during gtl_init.
+ Current device_id 3 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[13] This process is not using the same device it did during gtl_init.
+ Current device_id 1 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[9] This process is not using the same device it did during gtl_init.
+ Current device_id 1 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[5] This process is not using the same device it did during gtl_init.
+ Current device_id 1 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[10] This process is not using the same device it did during gtl_init.
+ Current device_id 2 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+expectation=0.153108187591
+gates_applied=5420 final_global_terms=539005 max_local_terms=2545958 wall=14.6346 s
+mean per rank: prepare=3.5326 s compute=11.0242 s
+  mpi wait       calls/rank=22657 time/rank=1.0370 s (7.1% of wall) bytes/rank=0.000e+00
+  mpi isend      calls/rank=11328 time/rank=0.7162 s (4.9% of wall) bytes/rank=1.779e+09
+  mpi irecv      calls/rank=11328 time/rank=0.0964 s (0.7% of wall) bytes/rank=1.779e+09
+  mpi allred     calls/rank=1 time/rank=0.0001 s (0.0% of wall) bytes/rank=8.000e+00
+  mpi allgather  calls/rank=20599 time/rank=6.1047 s (41.7% of wall) bytes/rank=3.101e+05
+mpi total time/rank=7.9544 s (54.4% of wall)
+exit=0
+===== B_r8 nodes=2 ranks=8 args: --coef 1e-5 --weight 0 --vram-frac 0.9
+config: ranks=8 distributed=1 profiler_kinds=12 steps=20 theta=0.2500pi coef=1e-05 weight=0 truncEvery=10 keepDup=0 dedupEvery=0
+memory per rank: free=38746.1 MiB capTerms=182826860 (6974.3 MiB per expansion) workspace=20922.9 MiB
+gates=5420
+[3] This process is not using the same device it did during gtl_init.
+ Current device_id 3 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[2] This process is not using the same device it did during gtl_init.
+ Current device_id 2 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[1] This process is not using the same device it did during gtl_init.
+ Current device_id 1 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[6] This process is not using the same device it did during gtl_init.
+ Current device_id 2 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[5] This process is not using the same device it did during gtl_init.
+ Current device_id 1 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[7] This process is not using the same device it did during gtl_init.
+ Current device_id 3 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[rank 0] prepare failed with status 8 at gate 3580 (applied 1839): local nin=103732582 (3.864 GiB live), expansion capacity=182826860 terms, workspace=20.43 GiB
+[rank 1] prepare failed with status 8 at gate 3580 (applied 1839): local nin=103722346 (3.864 GiB live), expansion capacity=188801482 terms, workspace=21.10 GiB
+[rank 2] prepare failed with status 8 at gate 3580 (applied 1839): local nin=103731819 (3.864 GiB live), expansion capacity=188801482 terms, workspace=21.10 GiB
+[rank 3] prepare failed with status 8 at gate 3580 (applied 1839): local nin=103739674 (3.865 GiB live), expansion capacity=188801482 terms, workspace=21.10 GiB
+[rank 4] prepare failed with status 8 at gate 3580 (applied 1839): local nin=103744832 (3.865 GiB live), expansion capacity=182826860 terms, workspace=20.43 GiB
+[rank 5] prepare failed with status 8 at gate 3580 (applied 1839): local nin=103725334 (3.864 GiB live), expansion capacity=188801482 terms, workspace=21.10 GiB
+[rank 6] prepare failed with status 8 at gate 3580 (applied 1839): local nin=103734317 (3.864 GiB live), expansion capacity=188801482 terms, workspace=21.10 GiB
+[rank 7] prepare failed with status 8 at gate 3580 (applied 1839): local nin=103718910 (3.864 GiB live), expansion capacity=188801482 terms, workspace=21.10 GiB
+[rank 0] FATAL: prepare operator application (line 311)
+MPICH ERROR [Rank 0] [job id 59470888.6] [Tue Oct  6 22:41:46 2026] [nid004000] - Abort(1) (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 0
+[rank 1] FATAL: prepare operator application (line 311)
+MPICH ERROR [Rank 1] [job id 59470888.6] [Tue Oct  6 22:41:46 2026] [nid004000] - Abort(1) (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 1
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 1
+[rank 2] FATAL: prepare operator application (line 311)
+MPICH ERROR [Rank 2] [job id 59470888.6] [Tue Oct  6 22:41:46 2026] [nid004000] - Abort(1) (rank 2 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 2
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 2
+[rank 3] FATAL: prepare operator application (line 311)
+MPICH ERROR [Rank 3] [job id 59470888.6] [Tue Oct  6 22:41:46 2026] [nid004000] - Abort(1) (rank 3 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 3
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 3
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 0
+[rank 4] FATAL: prepare operator application (line 311)
+MPICH ERROR [Rank 4] [job id 59470888.6] [Tue Oct  6 22:41:46 2026] [nid004001] - Abort(1) (rank 4 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 4
+[rank 5] FATAL: prepare operator application (line 311)
+[rank 7] FATAL: prepare operator application (line 311)
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 4
+MPICH ERROR [Rank 5] [job id 59470888.6] [Tue Oct  6 22:41:46 2026] [nid004001] - Abort(1) (rank 5 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 5
+[rank 6] FATAL: prepare operator application (line 311)
+MPICH ERROR [Rank 6] [job id 59470888.6] [Tue Oct  6 22:41:46 2026] [nid004001] - Abort(1) (rank 6 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 6
+MPICH ERROR [Rank 7] [job id 59470888.6] [Tue Oct  6 22:41:46 2026] [nid004001] - Abort(1) (rank 7 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 7
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 7
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 5
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 6
+srun: error: nid004000: task 0: Exited with exit code 255
+srun: Terminating StepId=59470888.6
+[2026-10-07T05:41:47.632] error: *** STEP 59470888.6 ON nid004000 CANCELLED AT 2026-10-07T05:41:47 DUE TO TASK FAILURE ***
+srun: error: nid004001: task 4: Exited with exit code 255
+srun: error: nid004000: task 1: Exited with exit code 255
+srun: error: nid004001: task 7: Exited with exit code 255
+srun: error: nid004000: task 3: Exited with exit code 255
+srun: error: nid004001: task 5: Exited with exit code 255
+srun: error: nid004001: task 6: Exited with exit code 255
+srun: error: nid004000: task 2: Exited with exit code 255
+exit=255
+===== B_r16 nodes=4 ranks=16 args: --coef 1e-5 --weight 0 --vram-frac 0.9
+config: ranks=16 distributed=1 profiler_kinds=12 steps=20 theta=0.2500pi coef=1e-05 weight=0 truncEvery=10 keepDup=0 dedupEvery=0
+memory per rank: free=38746.1 MiB capTerms=182826860 (6974.3 MiB per expansion) workspace=20922.9 MiB
+gates=5420
+[6] This process is not using the same device it did during gtl_init.
+ Current device_id 2 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[10] This process is not using the same device it did during gtl_init.
+ Current device_id 2 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[7] This process is not using the same device it did during gtl_init.
+ Current device_id 3 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[11] This process is not using the same device it did during gtl_init.
+ Current device_id 3 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[9] This process is not using the same device it did during gtl_init.
+ Current device_id 1 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[14] This process is not using the same device it did during gtl_init.
+ Current device_id 2 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[15] This process is not using the same device it did during gtl_init.
+ Current device_id 3 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[1] This process is not using the same device it did during gtl_init.
+ Current device_id 1 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[2] This process is not using the same device it did during gtl_init.
+ Current device_id 2 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[3] This process is not using the same device it did during gtl_init.
+ Current device_id 3 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[13] This process is not using the same device it did during gtl_init.
+ Current device_id 1 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[5] This process is not using the same device it did during gtl_init.
+ Current device_id 1 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[rank 0] prepare failed with status 8 at gate 3310 (applied 2109): local nin=87934416 (3.276 GiB live), expansion capacity=182826860 terms, workspace=20.43 GiB
+[rank 4] prepare failed with status 8 at gate 3310 (applied 2109): local nin=87929591 (3.276 GiB live), expansion capacity=182826860 terms, workspace=20.43 GiB
+[rank 8] prepare failed with status 8 at gate 3310 (applied 2109): local nin=87948453 (3.276 GiB live), expansion capacity=182826860 terms, workspace=20.43 GiB
+[rank 12] prepare failed with status 8 at gate 3310 (applied 2109): local nin=87953595 (3.277 GiB live), expansion capacity=182826860 terms, workspace=20.43 GiB
+[rank 6] prepare failed with status 8 at gate 3310 (applied 2109): local nin=87927033 (3.276 GiB live), expansion capacity=188801482 terms, workspace=21.10 GiB
+[rank 1] prepare failed with status 8 at gate 3310 (applied 2109): local nin=87941040 (3.276 GiB live), expansion capacity=188801482 terms, workspace=21.10 GiB
+[rank 9] prepare failed with status 8 at gate 3310 (applied 2109): local nin=87939430 (3.276 GiB live), expansion capacity=188801482 terms, workspace=21.10 GiB
+[rank 14] prepare failed with status 8 at gate 3310 (applied 2109): local nin=87939973 (3.276 GiB live), expansion capacity=188801482 terms, workspace=21.10 GiB
+[rank 7] prepare failed with status 8 at gate 3310 (applied 2109): local nin=87944041 (3.276 GiB live), expansion capacity=188801482 terms, workspace=21.10 GiB
+[rank 2] prepare failed with status 8 at gate 3310 (applied 2109): local nin=87956143 (3.277 GiB live), expansion capacity=188801482 terms, workspace=21.10 GiB
+[rank 10] prepare failed with status 8 at gate 3310 (applied 2109): local nin=87930907 (3.276 GiB live), expansion capacity=188801482 terms, workspace=21.10 GiB
+[rank 15] prepare failed with status 8 at gate 3310 (applied 2109): local nin=87946966 (3.276 GiB live), expansion capacity=188801482 terms, workspace=21.10 GiB
+[rank 5] prepare failed with status 8 at gate 3310 (applied 2109): local nin=87952044 (3.276 GiB live), expansion capacity=188801482 terms, workspace=21.10 GiB
+[rank 3] prepare failed with status 8 at gate 3310 (applied 2109): local nin=87937065 (3.276 GiB live), expansion capacity=188801482 terms, workspace=21.10 GiB
+[rank 11] prepare failed with status 8 at gate 3310 (applied 2109): local nin=87947526 (3.276 GiB live), expansion capacity=188801482 terms, workspace=21.10 GiB
+[rank 13] prepare failed with status 8 at gate 3310 (applied 2109): local nin=87947454 (3.276 GiB live), expansion capacity=188801482 terms, workspace=21.10 GiB
+[rank 4] FATAL: prepare operator application (line 311)
+MPICH ERROR [Rank 4] [job id 59470888.7] [Tue Oct  6 22:42:43 2026] [nid004001] - Abort(1) (rank 4 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 4
+[rank 0] FATAL: prepare operator application (line 311)
+[rank 8] FATAL: prepare operator application (line 311)
+MPICH ERROR [Rank 8] [job id 59470888.7] [Tue Oct  6 22:42:43 2026] [nid004004] - Abort(1) (rank 8 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 8
+[rank 12] FATAL: prepare operator application (line 311)
+MPICH ERROR [Rank 12] [job id 59470888.7] [Tue Oct  6 22:42:43 2026] [nid004005] - Abort(1) (rank 12 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 12
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 4
+MPICH ERROR [Rank 0] [job id 59470888.7] [Tue Oct  6 22:42:43 2026] [nid004000] - Abort(1) (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 0
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 8
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 12
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 0
+[rank 9] FATAL: prepare operator application (line 311)
+[rank 10] FATAL: prepare operator application (line 311)
+[rank 7] FATAL: prepare operator application (line 311)
+MPICH ERROR [Rank 7] [job id 59470888.7] [Tue Oct  6 22:42:43 2026] [nid004001] - Abort(1) (rank 7 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 7
+[rank 1] FATAL: prepare operator application (line 311)
+MPICH ERROR [Rank 9] [job id 59470888.7] [Tue Oct  6 22:42:43 2026] [nid004004] - Abort(1) (rank 9 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 9
+[rank 14] FATAL: prepare operator application (line 311)
+MPICH ERROR [Rank 14] [job id 59470888.7] [Tue Oct  6 22:42:43 2026] [nid004005] - Abort(1) (rank 14 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 14
+[rank 5] FATAL: prepare operator application (line 311)
+[rank 2] FATAL: prepare operator application (line 311)
+MPICH ERROR [Rank 2] [job id 59470888.7] [Tue Oct  6 22:42:43 2026] [nid004000] - Abort(1) (rank 2 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 2
+MPICH ERROR [Rank 10] [job id 59470888.7] [Tue Oct  6 22:42:43 2026] [nid004004] - Abort(1) (rank 10 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 10
+[rank 15] FATAL: prepare operator application (line 311)
+MPICH ERROR [Rank 15] [job id 59470888.7] [Tue Oct  6 22:42:43 2026] [nid004005] - Abort(1) (rank 15 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 15
+[rank 6] FATAL: prepare operator application (line 311)
+MPICH ERROR [Rank 6] [job id 59470888.7] [Tue Oct  6 22:42:43 2026] [nid004001] - Abort(1) (rank 6 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 6
+[rank 3] FATAL: prepare operator application (line 311)
+MPICH ERROR [Rank 3] [job id 59470888.7] [Tue Oct  6 22:42:43 2026] [nid004000] - Abort(1) (rank 3 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 3
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 3
+[rank 11] FATAL: prepare operator application (line 311)
+MPICH ERROR [Rank 11] [job id 59470888.7] [Tue Oct  6 22:42:43 2026] [nid004004] - Abort(1) (rank 11 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 11
+[rank 13] FATAL: prepare operator application (line 311)
+MPICH ERROR [Rank 13] [job id 59470888.7] [Tue Oct  6 22:42:43 2026] [nid004005] - Abort(1) (rank 13 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 13
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 7
+MPICH ERROR [Rank 1] [job id 59470888.7] [Tue Oct  6 22:42:43 2026] [nid004000] - Abort(1) (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 1
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 9
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 14
+MPICH ERROR [Rank 5] [job id 59470888.7] [Tue Oct  6 22:42:43 2026] [nid004001] - Abort(1) (rank 5 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 5
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 2
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 10
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 13
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 6
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 1
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 11
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 15
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 5
+srun: error: nid004004: task 8: Exited with exit code 255
+srun: Terminating StepId=59470888.7
+srun: error: nid004001: task 4: Exited with exit code 255
+srun: error: nid004000: task 0: Exited with exit code 255
+srun: error: nid004005: task 12: Exited with exit code 255
+[2026-10-07T05:42:50.066] error: *** STEP 59470888.7 ON nid004000 CANCELLED AT 2026-10-07T05:42:50 DUE TO TASK FAILURE ***
+srun: error: nid004001: tasks 5-7: Exited with exit code 255
+srun: error: nid004005: tasks 13-15: Exited with exit code 255
+srun: error: nid004004: tasks 9-11: Exited with exit code 255
+srun: error: nid004000: tasks 1-3: Exited with exit code 255
+exit=255
+===== B_r16_kd10 nodes=4 ranks=16 args: --coef 1e-5 --weight 0 --vram-frac 0.9 --keepdup 1 --dedup-every 10
+config: ranks=16 distributed=1 profiler_kinds=12 steps=20 theta=0.2500pi coef=1e-05 weight=0 truncEvery=10 keepDup=1 dedupEvery=10
+memory per rank: free=38746.1 MiB capTerms=182826860 (6974.3 MiB per expansion) workspace=20922.9 MiB
+gates=5420
+[6] This process is not using the same device it did during gtl_init.
+ Current device_id 2 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[11] This process is not using the same device it did during gtl_init.
+ Current device_id 3 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[14] This process is not using the same device it did during gtl_init.
+ Current device_id 2 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[1] This process is not using the same device it did during gtl_init.
+ Current device_id 1 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[2] This process is not using the same device it did during gtl_init.
+ Current device_id 2 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[3] This process is not using the same device it did during gtl_init.
+ Current device_id 3 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[10] This process is not using the same device it did during gtl_init.
+ Current device_id 2 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[15] This process is not using the same device it did during gtl_init.
+ Current device_id 3 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[7] This process is not using the same device it did during gtl_init.
+ Current device_id 3 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[13] This process is not using the same device it did during gtl_init.
+ Current device_id 1 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[5] This process is not using the same device it did during gtl_init.
+ Current device_id 1 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[9] This process is not using the same device it did during gtl_init.
+ Current device_id 1 original device_id 0.
+ Use of IPC is disabled from this point. IPC PUT protocol may be used instead 
+[rank 0] capacity exceeded at gate 3580 (applied 1839): nin=101755997 reqPauli=6512383808/5850459520 reqCoef=1628095952/1462614880 reqWs=48/21939223308
+[rank 4] capacity exceeded at gate 3580 (applied 1839): nin=101737453 reqPauli=6511196992/5850459520 reqCoef=1627799248/1462614880 reqWs=48/21939223308
+[rank 12] capacity exceeded at gate 3580 (applied 1839): nin=101904244 reqPauli=6521871616/5850459520 reqCoef=1630467904/1462614880 reqWs=48/21939223308
+[rank 1] capacity exceeded at gate 3580 (applied 1839): nin=101726607 reqPauli=6510502848/6041647424 reqCoef=1627625712/1510411856 reqWs=48/22656177990
+[rank 5] capacity exceeded at gate 3580 (applied 1839): nin=101727073 reqPauli=6510532672/6041647424 reqCoef=1627633168/1510411856 reqWs=48/22656177990
+[rank 8] capacity exceeded at gate 3580 (applied 1839): nin=101783332 reqPauli=6514133248/5850459520 reqCoef=1628533312/1462614880 reqWs=48/21939223308
+[rank 13] capacity exceeded at gate 3580 (applied 1839): nin=101703438 reqPauli=6509020032/6041647424 reqCoef=1627255008/1510411856 reqWs=48/22656177990
+[rank 2] capacity exceeded at gate 3580 (applied 1839): nin=101762439 reqPauli=6512796096/6041647424 reqCoef=1628199024/1510411856 reqWs=48/22656177990
+[rank 6] capacity exceeded at gate 3580 (applied 1839): nin=101781005 reqPauli=6513984320/6041647424 reqCoef=1628496080/1510411856 reqWs=48/22656177990
+[rank 9] capacity exceeded at gate 3580 (applied 1839): nin=101755601 reqPauli=6512358464/6041647424 reqCoef=1628089616/1510411856 reqWs=48/22656177990
+[rank 14] capacity exceeded at gate 3580 (applied 1839): nin=101777797 reqPauli=6513779008/6041647424 reqCoef=1628444752/1510411856 reqWs=48/22656177990
+[rank 3] capacity exceeded at gate 3580 (applied 1839): nin=101657834 reqPauli=6506101376/6041647424 reqCoef=1626525344/1510411856 reqWs=48/22656177990
+[rank 7] capacity exceeded at gate 3580 (applied 1839): nin=101699389 reqPauli=6508760896/6041647424 reqCoef=1627190224/1510411856 reqWs=48/22656177990
+[rank 11] capacity exceeded at gate 3580 (applied 1839): nin=101825435 reqPauli=6516827840/6041647424 reqCoef=1629206960/1510411856 reqWs=48/22656177990
+[rank 15] capacity exceeded at gate 3580 (applied 1839): nin=101904521 reqPauli=6521889344/6041647424 reqCoef=1630472336/1510411856 reqWs=48/22656177990
+[rank 10] capacity exceeded at gate 3580 (applied 1839): nin=101819715 reqPauli=6516461760/6041647424 reqCoef=1629115440/1510411856 reqWs=48/22656177990
+[rank 8] FATAL: capacity exceeded (line 321)
+[rank 12] FATAL: capacity exceeded (line 321)
+[rank 4] FATAL: capacity exceeded (line 321)
+MPICH ERROR [Rank 4] [job id 59470888.8] [Tue Oct  6 22:43:04 2026] [nid004001] - Abort(1) (rank 4 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 4
+[rank 9] FATAL: capacity exceeded (line 321)
+[rank 13] FATAL: capacity exceeded (line 321)
+MPICH ERROR [Rank 13] [job id 59470888.8] [Tue Oct  6 22:43:04 2026] [nid004005] - Abort(1) (rank 13 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 13
+[rank 7] FATAL: capacity exceeded (line 321)
+[rank 11] FATAL: capacity exceeded (line 321)
+[rank 14] FATAL: capacity exceeded (line 321)
+MPICH ERROR [Rank 14] [job id 59470888.8] [Tue Oct  6 22:43:04 2026] [nid004005] - Abort(1) (rank 14 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 14
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 14
+[rank 1] FATAL: capacity exceeded (line 321)
+MPICH ERROR [Rank 8] [job id 59470888.8] [Tue Oct  6 22:43:04 2026] [nid004004] - Abort(1) (rank 8 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 8
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 8
+MPICH ERROR [Rank 12] [job id 59470888.8] [Tue Oct  6 22:43:04 2026] [nid004005] - Abort(1) (rank 12 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 12
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 12
+[rank 5] FATAL: capacity exceeded (line 321)
+MPICH ERROR [Rank 9] [job id 59470888.8] [Tue Oct  6 22:43:04 2026] [nid004004] - Abort(1) (rank 9 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 9
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 13
+[rank 2] FATAL: capacity exceeded (line 321)
+[rank 6] FATAL: capacity exceeded (line 321)
+[rank 10] FATAL: capacity exceeded (line 321)
+[rank 15] FATAL: capacity exceeded (line 321)
+MPICH ERROR [Rank 15] [job id 59470888.8] [Tue Oct  6 22:43:04 2026] [nid004005] - Abort(1) (rank 15 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 15
+[rank 3] FATAL: capacity exceeded (line 321)
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 4
+MPICH ERROR [Rank 11] [job id 59470888.8] [Tue Oct  6 22:43:04 2026] [nid004004] - Abort(1) (rank 11 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 11
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 15
+MPICH ERROR [Rank 1] [job id 59470888.8] [Tue Oct  6 22:43:04 2026] [nid004000] - Abort(1) (rank 1 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 1
+MPICH ERROR [Rank 5] [job id 59470888.8] [Tue Oct  6 22:43:04 2026] [nid004001] - Abort(1) (rank 5 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 5
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 9
+MPICH ERROR [Rank 3] [job id 59470888.8] [Tue Oct  6 22:43:04 2026] [nid004000] - Abort(1) (rank 3 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 3
+MPICH ERROR [Rank 6] [job id 59470888.8] [Tue Oct  6 22:43:04 2026] [nid004001] - Abort(1) (rank 6 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 6
+MPICH ERROR [Rank 10] [job id 59470888.8] [Tue Oct  6 22:43:04 2026] [nid004004] - Abort(1) (rank 10 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 10
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 1
+MPICH ERROR [Rank 7] [job id 59470888.8] [Tue Oct  6 22:43:04 2026] [nid004001] - Abort(1) (rank 7 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 7
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 7
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 11
+MPICH ERROR [Rank 2] [job id 59470888.8] [Tue Oct  6 22:43:04 2026] [nid004000] - Abort(1) (rank 2 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 2
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 2
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 5
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 3
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 6
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 10
+[rank 0] FATAL: capacity exceeded (line 321)
+MPICH ERROR [Rank 0] [job id 59470888.8] [Tue Oct  6 22:43:04 2026] [nid004000] - Abort(1) (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 0
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 0
+srun: error: nid004001: task 4: Exited with exit code 255
+srun: Terminating StepId=59470888.8
+[2026-10-07T05:43:05.399] error: *** STEP 59470888.8 ON nid004000 CANCELLED AT 2026-10-07T05:43:05 DUE TO TASK FAILURE ***
+srun: error: nid004004: task 8: Exited with exit code 255
+srun: error: nid004000: task 0: Exited with exit code 255
+srun: error: nid004005: task 12: Exited with exit code 255
+srun: error: nid004000: task 1: Exited with exit code 255
+srun: error: nid004005: task 15: Exited with exit code 255
+srun: error: nid004001: task 5: Exited with exit code 255
+srun: error: nid004001: task 7: Exited with exit code 255
+srun: error: nid004000: task 2: Exited with exit code 255
+srun: error: nid004004: tasks 9-10: Exited with exit code 255
+srun: error: nid004005: task 13: Exited with exit code 255
+srun: error: nid004005: task 14: Exited with exit code 255
+srun: error: nid004000: task 3: Exited with exit code 255
+srun: error: nid004001: task 6: Exited with exit code 255
+srun: error: nid004004: task 11: Exited with exit code 255
+exit=255
+done

@@ -1,0 +1,22 @@
+===== S_r4 nodes=1 ranks=4 args: --coef 1e-4 --weight 8 --vram-frac 0.9 --max-gates 1500
+config: ranks=4 distributed=1 profiler_kinds=12 steps=20 theta=0.2500pi coef=0.0001 weight=8 truncEvery=10 keepDup=0 dedupEvery=0
+memory per rank: free=40012.3 MiB capTerms=188801777 (7202.2 MiB per expansion) workspace=21606.6 MiB
+gates=5420
+(GTL DEBUG: 0) cuIpcOpenMemHandle: invalid argument, CUDA_ERROR_INVALID_VALUE, line no 369
+(GTL DEBUG: 0) cuIpcOpenMemHandle: invalid argument, CUDA_ERROR_INVALID_VALUE, line no 369
+(GTL DEBUG: 0) cuIpcOpenMemHandle: invalid argument, CUDA_ERROR_INVALID_VALUE, line no 369
+(GTL DEBUG: 1) cuIpcOpenMemHandle: invalid argument, CUDA_ERROR_INVALID_VALUE, line no 369
+(GTL DEBUG: 1) cuIpcOpenMemHandle: invalid argument, CUDA_ERROR_INVALID_VALUE, line no 369
+(GTL DEBUG: 3) cuIpcOpenMemHandle: invalid argument, CUDA_ERROR_INVALID_VALUE, line no 369
+(GTL DEBUG: 2) cuIpcOpenMemHandle: invalid argument, CUDA_ERROR_INVALID_VALUE, line no 369
+(GTL DEBUG: 3) cuIpcOpenMemHandle: invalid argument, CUDA_ERROR_INVALID_VALUE, line no 369
+srun: forcing job termination
+srun: got SIGCONT
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+[2026-10-07T05:30:31.148] error: *** STEP 59470631.0 ON nid001289 CANCELLED AT 2026-10-07T05:30:31 DUE to SIGNAL Killed ***
+srun: error: nid001289: task 1: Killed
+srun: Terminating StepId=59470631.0
+srun: error: nid001289: tasks 0,2-3: Killed
+exit=124
+===== S_r8 nodes=2 ranks=8 args: --coef 1e-4 --weight 8 --vram-frac 0.9 --max-gates 1500
+[2026-10-07T05:33:02.614] error: *** JOB 59470631 ON nid001289 CANCELLED AT 2026-10-07T05:33:02 DUE to SIGNAL Terminated ***

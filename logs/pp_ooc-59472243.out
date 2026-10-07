@@ -1,0 +1,23 @@
+               total        used        free      shared  buff/cache   available
+Mem:             251          18         238           0           1         232
+===== B (coef 1e-5): cuPauliProp fails on 1/4/8/16 GPUs
+config: steps=20 theta=0.2500pi coef=1e-05 weight=0 truncEvery=10 GPU capacity=188801777 terms/buffer workspace=19.2 GiB bucket target=6000000 gmax=8
+layer 19: terms in=1 out=2 buckets next=1 elapsed=0.2 s
+layer 18: terms in=2 out=10 buckets next=1 elapsed=0.3 s
+layer 17: terms in=10 out=48 buckets next=1 elapsed=0.3 s
+layer 16: terms in=48 out=2582 buckets next=1 elapsed=0.3 s
+layer 15: terms in=2582 out=2146372 buckets next=1 elapsed=0.3 s
+bucket 0 grew to 96179294 terms in layer 14
+FATAL: bucket outgrew the GPU (line 269)
+exit=0
+===== C (coef 3e-6)
+config: steps=20 theta=0.2500pi coef=3e-06 weight=0 truncEvery=10 GPU capacity=188801777 terms/buffer workspace=19.2 GiB bucket target=6000000 gmax=8
+layer 19: terms in=1 out=2 buckets next=1 elapsed=0.0 s
+layer 18: terms in=2 out=10 buckets next=1 elapsed=0.0 s
+layer 17: terms in=10 out=48 buckets next=1 elapsed=0.1 s
+layer 16: terms in=48 out=2582 buckets next=1 elapsed=0.1 s
+layer 15: terms in=2582 out=2146372 buckets next=1 elapsed=0.1 s
+bucket 0 grew to 136874092 terms in layer 14
+FATAL: bucket outgrew the GPU (line 269)
+exit=0
+done

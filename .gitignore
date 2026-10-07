@@ -1,0 +1,8 @@
+# Python environment, build outputs, raw measurement data, downloaded reference samples
+env/
+bin/
+results/
+third_party/
+logs/*.txt
+__pycache__/
+*.o

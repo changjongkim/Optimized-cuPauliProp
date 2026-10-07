@@ -1,0 +1,38 @@
+rank 0 CUDA_VISIBLE_DEVICES=0
+rank 1 CUDA_VISIBLE_DEVICES=0
+rank 2 CUDA_VISIBLE_DEVICES=0
+rank 3 CUDA_VISIBLE_DEVICES=0
+===== A_r1_single ranks=1 args: --coef 1e-4 --weight 0 --vram-frac 0.9 --dist 0
+config: ranks=1 distributed=0 profiler_kinds=0 steps=20 theta=0.2500pi coef=0.0001 weight=0 truncEvery=10 keepDup=0 dedupEvery=0
+memory per rank: free=40012.3 MiB capTerms=188801777 (7202.2 MiB per expansion) workspace=21606.6 MiB
+gates=5420
+expectation=0.153108187591
+gates_applied=5420 final_global_terms=539005 max_local_terms=22525673 wall=3.1528 s
+mean per rank: prepare=0.1220 s compute=3.0215 s
+exit=0
+===== A_r4 ranks=4 args: --coef 1e-4 --weight 0 --vram-frac 0.9
+config: ranks=4 distributed=1 profiler_kinds=12 steps=20 theta=0.2500pi coef=0.0001 weight=0 truncEvery=10 keepDup=0 dedupEvery=0
+memory per rank: free=40012.3 MiB capTerms=188801777 (7202.2 MiB per expansion) workspace=21606.6 MiB
+gates=5420
+(GTL DEBUG: 0) cuIpcOpenMemHandle: invalid argument, CUDA_ERROR_INVALID_VALUE, line no 369
+(GTL DEBUG: 0) cuIpcOpenMemHandle: invalid argument, CUDA_ERROR_INVALID_VALUE, line no 369
+(GTL DEBUG: 0) cuIpcOpenMemHandle: invalid argument, CUDA_ERROR_INVALID_VALUE, line no 369
+(GTL DEBUG: 1) cuIpcOpenMemHandle: invalid argument, CUDA_ERROR_INVALID_VALUE, line no 369
+(GTL DEBUG: 2) cuIpcOpenMemHandle: invalid argument, CUDA_ERROR_INVALID_VALUE, line no 369
+(GTL DEBUG: 2) cuIpcOpenMemHandle: invalid argument, CUDA_ERROR_INVALID_VALUE, line no 369
+(GTL DEBUG: 3) cuIpcOpenMemHandle: invalid argument, CUDA_ERROR_INVALID_VALUE, line no 369
+(GTL DEBUG: 3) cuIpcOpenMemHandle: invalid argument, CUDA_ERROR_INVALID_VALUE, line no 369
+(GTL DEBUG: 3) cuIpcOpenMemHandle: invalid argument, CUDA_ERROR_INVALID_VALUE, line no 369
+(GTL DEBUG: 1) cuIpcOpenMemHandle: invalid argument, CUDA_ERROR_INVALID_VALUE, line no 369
+(GTL DEBUG: 2) cuIpcOpenMemHandle: invalid argument, CUDA_ERROR_INVALID_VALUE, line no 369
+(GTL DEBUG: 1) cuIpcOpenMemHandle: invalid argument, CUDA_ERROR_INVALID_VALUE, line no 369
+srun: forcing job termination
+srun: got SIGCONT
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+[2026-10-07T05:32:02.933] error: *** STEP 59470630.2 ON nid001056 CANCELLED AT 2026-10-07T05:32:02 DUE to SIGNAL Killed ***
+srun: error: nid001056: tasks 0-1: Killed
+srun: Terminating StepId=59470630.2
+srun: error: nid001056: tasks 2-3: Killed
+exit=124
+===== S_r4 ranks=4 args: --coef 1e-4 --weight 8 --vram-frac 0.9
+[2026-10-07T05:33:02.512] error: *** JOB 59470630 ON nid001056 CANCELLED AT 2026-10-07T05:33:02 DUE to SIGNAL Terminated ***
