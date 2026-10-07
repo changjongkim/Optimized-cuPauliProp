@@ -51,10 +51,10 @@
 #include "circuit.hpp"
 
 extern "C" {
-void pp_owners(const uint64_t* xz, int64_t n, int words, const uint64_t* masks, int g, uint8_t* owners);
-void pp_counts_sorted(const uint8_t* owners, int64_t n, int R, int64_t* cnt);
-int64_t pp_count_ne(const uint8_t* owners, int64_t n, int expected);
-int pp_partition(const uint64_t* xz, const double* coef, uint8_t* owners, int64_t n, int words,
+void pp_owners16(const uint64_t* xz, int64_t n, int words, const uint64_t* masks, int g, uint16_t* owners);
+void pp_counts_sorted16(const uint16_t* owners, int64_t n, int R, int64_t* cnt);
+int64_t pp_count_ne16(const uint16_t* owners, int64_t n, int expected);
+int pp_partition16(const uint64_t* xz, const double* coef, uint16_t* owners, int64_t n, int words,
                  uint64_t* xzOut, double* coefOut, int32_t* idx);
 }
 
@@ -493,7 +493,7 @@ struct Shared {
   std::deque<Work> queue;
   int active = 0;
   std::vector<Bucket> nextB;
-  std::vector<std::mutex> bm{256};
+  std::vector<std::mutex> bm{4096};
   std::mutex em;
   double expec = 0;
   std::atomic<long> nout{0}, splits{0}, runs{0}, peak{0}, hostSplits{0}, verified{0}, violations{0}, earlyDedups{0}, shares{0};
@@ -513,7 +513,7 @@ struct Worker {
   size_t xzPerTerm = 0, xzMem = 0, cfMem = 0, wsMem = 0;
   long capTerms = 0;
   void *xz[2], *cf[2], *dWs;
-  uint8_t* dOwners;
+  uint16_t* dOwners;
   int32_t* dIdx;
   cupaulipropPauliExpansion_t ex[2];
   bool haveEx = false;
@@ -537,10 +537,10 @@ struct Worker {
     const size_t usable = (size_t)(freeMem * o.vramFrac);
     capTerms = (long)((size_t)(usable * o.expShare) / perTerm);
     xzMem = (size_t)capTerms * xzPerTerm; cfMem = (size_t)capTerms * sizeof(double);
-    wsMem = usable - 2 * (xzMem + cfMem) - (size_t)capTerms * 11;
+    wsMem = usable - 2 * (xzMem + cfMem) - (size_t)capTerms * 12;
     for (int b = 0; b < 2; b++) { CUDA(cudaMalloc(&xz[b], xzMem)); CUDA(cudaMalloc(&cf[b], cfMem)); }
     CUDA(cudaMalloc(&dWs, wsMem));
-    CUDA(cudaMalloc((void**)&dOwners, (size_t)capTerms));
+    CUDA(cudaMalloc((void**)&dOwners, (size_t)capTerms * sizeof(uint16_t)));
     CUDA(cudaMalloc((void**)&dIdx, (size_t)capTerms * sizeof(int32_t)));
     CUPP(cupaulipropCreateWorkspaceDescriptor(handle, &ws));
     coefParams.cutoff = o.coef; weightParams.cutoff = o.weight; junkParams.cutoff = o.junk;
@@ -620,9 +620,9 @@ struct Worker {
       std::vector<uint64_t> m((size_t)rows * words);
       for (int j = 0; j < rows; j++) std::copy(w.spare[j].begin(), w.spare[j].end(), m.begin() + (size_t)j * words);
       std::vector<int64_t> c((size_t)1 << rows, 0);
-      pp_owners((const uint64_t*)xz[0], n0, words, m.data(), rows, dOwners);
-      if (pp_partition((const uint64_t*)xz[0], (const double*)cf[0], dOwners, n0, words, (uint64_t*)xz[1], (double*)cf[1], dIdx) != 0) die("partition", __LINE__);
-      pp_counts_sorted(dOwners, n0, 1 << rows, c.data());
+      pp_owners16((const uint64_t*)xz[0], n0, words, m.data(), rows, dOwners);
+      if (pp_partition16((const uint64_t*)xz[0], (const double*)cf[0], dOwners, n0, words, (uint64_t*)xz[1], (double*)cf[1], dIdx) != 0) die("partition", __LINE__);
+      pp_counts_sorted16(dOwners, n0, 1 << rows, c.data());
       if (c[0] > 0) {
         CUDA(cudaMemcpy(xz[0], xz[1], (size_t)c[0] * xzPerTerm, cudaMemcpyDeviceToDevice));
         CUDA(cudaMemcpy(cf[0], cf[1], (size_t)c[0] * sizeof(double), cudaMemcpyDeviceToDevice));
@@ -698,10 +698,10 @@ struct Worker {
     if (m < 1000) die("cannot split further", __LINE__);
     BV row = splitRow(w, k);
     int64_t c2[2] = {0, 0};
-    pp_owners((const uint64_t*)xz[cur], m, words, row.data(), 1, dOwners);
-    if (pp_partition((const uint64_t*)xz[cur], (const double*)cf[cur], dOwners, m, words,
+    pp_owners16((const uint64_t*)xz[cur], m, words, row.data(), 1, dOwners);
+    if (pp_partition16((const uint64_t*)xz[cur], (const double*)cf[cur], dOwners, m, words,
                      (uint64_t*)xz[1 - cur], (double*)cf[1 - cur], dIdx) != 0) die("partition", __LINE__);
-    pp_counts_sorted(dOwners, m, 2, c2);
+    pp_counts_sorted16(dOwners, m, 2, c2);
     long off2 = 0;
     for (int h = 0; h < 2; h++) {
       if (c2[h] == 0) continue;
@@ -771,8 +771,8 @@ struct Worker {
     // Integrity: every term must carry the expected values of the parities the circuit conserves.
     if (sh.checkG > 0 && wk.startOp == w.b) {
       const double tv = now();
-      pp_owners((const uint64_t*)xz[0], nb0, words, sh.checkRows.data(), sh.checkG, dOwners);
-      sh.violations += pp_count_ne(dOwners, nb0, sh.checkExpected);
+      pp_owners16((const uint64_t*)xz[0], nb0, words, sh.checkRows.data(), sh.checkG, dOwners);
+      sh.violations += pp_count_ne16(dOwners, nb0, sh.checkExpected);
       sh.verified += nb0;
       tVerify += now() - tv;
     }
@@ -874,10 +874,10 @@ struct Worker {
     std::vector<int64_t> cnt((size_t)1 << gN, 0);
     const void *srcXz = xz[cur], *srcCf = cf[cur];
     if (gN > 0) {
-      pp_owners((const uint64_t*)xz[cur], m, words, next->rows.data(), gN, dOwners);
-      if (pp_partition((const uint64_t*)xz[cur], (const double*)cf[cur], dOwners, m, words,
+      pp_owners16((const uint64_t*)xz[cur], m, words, next->rows.data(), gN, dOwners);
+      if (pp_partition16((const uint64_t*)xz[cur], (const double*)cf[cur], dOwners, m, words,
                        (uint64_t*)xz[1 - cur], (double*)cf[1 - cur], dIdx) != 0) die("partition", __LINE__);
-      pp_counts_sorted(dOwners, m, 1 << gN, cnt.data());
+      pp_counts_sorted16(dOwners, m, 1 << gN, cnt.data());
       srcXz = xz[1 - cur]; srcCf = cf[1 - cur];
     } else {
       cnt[0] = m;
@@ -1134,7 +1134,7 @@ int main(int argc, char** argv) {
   }
   const bool ref = (o.mode == "ref");
   if (ref) { o.gpus = 1; o.gmax = 0; if (g_R > 1) die("reference mode runs on one node", __LINE__); }
-  if (o.gmax > 8) die("--gmax is at most 8", __LINE__);
+  if (o.gmax > 12) die("--gmax is at most 12", __LINE__);
   if (o.weight > 0) o.frame = 0;      // weight truncation needs the true strings
 
   Problem P = buildProblem(o);
@@ -1353,7 +1353,7 @@ int main(int argc, char** argv) {
       pilotGrowth = -1;
       std::vector<uint64_t> sample;
       if (gWanted > 0) {
-        const long stride = std::max<long>(1, Nin / std::max<long>(1, o.sample));
+        const long stride = std::max<long>(1, NinLocal / std::max<long>(1, o.sample));   // the sample comes from this node
         for (auto& b : pool)
           for (auto& k : b.ch)
             for (long i = 0; i < k.n; i += stride) sample.insert(sample.end(), k.xz + (size_t)i * words, k.xz + (size_t)(i + 1) * words);
