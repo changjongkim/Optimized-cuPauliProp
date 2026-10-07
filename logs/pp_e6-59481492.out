@@ -1,0 +1,146 @@
+===== engine nodes=8 gpus=32 args: --circuit ki_lab --weight 0 --coef 1e-5 --target 6000000 --vram-frac 0.45 --defer-dedup 0
+circuit: kicked Ising, Eagle heavy-hex; 127 qubits; 5420 gates -> 2540 operations on the data (2540 branching rotations, 0 Clifford, 0 noise); 2880 Clifford gates deferred by the frame
+mode=engine nodes=8 gpus/node=4 coef=1e-05 weight=0 truncEvery=10 GPU capacity=190451073 terms/buffer bucket target=6000000 gmax=8 window=ann host=pinned chunks
+expectation=0.228607441423
+windows=20 (longest 127 operations, smallest row space 127 of 254, largest coset share 0.0000) partitioned boundaries=14
+max_terms_at_window_boundary=158924060 largest_bucket_on_a_gpu=88612139 bucket_runs=968 splits_on_gpu=1 splits_on_host=0
+integrity: 1507399953 term checks against 8 conserved parities, 0 violations (2.671 s summed over workers)
+wall=10.661 s; summed over 32 GPU workers: operations=153.683 partition=4.033 host->gpu=4.481 gpu->host=21.089 idle=8.070; planning=0.411; pilot=0.000 (0 window ends chosen)
+host memory in chunks: 2.34 GiB on the busiest node
+wall on a node, averaged over nodes: windows running=6.070, waiting for the slowest node=2.638; windows with a single bucket=2.517; deduplications forced by a full buffer=0
+between nodes: 52.684 GB sent, 1.504 s per node on average with all GPUs idle (exchange after each window)
+exit=0
+===== engine nodes=8 gpus=32 args: --circuit ki_lab --weight 0 --coef 1e-5 --target 6000000 --vram-frac 0.45 --defer-dedup 10
+circuit: kicked Ising, Eagle heavy-hex; 127 qubits; 5420 gates -> 2540 operations on the data (2540 branching rotations, 0 Clifford, 0 noise); 2880 Clifford gates deferred by the frame
+mode=engine nodes=8 gpus/node=4 coef=1e-05 weight=0 truncEvery=10 GPU capacity=190451073 terms/buffer bucket target=6000000 gmax=8 window=ann host=pinned chunks
+expectation=0.228607441423
+windows=20 (longest 127 operations, smallest row space 127 of 254, largest coset share 0.0000) partitioned boundaries=14
+max_terms_at_window_boundary=158924060 largest_bucket_on_a_gpu=88612139 bucket_runs=968 splits_on_gpu=1 splits_on_host=0
+integrity: 1507399953 term checks against 8 conserved parities, 0 violations (2.341 s summed over workers)
+wall=10.377 s; summed over 32 GPU workers: operations=146.777 partition=3.856 host->gpu=4.474 gpu->host=21.055 idle=8.144; planning=0.410; pilot=0.000 (0 window ends chosen)
+host memory in chunks: 2.34 GiB on the busiest node
+wall on a node, averaged over nodes: windows running=5.850, waiting for the slowest node=2.526; windows with a single bucket=2.479; deduplications forced by a full buffer=2
+between nodes: 52.683 GB sent, 1.518 s per node on average with all GPUs idle (exchange after each window)
+exit=0
+===== engine nodes=8 gpus=32 args: --circuit ki_lab --weight 0 --coef 1e-5 --target 6000000 --vram-frac 0.45 --defer-dedup 3
+circuit: kicked Ising, Eagle heavy-hex; 127 qubits; 5420 gates -> 2540 operations on the data (2540 branching rotations, 0 Clifford, 0 noise); 2880 Clifford gates deferred by the frame
+mode=engine nodes=8 gpus/node=4 coef=1e-05 weight=0 truncEvery=10 GPU capacity=190451073 terms/buffer bucket target=6000000 gmax=8 window=ann host=pinned chunks
+expectation=0.228607441423
+windows=20 (longest 127 operations, smallest row space 127 of 254, largest coset share 0.0000) partitioned boundaries=14
+max_terms_at_window_boundary=158924060 largest_bucket_on_a_gpu=88612139 bucket_runs=968 splits_on_gpu=1 splits_on_host=0
+integrity: 1507399953 term checks against 8 conserved parities, 0 violations (2.505 s summed over workers)
+wall=13.111 s; summed over 32 GPU workers: operations=229.674 partition=3.886 host->gpu=4.449 gpu->host=20.743 idle=8.522; planning=0.412; pilot=0.000 (0 window ends chosen)
+host memory in chunks: 2.34 GiB on the busiest node
+wall on a node, averaged over nodes: windows running=8.449, waiting for the slowest node=2.692; windows with a single bucket=2.642; deduplications forced by a full buffer=1
+between nodes: 52.683 GB sent, 1.522 s per node on average with all GPUs idle (exchange after each window)
+exit=0
+===== engine nodes=4 gpus=16 args: --circuit ki_lab --weight 0 --coef 1e-5 --target 6000000 --vram-frac 0.45 --defer-dedup 0
+srun: Step created for StepId=59481492.3
+circuit: kicked Ising, Eagle heavy-hex; 127 qubits; 5420 gates -> 2540 operations on the data (2540 branching rotations, 0 Clifford, 0 noise); 2880 Clifford gates deferred by the frame
+mode=engine nodes=4 gpus/node=4 coef=1e-05 weight=0 truncEvery=10 GPU capacity=190451073 terms/buffer bucket target=6000000 gmax=8 window=ann host=pinned chunks
+expectation=0.228607441423
+windows=20 (longest 127 operations, smallest row space 127 of 254, largest coset share 0.0000) partitioned boundaries=14
+max_terms_at_window_boundary=158924060 largest_bucket_on_a_gpu=88612139 bucket_runs=648 splits_on_gpu=1 splits_on_host=0
+integrity: 1507399953 term checks against 8 conserved parities, 0 violations (1.229 s summed over workers)
+wall=15.520 s; summed over 16 GPU workers: operations=138.092 partition=1.975 host->gpu=4.305 gpu->host=12.458 idle=8.827; planning=0.394; pilot=0.000 (0 window ends chosen)
+host memory in chunks: 4.38 GiB on the busiest node
+wall on a node, averaged over nodes: windows running=10.436, waiting for the slowest node=2.059; windows with a single bucket=2.311; deduplications forced by a full buffer=0
+between nodes: 45.158 GB sent, 2.617 s per node on average with all GPUs idle (exchange after each window)
+exit=0
+===== engine nodes=4 gpus=16 args: --circuit ki_lab --weight 0 --coef 1e-5 --target 6000000 --vram-frac 0.45 --defer-dedup 10
+circuit: kicked Ising, Eagle heavy-hex; 127 qubits; 5420 gates -> 2540 operations on the data (2540 branching rotations, 0 Clifford, 0 noise); 2880 Clifford gates deferred by the frame
+mode=engine nodes=4 gpus/node=4 coef=1e-05 weight=0 truncEvery=10 GPU capacity=190451073 terms/buffer bucket target=6000000 gmax=8 window=ann host=pinned chunks
+expectation=0.228607441423
+windows=20 (longest 127 operations, smallest row space 127 of 254, largest coset share 0.0000) partitioned boundaries=14
+max_terms_at_window_boundary=158924060 largest_bucket_on_a_gpu=88612139 bucket_runs=648 splits_on_gpu=1 splits_on_host=0
+integrity: 1507399953 term checks against 8 conserved parities, 0 violations (2.321 s summed over workers)
+wall=17.063 s; summed over 16 GPU workers: operations=144.338 partition=4.274 host->gpu=4.230 gpu->host=13.448 idle=10.163; planning=0.393; pilot=0.000 (0 window ends chosen)
+host memory in chunks: 4.38 GiB on the busiest node
+wall on a node, averaged over nodes: windows running=11.190, waiting for the slowest node=2.438; windows with a single bucket=2.635; deduplications forced by a full buffer=2
+between nodes: 45.158 GB sent, 3.011 s per node on average with all GPUs idle (exchange after each window)
+exit=0
+===== engine nodes=4 gpus=16 args: --circuit ki_lab --weight 0 --coef 1e-5 --target 6000000 --vram-frac 0.45 --defer-dedup 3
+circuit: kicked Ising, Eagle heavy-hex; 127 qubits; 5420 gates -> 2540 operations on the data (2540 branching rotations, 0 Clifford, 0 noise); 2880 Clifford gates deferred by the frame
+mode=engine nodes=4 gpus/node=4 coef=1e-05 weight=0 truncEvery=10 GPU capacity=190451073 terms/buffer bucket target=6000000 gmax=8 window=ann host=pinned chunks
+expectation=0.228607441423
+windows=20 (longest 127 operations, smallest row space 127 of 254, largest coset share 0.0000) partitioned boundaries=14
+max_terms_at_window_boundary=158924060 largest_bucket_on_a_gpu=88612139 bucket_runs=648 splits_on_gpu=1 splits_on_host=0
+integrity: 1507399953 term checks against 8 conserved parities, 0 violations (1.324 s summed over workers)
+wall=21.273 s; summed over 16 GPU workers: operations=226.317 partition=1.994 host->gpu=4.222 gpu->host=12.252 idle=9.817; planning=0.392; pilot=0.000 (0 window ends chosen)
+host memory in chunks: 4.38 GiB on the busiest node
+wall on a node, averaged over nodes: windows running=16.012, waiting for the slowest node=2.252; windows with a single bucket=2.630; deduplications forced by a full buffer=1
+between nodes: 45.158 GB sent, 2.606 s per node on average with all GPUs idle (exchange after each window)
+exit=0
+===== engine nodes=8 gpus=32 args: --circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-5 --target 4000000 --vram-frac 0.45 --defer-dedup 0
+circuit: TFIM Trotter, Eagle heavy-hex; 127 qubits; 5420 gates -> 5420 operations on the data (5420 branching rotations, 0 Clifford, 0 noise); 0 Clifford gates deferred by the frame
+mode=engine nodes=8 gpus/node=4 coef=1e-05 weight=0 truncEvery=10 GPU capacity=190451073 terms/buffer bucket target=4000000 gmax=8 window=ann host=pinned chunks
+expectation=0.451392373925
+windows=45 (longest 140 operations, smallest row space 127 of 254, largest coset share 0.0000) partitioned boundaries=35
+max_terms_at_window_boundary=249208088 largest_bucket_on_a_gpu=19296856 bucket_runs=2752 splits_on_gpu=0 splits_on_host=0
+integrity: 2632093782 term checks against 1 conserved parities, 0 violations (5.251 s summed over workers)
+wall=12.339 s; summed over 32 GPU workers: operations=162.124 partition=9.428 host->gpu=7.259 gpu->host=36.839 idle=8.520; planning=0.998; pilot=0.000 (0 window ends chosen)
+host memory in chunks: 4.69 GiB on the busiest node
+wall on a node, averaged over nodes: windows running=7.178, waiting for the slowest node=1.007; windows with a single bucket=0.115; deduplications forced by a full buffer=0
+between nodes: 92.111 GB sent, 3.100 s per node on average with all GPUs idle (exchange after each window)
+exit=0
+===== engine nodes=8 gpus=32 args: --circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-5 --target 4000000 --vram-frac 0.45 --defer-dedup 10
+circuit: TFIM Trotter, Eagle heavy-hex; 127 qubits; 5420 gates -> 5420 operations on the data (5420 branching rotations, 0 Clifford, 0 noise); 0 Clifford gates deferred by the frame
+mode=engine nodes=8 gpus/node=4 coef=1e-05 weight=0 truncEvery=10 GPU capacity=190451073 terms/buffer bucket target=4000000 gmax=8 window=ann host=pinned chunks
+expectation=0.451392373925
+windows=45 (longest 140 operations, smallest row space 127 of 254, largest coset share 0.0000) partitioned boundaries=35
+max_terms_at_window_boundary=249208088 largest_bucket_on_a_gpu=35362033 bucket_runs=2752 splits_on_gpu=0 splits_on_host=0
+integrity: 2632093782 term checks against 1 conserved parities, 0 violations (4.867 s summed over workers)
+wall=12.161 s; summed over 32 GPU workers: operations=159.492 partition=9.203 host->gpu=7.486 gpu->host=36.723 idle=8.445; planning=0.993; pilot=0.000 (0 window ends chosen)
+host memory in chunks: 4.69 GiB on the busiest node
+wall on a node, averaged over nodes: windows running=7.079, waiting for the slowest node=0.930; windows with a single bucket=0.113; deduplications forced by a full buffer=0
+between nodes: 92.110 GB sent, 3.098 s per node on average with all GPUs idle (exchange after each window)
+exit=0
+===== engine nodes=8 gpus=32 args: --circuit ki_lab --weight 0 --coef 3e-6 --target 6000000 --vram-frac 0.45 --defer-dedup 0
+circuit: kicked Ising, Eagle heavy-hex; 127 qubits; 5420 gates -> 2540 operations on the data (2540 branching rotations, 0 Clifford, 0 noise); 2880 Clifford gates deferred by the frame
+mode=engine nodes=8 gpus/node=4 coef=3e-06 weight=0 truncEvery=10 GPU capacity=190451073 terms/buffer bucket target=6000000 gmax=8 window=ann host=pinned chunks
+expectation=0.289217470624
+windows=20 (longest 127 operations, smallest row space 127 of 254, largest coset share 0.0000) partitioned boundaries=14
+max_terms_at_window_boundary=1501893640 largest_bucket_on_a_gpu=76148352 bucket_runs=3412 splits_on_gpu=7 splits_on_host=0
+integrity: 15094019178 term checks against 8 conserved parities, 0 violations (12.372 s summed over workers)
+wall=74.151 s; summed over 32 GPU workers: operations=1444.770 partition=18.786 host->gpu=33.573 gpu->host=110.325 idle=25.190; planning=0.533; pilot=0.000 (0 window ends chosen)
+host memory in chunks: 14.06 GiB on the busiest node
+wall on a node, averaged over nodes: windows running=51.415, waiting for the slowest node=9.228; windows with a single bucket=9.232; deduplications forced by a full buffer=0
+between nodes: 528.215 GB sent, 12.801 s per node on average with all GPUs idle (exchange after each window)
+exit=0
+===== engine nodes=8 gpus=32 args: --circuit ki_lab --weight 0 --coef 3e-6 --target 6000000 --vram-frac 0.45 --defer-dedup 10
+circuit: kicked Ising, Eagle heavy-hex; 127 qubits; 5420 gates -> 2540 operations on the data (2540 branching rotations, 0 Clifford, 0 noise); 2880 Clifford gates deferred by the frame
+mode=engine nodes=8 gpus/node=4 coef=3e-06 weight=0 truncEvery=10 GPU capacity=190451073 terms/buffer bucket target=6000000 gmax=8 window=ann host=pinned chunks
+expectation=0.289217470624
+windows=20 (longest 127 operations, smallest row space 127 of 254, largest coset share 0.0000) partitioned boundaries=14
+max_terms_at_window_boundary=1501893640 largest_bucket_on_a_gpu=108679368 bucket_runs=3412 splits_on_gpu=7 splits_on_host=0
+integrity: 15094019178 term checks against 8 conserved parities, 0 violations (12.263 s summed over workers)
+wall=79.595 s; summed over 32 GPU workers: operations=1608.120 partition=18.246 host->gpu=33.370 gpu->host=110.291 idle=28.157; planning=0.527; pilot=0.000 (0 window ends chosen)
+host memory in chunks: 14.06 GiB on the busiest node
+wall on a node, averaged over nodes: windows running=56.607, waiting for the slowest node=9.393; windows with a single bucket=9.462; deduplications forced by a full buffer=157
+between nodes: 528.213 GB sent, 12.908 s per node on average with all GPUs idle (exchange after each window)
+exit=0
+===== engine nodes=8 gpus=32 args: --circuit ki_noisy --noise 0.005 --coef 1e-5 --target 6000000 --vram-frac 0.45 --defer-dedup 0
+circuit: noisy kicked Ising, Eagle heavy-hex; 127 qubits; 7960 gates -> 7960 operations on the data (2540 branching rotations, 2880 Clifford, 2540 noise); 2880 Clifford gates deferred by the frame
+mode=engine nodes=8 gpus/node=4 coef=1e-05 weight=0 truncEvery=10 GPU capacity=190451073 terms/buffer bucket target=6000000 gmax=8 window=ann host=pinned chunks
+expectation=0.173318829841
+windows=20 (longest 525 operations, smallest row space 127 of 254, largest coset share 0.0000) partitioned boundaries=14
+max_terms_at_window_boundary=72405771 largest_bucket_on_a_gpu=52542025 bucket_runs=904 splits_on_gpu=1 splits_on_host=0
+integrity: 570351722 term checks against 8 conserved parities, 0 violations (1.610 s summed over workers)
+wall=9.706 s; summed over 32 GPU workers: operations=134.492 partition=3.176 host->gpu=1.707 gpu->host=12.095 idle=10.025; planning=0.747; pilot=0.000 (0 window ends chosen)
+host memory in chunks: 2.11 GiB on the busiest node
+wall on a node, averaged over nodes: windows running=5.102, waiting for the slowest node=3.228; windows with a single bucket=3.358; deduplications forced by a full buffer=0
+between nodes: 19.887 GB sent, 0.605 s per node on average with all GPUs idle (exchange after each window)
+exit=0
+===== engine nodes=8 gpus=32 args: --circuit ki_noisy --noise 0.005 --coef 1e-5 --target 6000000 --vram-frac 0.45 --defer-dedup 10
+circuit: noisy kicked Ising, Eagle heavy-hex; 127 qubits; 7960 gates -> 7960 operations on the data (2540 branching rotations, 2880 Clifford, 2540 noise); 2880 Clifford gates deferred by the frame
+mode=engine nodes=8 gpus/node=4 coef=1e-05 weight=0 truncEvery=10 GPU capacity=190451073 terms/buffer bucket target=6000000 gmax=8 window=ann host=pinned chunks
+expectation=0.173318829841
+windows=20 (longest 525 operations, smallest row space 127 of 254, largest coset share 0.0000) partitioned boundaries=14
+max_terms_at_window_boundary=72405771 largest_bucket_on_a_gpu=52542025 bucket_runs=904 splits_on_gpu=1 splits_on_host=0
+integrity: 570351722 term checks against 8 conserved parities, 0 violations (1.884 s summed over workers)
+wall=9.314 s; summed over 32 GPU workers: operations=116.342 partition=3.274 host->gpu=1.721 gpu->host=12.094 idle=10.331; planning=0.755; pilot=0.000 (0 window ends chosen)
+host memory in chunks: 2.11 GiB on the busiest node
+wall on a node, averaged over nodes: windows running=4.570, waiting for the slowest node=3.363; windows with a single bucket=3.473; deduplications forced by a full buffer=2
+between nodes: 19.887 GB sent, 0.611 s per node on average with all GPUs idle (exchange after each window)
+exit=0
+done

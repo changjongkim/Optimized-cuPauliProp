@@ -99,11 +99,16 @@ struct Opts {
   int perGpu = 2;                // at least this many buckets per GPU once there are enough terms
   int stream = 0;                // 1: exchange between nodes while the window runs instead of after it
   long minBucket = 200000;       // ... but never buckets smaller than this at a window start
+  double growthCap = 8.0;        // upper limit of the growth per window assumed when the bucket count is chosen
+  int earlyPerNode = 1;          // in the first windows: this many buckets per node as soon as they would hold minBucketEarly terms (0 = off)
+  long minBucketEarly = 2000;
+  long shareAbove = 0;           // k > 0: a bucket above k terms is halved at a truncation while GPUs of its node wait (off: it did not pay, job 59483080)
   long chunk = 262144;           // terms per host chunk
   int pinned = 1, verify = 1;
   std::string ckptFile, resume;
   int ckptWindow = -1, stopAtCkpt = 0;
   std::string profile;           // write the number of terms before every operation to this file
+  int deferDedup = 0;            // k > 0: inside a bucket, merge equal strings only every k operations and before each truncation
   int cuppTuned = 0;             // --mode cupp: apply operations rank-locally and deduplicate globally only before truncations
   int cuppDedupEvery = 0;        // --mode cupp, tuned: also deduplicate globally after this many operations (0 = only before truncations)
 };
@@ -143,7 +148,7 @@ struct ChunkPool {
 static ChunkPool g_pool;
 
 struct Bucket { std::vector<Chunk> ch; long n = 0; };
-struct Work { Bucket b; int startOp; };
+struct Work { Bucket b; int startOp; bool pendingTrunc = false; };   // pendingTrunc: operation startOp-1 was applied, its deduplication and truncation were not
 
 // Reserves room for c terms at the tail of a bucket (caller holds the bucket's lock if shared).
 static void reserveTail(Bucket& b, long c, std::vector<Seg>& out) {
@@ -490,7 +495,8 @@ struct Shared {
   std::vector<std::mutex> bm{256};
   std::mutex em;
   double expec = 0;
-  std::atomic<long> nout{0}, splits{0}, runs{0}, peak{0}, hostSplits{0}, verified{0}, violations{0};
+  std::atomic<long> nout{0}, splits{0}, runs{0}, peak{0}, hostSplits{0}, verified{0}, violations{0}, earlyDedups{0}, shares{0};
+  std::atomic<int> waiting{0};          // workers of this node with nothing to do while another one is busy
   std::atomic<int> finished{0};
   // conserved rows as masks for strings at the start of the current window, and their expected values
   std::vector<uint64_t> checkRows;
@@ -572,10 +578,11 @@ struct Worker {
     return r;
   }
 
-  void requeue(Shared& sh, Bucket& piece, int startOp) {
+  void requeue(Shared& sh, Bucket& piece, int startOp, bool pendingTrunc = false) {
     { std::lock_guard<std::mutex> lk(sh.qm);
       sh.queue.push_front(Work());
-      sh.queue.front().b.ch.swap(piece.ch); sh.queue.front().b.n = piece.n; sh.queue.front().startOp = startOp; }
+      sh.queue.front().b.ch.swap(piece.ch); sh.queue.front().b.n = piece.n; sh.queue.front().startOp = startOp;
+      sh.queue.front().pendingTrunc = pendingTrunc; }
     piece.n = 0;
     sh.qcv.notify_all();
   }
@@ -652,6 +659,61 @@ struct Worker {
     return w.e - w.b;
   }
 
+  // Merges equal strings of the current expansion. False if the workspace is too small for it.
+  bool dedupNow() {
+    const long m = numTerms();
+    if (m == 0) return true;
+    cupaulipropPauliExpansionView_t v;
+    CUPP(cupaulipropPauliExpansionGetContiguousRange(handle, ex[cur], 0, m, &v));
+    int64_t need = 0;
+    cupaulipropStatus_t sd = cupaulipropPauliExpansionViewPrepareDeduplication(handle, v, CUPAULIPROP_SORT_ORDER_NONE, wsMem, ws);
+    if (sd == CUPAULIPROP_STATUS_SUCCESS)
+      CUPP(cupaulipropWorkspaceGetMemorySize(handle, ws, CUPAULIPROP_MEMSPACE_DEVICE, CUPAULIPROP_WORKSPACE_SCRATCH, &need));
+    if (sd != CUPAULIPROP_STATUS_SUCCESS || need > (int64_t)wsMem) { CUPP(cupaulipropDestroyPauliExpansionView(v)); return false; }
+    CUPP(cupaulipropWorkspaceSetMemory(handle, ws, CUPAULIPROP_MEMSPACE_DEVICE, CUPAULIPROP_WORKSPACE_SCRATCH, dWs, wsMem));
+    CUPP(cupaulipropPauliExpansionViewExecuteDeduplication(handle, v, ex[1 - cur], CUPAULIPROP_SORT_ORDER_NONE, ws, stream));
+    CUDA(cudaStreamSynchronize(stream));
+    CUPP(cupaulipropDestroyPauliExpansionView(v));
+    cur ^= 1;
+    return true;
+  }
+  // The scheduled truncation on an expansion whose equal strings are merged.
+  void truncNow() {
+    const long m = numTerms();
+    if (m == 0) return;
+    cupaulipropPauliExpansionView_t v;
+    CUPP(cupaulipropPauliExpansionGetContiguousRange(handle, ex[cur], 0, m, &v));
+    CUPP(cupaulipropPauliExpansionViewPrepareTruncation(handle, v, (int32_t)trunc.size(), trunc.data(), wsMem, ws));
+    CUPP(cupaulipropWorkspaceSetMemory(handle, ws, CUPAULIPROP_MEMSPACE_DEVICE, CUPAULIPROP_WORKSPACE_SCRATCH, dWs, wsMem));
+    CUPP(cupaulipropPauliExpansionViewExecuteTruncation(handle, v, ex[1 - cur], (int32_t)trunc.size(), trunc.data(), ws, stream));
+    CUDA(cudaStreamSynchronize(stream));
+    CUPP(cupaulipropDestroyPauliExpansionView(v));
+    cur ^= 1;
+  }
+  // Splits the current expansion (strings at position k) by one more row of the window and requeues both halves.
+  void splitCurrent(const Window& w, Shared& sh, int k, bool pendingTrunc, bool share = false) {
+    const int words = g_L.words();
+    const long m = numTerms();
+    if (m < 1000) die("cannot split further", __LINE__);
+    BV row = splitRow(w, k);
+    int64_t c2[2] = {0, 0};
+    pp_owners((const uint64_t*)xz[cur], m, words, row.data(), 1, dOwners);
+    if (pp_partition((const uint64_t*)xz[cur], (const double*)cf[cur], dOwners, m, words,
+                     (uint64_t*)xz[1 - cur], (double*)cf[1 - cur], dIdx) != 0) die("partition", __LINE__);
+    pp_counts_sorted(dOwners, m, 2, c2);
+    long off2 = 0;
+    for (int h = 0; h < 2; h++) {
+      if (c2[h] == 0) continue;
+      Bucket piece;
+      std::vector<Seg> segs;
+      reserveTail(piece, c2[h], segs);
+      toHost(xz[1 - cur], cf[1 - cur], off2, segs);
+      off2 += c2[h];
+      requeue(sh, piece, k, pendingTrunc);
+    }
+    if (share) sh.shares++; else sh.splits++;
+  }
+
   void run(const Window& w, const Window* next, Shared& sh, bool allowSplit) {
     CUDA(cudaSetDevice(dev));
     while (true) {
@@ -659,10 +721,13 @@ struct Worker {
       {
         const double ti = now();
         std::unique_lock<std::mutex> lk(sh.qm);
+        sh.waiting++;
         sh.qcv.wait(lk, [&] { return !sh.queue.empty() || sh.active == 0; });
+        sh.waiting--;
         tIdle += now() - ti;
         if (sh.queue.empty()) { lk.unlock(); sh.qcv.notify_all(); return; }
         wk.b.ch.swap(sh.queue.front().b.ch); wk.b.n = sh.queue.front().b.n; wk.startOp = sh.queue.front().startOp;
+        wk.pendingTrunc = sh.queue.front().pendingTrunc;
         sh.queue.pop_front();
         sh.active++;
       }
@@ -685,7 +750,7 @@ struct Worker {
         for (long i = 0; i < k.n; i++)
           appendHost(h[dotParity(k.xz + (size_t)i * words, row.data(), words)], k.xz + (size_t)i * words, k.cf + i, 1);
       releaseBucket(b);
-      for (int s = 0; s < 2; s++) if (h[s].n > 0) requeue(sh, h[s], wk.startOp);
+      for (int s = 0; s < 2; s++) if (h[s].n > 0) requeue(sh, h[s], wk.startOp, wk.pendingTrunc);
       sh.hostSplits++;
       return;
     }
@@ -713,6 +778,20 @@ struct Worker {
 
     t0 = now();
     long peak = nb0;
+    // Deferred merging: equal strings stay in this bucket for the whole window, so they need to be
+    // merged only before a truncation looks at the coefficients, not after every operation.
+    const int defer = o.deferDedup;
+    int sinceDedup = defer > 0 ? 1 : 0;   // a loaded piece may carry unmerged strings
+    if (wk.pendingTrunc) {
+      if (!dedupNow()) {
+        if (!allowSplit) die("capacity (this mode cannot split)", __LINE__);
+        splitCurrent(w, sh, wk.startOp, true);
+        tOps += now() - t0;
+        return;
+      }
+      truncNow();
+      sinceDedup = 0;
+    }
     for (int k = wk.startOp; k < w.e; k++) {
       const Op& op = g_ops[k];
       const long m = numTerms();
@@ -721,46 +800,51 @@ struct Worker {
       if (sh.popAt) sh.popAt[k] += m;
       // Truncation: the scheduled one, or only numerical dust after a Clifford-angle rotation.
       const bool dust = (op.type == OP_ROT && !op.branches);
-      const int32_t nT = op.trunc ? (int32_t)trunc.size() : (dust ? 1 : 0);
-      const cupaulipropTruncationStrategy_t* pT = op.trunc ? trunc.data() : (dust ? junk.data() : nullptr);
+      const bool fused = op.trunc && defer == 0;
+      const int32_t nT = fused ? (int32_t)trunc.size() : (dust ? 1 : 0);
+      const cupaulipropTruncationStrategy_t* pT = fused ? trunc.data() : (dust ? junk.data() : nullptr);
       cupaulipropPauliExpansionView_t v;
       CUPP(cupaulipropPauliExpansionGetContiguousRange(handle, ex[cur], 0, m, &v));
       int64_t rp = 0, rc = 0, need = 0;
       cupaulipropStatus_t sp = cupaulipropPauliExpansionViewPrepareOperatorApplication(
-        handle, v, oper[k], CUPAULIPROP_SORT_ORDER_NONE, 0, nT, pT, wsMem, &rp, &rc, ws);
+        handle, v, oper[k], CUPAULIPROP_SORT_ORDER_NONE, defer > 0 ? 1 : 0, nT, pT, wsMem, &rp, &rc, ws);
       if (sp == CUPAULIPROP_STATUS_SUCCESS)
         CUPP(cupaulipropWorkspaceGetMemorySize(handle, ws, CUPAULIPROP_MEMSPACE_DEVICE, CUPAULIPROP_WORKSPACE_SCRATCH, &need));
       if (sp != CUPAULIPROP_STATUS_SUCCESS || rp > (int64_t)xzMem || rc > (int64_t)cfMem || need > (int64_t)wsMem) {
-        // Outgrew this GPU: split by one more row of the window and requeue both halves.
         CUPP(cupaulipropDestroyPauliExpansionView(v));
+        // Unmerged strings may be what fills the buffer: merge them and try this operation again.
+        if (defer > 0 && sinceDedup > 0 && dedupNow()) { sinceDedup = 0; sh.earlyDedups++; k--; continue; }
+        // Outgrew this GPU: split by one more row of the window and requeue both halves.
         if (!allowSplit) { fprintf(stderr, "operation %d: %ld terms do not fit the GPU\n", k, m); die("capacity (this mode cannot split)", __LINE__); }
-        if (m < 1000) die("cannot split further", __LINE__);
-        BV row = splitRow(w, k);
-        int64_t c2[2] = {0, 0};
-        pp_owners((const uint64_t*)xz[cur], m, words, row.data(), 1, dOwners);
-        if (pp_partition((const uint64_t*)xz[cur], (const double*)cf[cur], dOwners, m, words,
-                         (uint64_t*)xz[1 - cur], (double*)cf[1 - cur], dIdx) != 0) die("partition", __LINE__);
-        pp_counts_sorted(dOwners, m, 2, c2);
-        long off2 = 0;
-        for (int h = 0; h < 2; h++) {
-          if (c2[h] == 0) continue;
-          Bucket piece;
-          std::vector<Seg> segs;
-          reserveTail(piece, c2[h], segs);
-          toHost(xz[1 - cur], cf[1 - cur], off2, segs);
-          off2 += c2[h];
-          requeue(sh, piece, k);
-        }
-        sh.splits++;
+        splitCurrent(w, sh, k, false);
         tOps += now() - t0;
         return;
       }
       CUPP(cupaulipropWorkspaceSetMemory(handle, ws, CUPAULIPROP_MEMSPACE_DEVICE, CUPAULIPROP_WORKSPACE_SCRATCH, dWs, wsMem));
       CUPP(cupaulipropPauliExpansionViewComputeOperatorApplication(
-        handle, v, ex[1 - cur], oper[k], 1, CUPAULIPROP_SORT_ORDER_NONE, 0, nT, pT, ws, stream));
+        handle, v, ex[1 - cur], oper[k], 1, CUPAULIPROP_SORT_ORDER_NONE, defer > 0 ? 1 : 0, nT, pT, ws, stream));
       CUDA(cudaStreamSynchronize(stream));
       CUPP(cupaulipropDestroyPauliExpansionView(v));
       cur ^= 1;
+      if (defer > 0) {
+        sinceDedup++;
+        if (op.trunc || k + 1 == w.e || sinceDedup >= defer) {
+          if (!dedupNow()) {
+            if (!allowSplit) die("capacity (this mode cannot split)", __LINE__);
+            splitCurrent(w, sh, k + 1, op.trunc);
+            tOps += now() - t0;
+            return;
+          }
+          sinceDedup = 0;
+          if (op.trunc) truncNow();
+        }
+      }
+      // Other GPUs of this node have nothing to do and this bucket is large: give them half of it.
+      if (allowSplit && o.shareAbove > 0 && op.trunc && k + 1 < w.e && sh.waiting.load() > 0 && numTerms() > o.shareAbove) {
+        splitCurrent(w, sh, k + 1, false, true);
+        tOps += now() - t0;
+        return;
+      }
     }
     long pk = sh.peak.load();
     while (peak > pk && !sh.peak.compare_exchange_weak(pk, peak)) {}
@@ -1029,6 +1113,10 @@ int main(int argc, char** argv) {
     else if (a == "--per-gpu")     o.perGpu = atoi(next());
     else if (a == "--stream")      o.stream = atoi(next());
     else if (a == "--min-bucket")  o.minBucket = atol(next());
+    else if (a == "--growth-cap")  o.growthCap = atof(next());
+    else if (a == "--early-per-node") o.earlyPerNode = atoi(next());
+    else if (a == "--min-bucket-early") o.minBucketEarly = atol(next());
+    else if (a == "--share-above") o.shareAbove = atol(next());
     else if (a == "--chunk")       o.chunk = atol(next());
     else if (a == "--pinned")      o.pinned = atoi(next());
     else if (a == "--verify")      o.verify = atoi(next());
@@ -1037,6 +1125,7 @@ int main(int argc, char** argv) {
     else if (a == "--stop-at-ckpt") o.stopAtCkpt = atoi(next());
     else if (a == "--resume")      o.resume = next();
     else if (a == "--profile")     o.profile = next();
+    else if (a == "--defer-dedup") o.deferDedup = atoi(next());
     else if (a == "--cupp-tuned")  o.cuppTuned = atoi(next());
     else if (a == "--cupp-dedup-every") o.cuppDedupEvery = atoi(next());
     else { fprintf(stderr, "unknown option %s\n", a.c_str()); die("bad option", __LINE__); }
@@ -1182,6 +1271,9 @@ int main(int argc, char** argv) {
   long pilotEnds = 0;
   long maxBoundary = 0, movedBuckets = 0;
   int windows = 0, maxWindowOps = 0, minAnn = 2 * g_L.n;
+  // Where the wall time goes on this node: its workers running a window, the wait for the slowest
+  // node after it, and the part of the run with a single bucket (one GPU of one node works).
+  double tRun = 0, tSync = 0, tSingle = 0, lastRunMax = 0;
   MPI_Barrier(MPI_COMM_WORLD);
   const double tBegin = now();
 
@@ -1244,6 +1336,10 @@ int main(int argc, char** argv) {
         // Enough buckets that every GPU has several tasks per window, as long as buckets stay reasonably large.
         const double tasks = (double)o.perGpu * o.gpus * g_R;
         while (gWanted < o.gmax && (double)(1L << gWanted) < tasks && est / (double)(2L << gWanted) >= (double)o.minBucket) gWanted++;
+        // The first windows grow fastest and the estimate lags behind: give every node a bucket early, so
+        // that no node waits while one GPU carries the whole operator. Inside a node the bucket is shared
+        // out as it grows (shareAbove).
+        while (gWanted < o.gmax && (1L << gWanted) < (long)g_R * o.earlyPerNode && est / (double)(2L << gWanted) >= (double)o.minBucketEarly) gWanted++;
       }
       pilotGrowth = -1;
       std::vector<uint64_t> sample;
@@ -1275,13 +1371,19 @@ int main(int argc, char** argv) {
     sh.active = 0;
     std::vector<std::thread> th;
     sh.finished = 0;
+    const double tr0 = now();
     for (int t = 0; t < o.gpus; t++) th.emplace_back([&, t] { workers[t].run(w, last ? nullptr : &nextW, sh, !ref); sh.finished++; });
     if (g_R > 1 && !last && o.stream) streamExchange(sh.nextB, sh.bm, sh.finished, o.gpus, tExchange, bytesMoved);
     for (auto& x : th) x.join();
+    const double tr1 = now();
+    tRun += tr1 - tr0;
 
     long NoutLocal = sh.nout.load(), Nout = 0;
     MPI_Allreduce(&NoutLocal, &Nout, 1, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
-    if (Nin > 0 && Nout > 0) growth = std::max(1.0, std::min(8.0, (double)Nout / (double)Nin * 1.3));
+    tSync += now() - tr1;
+    { double tm = tr1 - tr0; lastRunMax = tm; MPI_Allreduce(&tm, &lastRunMax, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD); }
+    if (w.g == 0) tSingle += lastRunMax;
+    if (Nin > 0 && Nout > 0) growth = std::max(1.0, std::min(o.growthCap, (double)Nout / (double)Nin * 1.3));
     if (last) break;
     if (!o.stream) exchangeBuckets(sh.nextB, tExchange, bytesMoved);
     pool.swap(sh.nextB);
@@ -1302,6 +1404,10 @@ int main(int argc, char** argv) {
   long lc[7] = {sh.runs.load(), sh.splits.load(), sh.hostSplits.load(), sh.peak.load(), sh.verified.load(), sh.violations.load(), g_pool.allocated}, sc[7], mc[7];
   MPI_Allreduce(lc, sc, 7, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
   MPI_Allreduce(lc, mc, 7, MPI_LONG, MPI_MAX, MPI_COMM_WORLD);
+  double twl[2] = {tRun, tSync}, tw[2];
+  MPI_Allreduce(twl, tw, 2, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  long tll[2] = {sh.shares.load(), sh.earlyDedups.load()}, tl[2];
+  MPI_Allreduce(tll, tl, 2, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
   if (g_rank == 0) {
     printf("expectation=%.12g\n", sum[7]);
     printf("windows=%d (longest %d operations, smallest row space %d of %d, largest coset share %.4f) partitioned boundaries=%ld\n",
@@ -1328,6 +1434,8 @@ int main(int argc, char** argv) {
         fclose(f);
       }
     }
+    printf("wall on a node, averaged over nodes: windows running=%.3f, waiting for the slowest node=%.3f; windows with a single bucket=%.3f; buckets shared out inside a node=%ld\n",
+           tw[0] / g_R, tw[1] / g_R, tSingle, tl[0]);
     if (g_R > 1)
       printf("between nodes: %.3f GB sent, %.3f s per node on average with all GPUs idle (%s)\n",
              sum[6] / 1e9, sum[5] / g_R, o.stream ? "exchange overlapped with the windows; this is the wait for the last chunks" : "exchange after each window");
