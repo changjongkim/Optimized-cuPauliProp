@@ -1,6 +1,6 @@
 // Unified engine for partitioned Pauli propagation.
 //
-// One process per node, one worker thread per GPU. The operator lives in host memory as
+// One MPI process per node, one worker thread per GPU. The operator lives in host memory as
 // buckets; a bucket is the set of terms that share the values of g parity rows. For the
 // current window of operations the rows are chosen so that every branching rotation leaves
 // them unchanged, which makes the buckets independent tasks: a worker loads a bucket, applies
@@ -13,11 +13,15 @@
 //   overflow  a bucket that outgrows its GPU is split by one more row and requeued
 //   frame     Clifford operations are deferred and folded into later rotations
 //   restart   the pool at a window boundary is a checkpoint
+//   nodes     bucket d belongs to node d mod (number of nodes); after a window every node sends the
+//             pieces it produced for other nodes' buckets from host memory, in whole-bucket messages.
+//             GPUs never send to each other and no MPI call happens while a window runs.
 //
 // --mode ref runs the same operation list as one bucket on one GPU (plain cuPauliProp).
 
 #include <cupauliprop.h>
 #include <cuda_runtime.h>
+#include <mpi.h>
 
 #include <algorithm>
 #include <atomic>
@@ -43,8 +47,11 @@ int pp_partition(const uint64_t* xz, const double* coef, uint8_t* owners, int64_
                  uint64_t* xzOut, double* coefOut, int32_t* idx);
 }
 
+static int g_rank = 0, g_R = 1;
 [[noreturn]] static void die(const char* what, int line) {
-  fprintf(stderr, "FATAL: %s (line %d)\n", what, line);
+  fprintf(stderr, "[node %d] FATAL: %s (line %d)\n", g_rank, what, line);
+  fflush(stderr);
+  MPI_Abort(MPI_COMM_WORLD, 1);
   std::exit(1);
 }
 #define CUPP(x) do { cupaulipropStatus_t s_ = (x); if (s_ != CUPAULIPROP_STATUS_SUCCESS) { \
@@ -148,6 +155,82 @@ static Window planWindow(int b, int gWanted, const std::vector<uint64_t>& sample
   }
   if (!ann.empty()) for (int i = 0; i < 32; i++) w.spare.push_back(randomRow());
   return w;
+}
+
+// Rank 0 plans the window from the samples of all nodes and broadcasts it.
+static Window planShared(int b, int gWanted, std::vector<uint64_t>& localSample, const Opts& o, std::mt19937_64& rng) {
+  const int W = g_L.words();
+  std::vector<uint64_t> sample;
+  if (g_R > 1) {
+    int mine = (int)localSample.size();
+    std::vector<int> cnt(g_R, 0), dsp(g_R, 0);
+    MPI_Gather(&mine, 1, MPI_INT, cnt.data(), 1, MPI_INT, 0, MPI_COMM_WORLD);
+    if (g_rank == 0) { int tot = 0; for (int r = 0; r < g_R; r++) { dsp[r] = tot; tot += cnt[r]; } sample.resize(tot); }
+    MPI_Gatherv(localSample.data(), mine, MPI_UINT64_T, sample.data(), cnt.data(), dsp.data(), MPI_UINT64_T, 0, MPI_COMM_WORLD);
+  } else {
+    sample.swap(localSample);
+  }
+  Window w;
+  int hdr[6] = {0, 0, 0, 0, 0, 0};
+  std::vector<uint64_t> payload;
+  if (g_rank == 0) {
+    w = planWindow(b, gWanted, sample, o, rng);
+    hdr[0] = w.b; hdr[1] = w.e; hdr[2] = w.g; hdr[3] = w.annDim; hdr[4] = w.generators; hdr[5] = (int)w.spare.size();
+    payload = w.rows;
+    payload.resize((size_t)std::max(w.g, 1) * W, 0);
+    for (auto& r : w.spare) payload.insert(payload.end(), r.begin(), r.end());
+  }
+  if (g_R > 1) {
+    MPI_Bcast(hdr, 6, MPI_INT, 0, MPI_COMM_WORLD);
+    const int len = (std::max(hdr[2], 1) + hdr[5]) * W;
+    payload.resize(len);
+    MPI_Bcast(payload.data(), len, MPI_UINT64_T, 0, MPI_COMM_WORLD);
+    if (g_rank != 0) {
+      w.b = hdr[0]; w.e = hdr[1]; w.g = hdr[2]; w.annDim = hdr[3]; w.generators = hdr[4];
+      const size_t nr = (size_t)std::max(w.g, 1) * W;
+      w.rows.assign(payload.begin(), payload.begin() + nr);
+      for (int i = 0; i < hdr[5]; i++) w.spare.emplace_back(payload.begin() + nr + (size_t)i * W, payload.begin() + nr + (size_t)(i + 1) * W);
+    }
+  }
+  return w;
+}
+
+// After a window: bucket d lives on node d mod g_R. Every node sends the pieces it produced for
+// buckets of other nodes, straight from host memory, one pair of messages per bucket.
+static void exchangeBuckets(std::vector<Bucket>& nb, double& seconds, double& bytes) {
+  if (g_R == 1) return;
+  const double t0 = MPI_Wtime();
+  const int B = (int)nb.size(), W = g_L.words();
+  std::vector<int64_t> mine(B), all((size_t)B * g_R);
+  for (int d = 0; d < B; d++) mine[d] = (int64_t)nb[d].cf.size();
+  MPI_Allgather(mine.data(), B, MPI_INT64_T, all.data(), B, MPI_INT64_T, MPI_COMM_WORLD);
+  std::vector<MPI_Request> req;
+  for (int d = 0; d < B; d++) {
+    if (d % g_R != g_rank) continue;
+    size_t total = nb[d].cf.size();
+    for (int r = 0; r < g_R; r++) if (r != g_rank) total += (size_t)all[(size_t)r * B + d];
+    size_t off = nb[d].cf.size();
+    nb[d].xz.resize(total * W); nb[d].cf.resize(total);
+    for (int r = 0; r < g_R; r++) {
+      const int64_t c = all[(size_t)r * B + d];
+      if (r == g_rank || c == 0) continue;
+      if (c * W > 2000000000LL) die("bucket piece too large for one message", __LINE__);
+      req.emplace_back(); MPI_Irecv(nb[d].xz.data() + off * W, (int)(c * W), MPI_UINT64_T, r, 2 * d, MPI_COMM_WORLD, &req.back());
+      req.emplace_back(); MPI_Irecv(nb[d].cf.data() + off, (int)c, MPI_DOUBLE, r, 2 * d + 1, MPI_COMM_WORLD, &req.back());
+      off += (size_t)c;
+    }
+  }
+  for (int d = 0; d < B; d++) {
+    if (d % g_R == g_rank || mine[d] == 0) continue;
+    if (mine[d] * W > 2000000000LL) die("bucket piece too large for one message", __LINE__);
+    req.emplace_back(); MPI_Isend(nb[d].xz.data(), (int)(mine[d] * W), MPI_UINT64_T, d % g_R, 2 * d, MPI_COMM_WORLD, &req.back());
+    req.emplace_back(); MPI_Isend(nb[d].cf.data(), (int)mine[d], MPI_DOUBLE, d % g_R, 2 * d + 1, MPI_COMM_WORLD, &req.back());
+    bytes += (double)mine[d] * (W * 8 + 8);
+  }
+  if (!req.empty()) MPI_Waitall((int)req.size(), req.data(), MPI_STATUSES_IGNORE);
+  for (int d = 0; d < B; d++)
+    if (d % g_R != g_rank) { std::vector<uint64_t>().swap(nb[d].xz); std::vector<double>().swap(nb[d].cf); }
+  seconds += MPI_Wtime() - t0;
 }
 
 struct Shared {
@@ -408,6 +491,10 @@ static Problem buildProblem(const Opts& o) {
 }
 
 int main(int argc, char** argv) {
+  int provided = 0;
+  MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &provided);
+  MPI_Comm_rank(MPI_COMM_WORLD, &g_rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &g_R);
   Opts o;
   for (int i = 1; i < argc; i++) {
     std::string a = argv[i];
@@ -445,7 +532,8 @@ int main(int argc, char** argv) {
     else { fprintf(stderr, "unknown option %s\n", a.c_str()); die("bad option", __LINE__); }
   }
   const bool ref = (o.mode == "ref");
-  if (ref) { o.gpus = 1; o.gmax = 0; }
+  if (ref) { o.gpus = 1; o.gmax = 0; if (g_R > 1) die("reference mode runs on one node", __LINE__); }
+  if (g_R > 1 && (!o.resume.empty() || !o.ckptFile.empty())) die("checkpoints are single-node for now", __LINE__);
   if (o.gmax > 8) die("--gmax is at most 8", __LINE__);
   if (o.weight > 0) o.frame = 0;      // weight truncation needs the true strings
   int nd = 0;
@@ -459,18 +547,22 @@ int main(int argc, char** argv) {
   const int M = (int)g_ops.size(), words = g_L.words();
   int nBranch = 0, nMap = 0, nNoise = 0;
   for (auto& p : g_ops) { if (p.type == OP_ROT && p.branches) nBranch++; else if (p.type == OP_NOISE) nNoise++; else nMap++; }
-  printf("circuit: %s; %d qubits; %zu gates -> %d operations on the data (%d branching rotations, %d Clifford, %d noise); "
-         "%d Clifford gates deferred by the frame\n", P.name.c_str(), g_L.n, P.ops.size(), M, nBranch, nMap, nNoise, deferred);
+  if (g_rank == 0)
+    printf("circuit: %s; %d qubits; %zu gates -> %d operations on the data (%d branching rotations, %d Clifford, %d noise); "
+           "%d Clifford gates deferred by the frame\n", P.name.c_str(), g_L.n, P.ops.size(), M, nBranch, nMap, nNoise, deferred);
 
   std::vector<Worker> workers(o.gpus);
   for (int t = 0; t < o.gpus; t++) workers[t].init(t, o);
-  printf("mode=%s gpus=%d coef=%g weight=%d truncEvery=%d GPU capacity=%ld terms/buffer bucket target=%ld gmax=%d\n",
-         o.mode.c_str(), o.gpus, o.coef, o.weight, o.truncEvery, workers[0].capTerms, o.target, o.gmax);
-  fflush(stdout);
+  if (g_rank == 0) {
+    printf("mode=%s nodes=%d gpus/node=%d coef=%g weight=%d truncEvery=%d GPU capacity=%ld terms/buffer bucket target=%ld gmax=%d\n",
+           o.mode.c_str(), g_R, o.gpus, o.coef, o.weight, o.truncEvery, workers[0].capTerms, o.target, o.gmax);
+    fflush(stdout);
+  }
 
   // Initial pool: the observable, one bucket.
   std::vector<Bucket> pool(1);
-  for (auto& t : P.observable) { pool[0].xz.insert(pool[0].xz.end(), t.first.begin(), t.first.end()); pool[0].cf.push_back(t.second); }
+  if (g_rank == 0)
+    for (auto& t : P.observable) { pool[0].xz.insert(pool[0].xz.end(), t.first.begin(), t.first.end()); pool[0].cf.push_back(t.second); }
   int pos = 0, firstWindow = 0;
 
   auto writeCheckpoint = [&](int position, int windowIndex) {
@@ -515,12 +607,16 @@ int main(int argc, char** argv) {
   double tPlan = 0, growth = 2.0;
   long maxBoundary = 0, movedBuckets = 0;
   int windows = 0, maxWindowOps = 0, minAnn = 2 * g_L.n;
+  double tExchange = 0, bytesMoved = 0;
+  MPI_Barrier(MPI_COMM_WORLD);
   const double tBegin = now();
 
-  Window w = planWindow(pos, 0, std::vector<uint64_t>(), o, rng);   // the pool is one bucket at the start
+  std::vector<uint64_t> noSample;
+  Window w = planShared(pos, 0, noSample, o, rng);   // the pool is one bucket at the start
   for (int wi = firstWindow; ; wi++) {
-    long Nin = 0;
-    for (auto& b : pool) Nin += (long)b.cf.size();
+    long NinLocal = 0, Nin = 0;
+    for (auto& b : pool) NinLocal += (long)b.cf.size();
+    MPI_Allreduce(&NinLocal, &Nin, 1, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
     maxBoundary = std::max(maxBoundary, Nin);
     const bool last = (w.e >= M);
 
@@ -540,7 +636,7 @@ int main(int argc, char** argv) {
           if (changesBits(g_ops[k]))
             for (size_t i = 0; i < sample.size() / words; i++) mapVec(g_ops[k], &sample[i * words], g_L);
       }
-      nextW = planWindow(w.e, gWanted, sample, o, rng);
+      nextW = planShared(w.e, gWanted, sample, o, rng);
       tPlan += now() - tp;
     }
     windows++;
@@ -557,28 +653,41 @@ int main(int argc, char** argv) {
     for (int t = 0; t < o.gpus; t++) th.emplace_back([&, t] { workers[t].run(w, last ? nullptr : &nextW, sh, !ref); });
     for (auto& x : th) x.join();
 
-    const long Nout = sh.nout.load();
+    long NoutLocal = sh.nout.load(), Nout = 0;
+    MPI_Allreduce(&NoutLocal, &Nout, 1, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
     if (Nin > 0 && Nout > 0) growth = std::max(1.0, std::min(8.0, (double)Nout / (double)Nin * 1.3));
     if (last) break;
+    exchangeBuckets(sh.nextB, tExchange, bytesMoved);
     pool.swap(sh.nextB);
     if (nextW.g > 0) movedBuckets++;
     pos = w.e;
     if (wi == o.ckptWindow && !o.ckptFile.empty()) {
       writeCheckpoint(pos, wi);
-      if (o.stopAtCkpt) { printf("stopped at checkpoint\n"); return 0; }
+      if (o.stopAtCkpt) { printf("stopped at checkpoint\n"); MPI_Finalize(); return 0; }
     }
     w = nextW;
   }
+  MPI_Barrier(MPI_COMM_WORLD);
   const double wall = now() - tBegin;
 
-  double tg = 0, tp = 0, th2 = 0, td2 = 0, ti = 0;
-  for (auto& x : workers) { tg += x.tOps; tp += x.tPart; th2 += x.tH2D; td2 += x.tD2H; ti += x.tIdle; }
-  printf("expectation=%.12g\n", sh.expec);
-  printf("windows=%d (longest %d operations, smallest row space %d of %d) partitioned boundaries=%ld\n",
-         windows, maxWindowOps, minAnn, 2 * g_L.n, movedBuckets);
-  printf("max_terms_at_window_boundary=%ld largest_bucket_on_a_gpu=%ld bucket_runs=%ld splits_on_gpu=%ld splits_on_host=%ld\n",
-         maxBoundary, sh.peak.load(), sh.runs.load(), sh.splits.load(), sh.hostSplits.load());
-  printf("wall=%.3f s; summed over %d GPU workers: operations=%.3f partition=%.3f host->gpu=%.3f gpu->host=%.3f idle=%.3f; planning=%.3f\n",
-         wall, o.gpus, tg, tp, th2, td2, ti, tPlan);
+  double loc[9] = {0, 0, 0, 0, 0, tExchange, bytesMoved, sh.expec, 0}, sum[9];
+  for (auto& x : workers) { loc[0] += x.tOps; loc[1] += x.tPart; loc[2] += x.tH2D; loc[3] += x.tD2H; loc[4] += x.tIdle; }
+  MPI_Allreduce(loc, sum, 9, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  long lc[4] = {sh.runs.load(), sh.splits.load(), sh.hostSplits.load(), sh.peak.load()}, sc[4], mc[4];
+  MPI_Allreduce(lc, sc, 4, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(lc, mc, 4, MPI_LONG, MPI_MAX, MPI_COMM_WORLD);
+  if (g_rank == 0) {
+    printf("expectation=%.12g\n", sum[7]);
+    printf("windows=%d (longest %d operations, smallest row space %d of %d) partitioned boundaries=%ld\n",
+           windows, maxWindowOps, minAnn, 2 * g_L.n, movedBuckets);
+    printf("max_terms_at_window_boundary=%ld largest_bucket_on_a_gpu=%ld bucket_runs=%ld splits_on_gpu=%ld splits_on_host=%ld\n",
+           maxBoundary, mc[3], sc[0], sc[1], sc[2]);
+    printf("wall=%.3f s; summed over %d GPU workers: operations=%.3f partition=%.3f host->gpu=%.3f gpu->host=%.3f idle=%.3f; planning=%.3f\n",
+           wall, o.gpus * g_R, sum[0], sum[1], sum[2], sum[3], sum[4], tPlan);
+    if (g_R > 1)
+      printf("between nodes: %.3f GB sent, %.3f s per node on average (%.2f GB/s per node while exchanging); MPI calls while a window runs: 0\n",
+             sum[6] / 1e9, sum[5] / g_R, sum[5] > 0 ? sum[6] / 1e9 / (sum[5] / g_R) / g_R : 0.0);
+  }
+  MPI_Finalize();
   return 0;
 }

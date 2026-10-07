@@ -1,0 +1,80 @@
+===== nodes=1 gpus=4 args: --circuit ki --weight 0 --coef 1e-4 --target 500000
+circuit: kicked Ising, Eagle heavy-hex, Clifford frame; 127 qubits; 2540 gates -> 2540 operations on the data (2540 branching rotations, 0 Clifford, 0 noise); 0 Clifford gates deferred by the frame
+mode=engine nodes=1 gpus/node=4 coef=0.0001 weight=0 truncEvery=10 GPU capacity=380902146 terms/buffer bucket target=500000 gmax=8
+expectation=0.153108187591
+windows=20 (longest 127 operations, smallest row space 127 of 254) partitioned boundaries=14
+max_terms_at_window_boundary=2325624 largest_bucket_on_a_gpu=8979612 bucket_runs=94 splits_on_gpu=0 splits_on_host=0
+wall=1.927 s; summed over 4 GPU workers: operations=2.898 partition=1.452 host->gpu=0.124 gpu->host=0.476 idle=1.600; planning=0.283
+exit=0
+===== nodes=2 gpus=8 args: --circuit ki --weight 0 --coef 1e-4 --target 500000
+circuit: kicked Ising, Eagle heavy-hex, Clifford frame; 127 qubits; 2540 gates -> 2540 operations on the data (2540 branching rotations, 0 Clifford, 0 noise); 0 Clifford gates deferred by the frame
+mode=engine nodes=2 gpus/node=4 coef=0.0001 weight=0 truncEvery=10 GPU capacity=380902146 terms/buffer bucket target=500000 gmax=8
+expectation=0.153108187591
+windows=20 (longest 127 operations, smallest row space 127 of 254) partitioned boundaries=14
+max_terms_at_window_boundary=2325624 largest_bucket_on_a_gpu=8979612 bucket_runs=94 splits_on_gpu=0 splits_on_host=0
+wall=2.022 s; summed over 8 GPU workers: operations=4.135 partition=1.703 host->gpu=0.130 gpu->host=0.600 idle=3.253; planning=0.265
+between nodes: 0.369 GB sent, 0.106 s per node on average (1.74 GB/s per node while exchanging); MPI calls while a window runs: 0
+exit=0
+===== nodes=4 gpus=16 args: --circuit ki --weight 0 --coef 1e-4 --target 500000
+circuit: kicked Ising, Eagle heavy-hex, Clifford frame; 127 qubits; 2540 gates -> 2540 operations on the data (2540 branching rotations, 0 Clifford, 0 noise); 0 Clifford gates deferred by the frame
+mode=engine nodes=4 gpus/node=4 coef=0.0001 weight=0 truncEvery=10 GPU capacity=380902146 terms/buffer bucket target=500000 gmax=8
+expectation=0.153108187591
+windows=20 (longest 127 operations, smallest row space 127 of 254) partitioned boundaries=14
+max_terms_at_window_boundary=2325624 largest_bucket_on_a_gpu=8979612 bucket_runs=94 splits_on_gpu=0 splits_on_host=0
+wall=1.546 s; summed over 16 GPU workers: operations=3.513 partition=1.193 host->gpu=0.116 gpu->host=0.444 idle=6.672; planning=0.244
+between nodes: 0.554 GB sent, 0.059 s per node on average (2.33 GB/s per node while exchanging); MPI calls while a window runs: 0
+exit=0
+===== nodes=1 gpus=4 args: --circuit ki --weight 0 --coef 1e-5 --target 6000000
+circuit: kicked Ising, Eagle heavy-hex, Clifford frame; 127 qubits; 2540 gates -> 2540 operations on the data (2540 branching rotations, 0 Clifford, 0 noise); 0 Clifford gates deferred by the frame
+mode=engine nodes=1 gpus/node=4 coef=1e-05 weight=0 truncEvery=10 GPU capacity=380902146 terms/buffer bucket target=6000000 gmax=8
+expectation=0.228607441423
+windows=20 (longest 127 operations, smallest row space 127 of 254) partitioned boundaries=14
+max_terms_at_window_boundary=158924060 largest_bucket_on_a_gpu=177097466 bucket_runs=610 splits_on_gpu=4 splits_on_host=0
+wall=61.752 s; summed over 4 GPU workers: operations=145.754 partition=32.326 host->gpu=13.935 gpu->host=45.656 idle=7.346; planning=0.407
+exit=0
+===== nodes=2 gpus=8 args: --circuit ki --weight 0 --coef 1e-5 --target 6000000
+circuit: kicked Ising, Eagle heavy-hex, Clifford frame; 127 qubits; 2540 gates -> 2540 operations on the data (2540 branching rotations, 0 Clifford, 0 noise); 0 Clifford gates deferred by the frame
+mode=engine nodes=2 gpus/node=4 coef=1e-05 weight=0 truncEvery=10 GPU capacity=380902146 terms/buffer bucket target=6000000 gmax=8
+expectation=0.228607441423
+windows=20 (longest 127 operations, smallest row space 127 of 254) partitioned boundaries=14
+max_terms_at_window_boundary=158924060 largest_bucket_on_a_gpu=177097466 bucket_runs=610 splits_on_gpu=4 splits_on_host=0
+wall=38.368 s; summed over 8 GPU workers: operations=146.730 partition=28.715 host->gpu=15.432 gpu->host=41.597 idle=22.692; planning=0.389
+between nodes: 30.105 GB sent, 4.366 s per node on average (3.45 GB/s per node while exchanging); MPI calls while a window runs: 0
+exit=0
+===== nodes=4 gpus=16 args: --circuit ki --weight 0 --coef 1e-5 --target 6000000
+circuit: kicked Ising, Eagle heavy-hex, Clifford frame; 127 qubits; 2540 gates -> 2540 operations on the data (2540 branching rotations, 0 Clifford, 0 noise); 0 Clifford gates deferred by the frame
+mode=engine nodes=4 gpus/node=4 coef=1e-05 weight=0 truncEvery=10 GPU capacity=380902146 terms/buffer bucket target=6000000 gmax=8
+expectation=0.228607441423
+windows=20 (longest 127 operations, smallest row space 127 of 254) partitioned boundaries=14
+max_terms_at_window_boundary=158924060 largest_bucket_on_a_gpu=177097466 bucket_runs=610 splits_on_gpu=4 splits_on_host=0
+wall=23.296 s; summed over 16 GPU workers: operations=143.127 partition=31.185 host->gpu=15.526 gpu->host=44.104 idle=51.816; planning=0.374
+between nodes: 45.156 GB sent, 2.508 s per node on average (4.50 GB/s per node while exchanging); MPI calls while a window runs: 0
+exit=0
+===== nodes=4 gpus=16 args: --circuit ki --weight 0 --coef 3e-6 --target 6000000
+circuit: kicked Ising, Eagle heavy-hex, Clifford frame; 127 qubits; 2540 gates -> 2540 operations on the data (2540 branching rotations, 0 Clifford, 0 noise); 0 Clifford gates deferred by the frame
+mode=engine nodes=4 gpus/node=4 coef=3e-06 weight=0 truncEvery=10 GPU capacity=380902146 terms/buffer bucket target=6000000 gmax=8
+expectation=0.289217470624
+windows=20 (longest 127 operations, smallest row space 127 of 254) partitioned boundaries=14
+max_terms_at_window_boundary=1501893640 largest_bucket_on_a_gpu=146901810 bucket_runs=3400 splits_on_gpu=31 splits_on_host=0
+wall=220.546 s; summed over 16 GPU workers: operations=1502.607 partition=757.725 host->gpu=126.346 gpu->host=457.721 idle=73.019; planning=0.523
+between nodes: 452.757 GB sent, 20.669 s per node on average (5.48 GB/s per node while exchanging); MPI calls while a window runs: 0
+exit=0
+===== nodes=4 gpus=16 args: --circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 1e-5 --target 4000000
+circuit: TFIM Trotter, square lattice; 121 qubits; 3410 gates -> 3410 operations on the data (3410 branching rotations, 0 Clifford, 0 noise); 0 Clifford gates deferred by the frame
+mode=engine nodes=4 gpus/node=4 coef=1e-05 weight=0 truncEvery=10 GPU capacity=380902146 terms/buffer bucket target=4000000 gmax=8
+expectation=0.824629850051
+windows=20 (longest 221 operations, smallest row space 121 of 242) partitioned boundaries=13
+max_terms_at_window_boundary=260193811 largest_bucket_on_a_gpu=116179699 bucket_runs=1353 splits_on_gpu=0 splits_on_host=0
+wall=27.566 s; summed over 16 GPU workers: operations=132.690 partition=119.569 host->gpu=11.655 gpu->host=58.566 idle=19.036; planning=0.408
+between nodes: 48.049 GB sent, 2.890 s per node on average (4.16 GB/s per node while exchanging); MPI calls while a window runs: 0
+exit=0
+===== nodes=4 gpus=16 args: --circuit xxz --lx 6 --ly 6 --jxy 0.1 --jz 0.15 --steps 6 --coef 1e-4 --target 4000000
+circuit: XXZ Trotter, square lattice; 36 qubits; 1098 gates -> 1098 operations on the data (1080 branching rotations, 18 Clifford, 0 noise); 18 Clifford gates deferred by the frame
+mode=engine nodes=4 gpus/node=4 coef=0.0001 weight=0 truncEvery=10 GPU capacity=634836910 terms/buffer bucket target=4000000 gmax=8
+expectation=0.00856594495115
+windows=20 (longest 72 operations, smallest row space 36 of 72) partitioned boundaries=8
+max_terms_at_window_boundary=32669970 largest_bucket_on_a_gpu=62033204 bucket_runs=198 splits_on_gpu=0 splits_on_host=0
+wall=2.089 s; summed over 16 GPU workers: operations=4.188 partition=0.265 host->gpu=0.181 gpu->host=0.569 idle=7.866; planning=0.103
+between nodes: 1.438 GB sent, 0.180 s per node on average (2.00 GB/s per node while exchanging); MPI calls while a window runs: 0
+exit=0
+done

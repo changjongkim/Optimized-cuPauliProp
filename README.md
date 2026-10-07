@@ -76,7 +76,7 @@ ScaleQsim, Atlas, HyQuas, BMQSim은 모두 state-vector 시뮬레이터다. 이 
 
 ## 5. 스킴 목록
 
-스킴은 세 층으로 나뉜다. 맨 아래가 "어떻게 나누나", 그 위가 "나눈 묶음을 어디에 두고 누가 처리하나", 맨 위가 "믿을 수 있게 하는 장치"다.
+스킴은 세 층으로 나뉜다. 맨 아래가 "어떻게 나누나", 그 위가 "나눈 묶음을 어디에 두고 누가 처리하나", 맨 위가 "믿을 수 있게 하는 장치"다. 모든 스킴은 통합 엔진 `pp_engine` 하나에 들어 있다 (`src/engine/`). 앞서 만든 프로토타입(`src/proto/lo_*`)은 초기 측정 기록으로 남긴다.
 
 ### 가. 나누는 규칙 (모든 스킴의 바탕)
 
@@ -85,7 +85,8 @@ ScaleQsim, Atlas, HyQuas, BMQSim은 모두 state-vector 시뮬레이터다. 이 
 | Parity 분할 | 구간의 gate가 바꾸지 않는 parity로 묶음을 정한다 | gate마다 전역 dedup | 실측 |
 | 실행 중 행 선택 | 지금 항 분포의 표본으로 균형 좋은 parity를 고른다 | 묶음 크기 치우침 | 실측 |
 | 재분배 (re-key) | 구간이 바뀔 때 한 번 새 parity로 다시 나눈다 | parity는 영원히 유효할 수 없음 | 실측 |
-| Clifford frame | Clifford gate를 데이터에 적용하지 않고 rotation 쪽에 흡수한다 | gate의 절반이 데이터를 훑기만 함 | 실측 (ZZ가 Clifford 각도인 kicked Ising만) |
+| Clifford frame | Clifford gate와 Clifford 각도 rotation을 데이터에 적용하지 않고 뒤따르는 rotation의 생성자(부호 포함)에 흡수한다. noise 앞과 맨 끝에서만 데이터에 적용 | gate의 절반이 데이터를 훑기만 함 | 실측 (임의의 H, S, CZ, Pauli gate, π/2 rotation) |
+| 구간 자동 결정 | rotation 생성자가 만드는 공간을 GF(2) 소거로 추적해, 남는 parity 공간이 n차원 이상인 동안 구간을 늘린다. 구간 안의 Clifford는 bit 변환으로 따라간다 | 회로마다 손으로 규칙을 넣어야 함 | 실측 (회로 7종에서 구간 6–40개가 자동으로 잡힘) |
 
 ### 나. 실행 방식 (묶음을 어디에 두고 누가 처리하나)
 
@@ -97,7 +98,7 @@ ScaleQsim, Atlas, HyQuas, BMQSim은 모두 state-vector 시뮬레이터다. 이 
 | 넘치면 분할 | 층 중간에 GPU보다 커진 묶음을 같은 계열 parity로 둘로 쪼갬 | 층 안에서 항이 약 10배로 불어남 | 실측 |
 | 작게 시작 | 항이 적은 동안은 묶음 하나, GPU 한 장만 씀 | 작은 문제에서 분산이 손해 | 실측 |
 
-분산 실행과 out-of-core·task 방식은 지금 별개의 프로토타입이다. 최종 설계는 host 저장소 방식 하나로 합친다 (GPU에 다 들어가면 내리지 않고, 넘칠 때만 내린다).
+통합 엔진은 host 저장소 방식 하나로 합쳤다. 노드마다 프로세스 하나, GPU마다 worker 하나가 있고, 묶음 d는 노드 (d mod 노드 수)가 맡는다. 구간이 끝나면 각 노드가 다른 노드 몫의 조각을 host memory에서 묶음 통째로 보낸다. 구간이 도는 동안에는 MPI 호출이 없고 GPU끼리는 주고받지 않는다. 그래서 out-of-core는 여러 노드에서도 그대로 동작하고, 담을 수 있는 항 수는 GPU memory가 아니라 모든 노드의 host memory가 정한다.
 
 ### 다. 믿을 수 있게 하는 장치
 
@@ -110,10 +111,10 @@ ScaleQsim, Atlas, HyQuas, BMQSim은 모두 state-vector 시뮬레이터다. 이 
 
 | 스킴 | 하는 일 |
 |---|---|
-| 구간 자동 결정 | 회로의 rotation 목록에서 유효한 parity를 GF(2) 소거로 구하고, 구간을 실행 중에 끊는다 |
-| 일반 Clifford frame | 임의의 Clifford 층을 tableau로 추적 |
-| 여러 노드 저장소 | 노드 사이에 묶음을 통째로 옮긴다 |
-| 안팎 자동 전환 | GPU에 들어가면 안에서, 넘치면 host로 |
+| GPU에 머무르기 | 묶음이 하나이고 다음 구간에서도 나누지 않으면 host로 내리지 않는다 |
+| frame의 마지막 적용 줄이기 | 미뤄 둔 Clifford를 끝에서 데이터에 하나씩 적용하는 대신 한 번에 처리 |
+| 여러 노드 checkpoint | 지금 checkpoint는 한 노드에서만 된다 |
+| 엔진 안 검산 | 보존 parity 검사를 구간 경계마다 실행 |
 | 제자리 rotation kernel | 출력 버퍼와 workspace 없이 갱신 (메모리 약 7배는 추정치) |
 
 ### 마. 데이터로 기각한 것
@@ -142,9 +143,9 @@ ScaleQsim, Atlas, HyQuas, BMQSim은 모두 state-vector 시뮬레이터다. 이 
 | Q1. 답이 같은가 | 모든 방식에서 12자리 일치 |
 | Q2. 어디까지 풀 수 있나 (cutoff 대 GPU 수) | 14억 항 설정: cuPauliProp은 1/4/8/16 GPU 모두 실패, 우리는 1장으로 완료 |
 | Q3. 같이 풀 수 있는 문제에서 얼마나 빠른가 | 같은 회로 기준 4 GPU 7.5배, 16 GPU 17배 |
-| Q4. GPU를 늘리면 줄어드는가 | 14억 항 설정 1/2/4 GPU = 212/116/64초 |
-| Q5. 비용은 어디에 드는가 | host 복사가 GPU 시간의 약 35%, MPI 교환이 메시지당 약 3 ms |
-| Q6. 다른 회로에서도 되는가 | 회로 7종 중 1번만 실측, 2번은 모사 (8절) |
+| Q4. GPU를 늘리면 줄어드는가 | 14억 항 설정: 한 노드 1/2/4 GPU = 212/116/64초, 통합 엔진 1/2/4 노드(4/8/16 GPU) = 62/38/23초 |
+| Q5. 비용은 어디에 드는가 | 통합 엔진 16 GPU, 14억 항 설정: gate 적용이 GPU당 8.9초, 나머지(분할·host 복사·대기·노드 간 교환)가 14초 |
+| Q6. 다른 회로에서도 되는가 | 회로 7종 모두 작은 설정에서 기준과 12자리 일치 (8절). 큰 설정은 아직 |
 | Q7. 정확도가 실제로 좋아지는가 | cutoff 1e-4, 1e-5, 3e-6에서 0.1531, 0.2286, 0.2892. 아직 수렴하지 않았다 |
 
 ---
@@ -204,8 +205,27 @@ ScaleQsim, Atlas, HyQuas, BMQSim은 모두 state-vector 시뮬레이터다. 이 
 | 이동 데이터가 줄어든다 | 4 GPU에서 0.57 GB 대 20.3 GB | 실측 |
 | 16장이 못 푸는 문제를 1장으로 푼다 | 14억 항 설정: 1 GPU 212초, host memory 7 GiB | 실측 |
 | GPU를 늘리면 줄어든다 | 같은 설정 1/2/4 GPU = 212/116/64초 (한 노드, MPI 없음). 16 GPU(MPI, GPU 안에서) 11.8초 | 실측 |
-| 더 낮은 cutoff도 한 노드로 푼다 | cutoff 3e-6 설정: 4 GPU 676초, 기대값 0.289217470624, host memory에 층 경계 15억 항. 1 GPU는 1,000초 제한 안에 층 9까지만 진행 | 실측 (한 번 실행, 대조 없음) |
+| 더 낮은 cutoff도 푼다 | cutoff 3e-6 설정(층 경계 15억 항): 한 노드 4 GPU 676초, 4 노드 16 GPU 221초. 기대값은 두 실행에서 0.289217470624로 일치 | 실측 |
 | 64 GPU 이상 | | 없음 |
+
+### 통합 엔진, 여러 노드 (작업 59474122)
+
+kicked Ising(Clifford frame 형태), 노드마다 A100 4장.
+
+| 설정 | 1 노드 | 2 노드 | 4 노드 | 기대값 (모두 같음) |
+|---|---|---|---|---|
+| 2,250만 항 | 1.93초 | 2.02초 | 1.55초 | 0.153108187591 |
+| 14억 항 | 61.8초 | 38.4초 | 23.3초 | 0.228607441423 |
+| cutoff 3e-6 | — | — | 220.5초 | 0.289217470624 |
+
+| 주장 | 수치 | 상태 |
+|---|---|---|
+| out-of-core가 여러 노드에서도 된다 | 위 표. cuPauliProp은 14억 항 설정에서 16 GPU로도 실패 | 실측 |
+| 노드 간 교환이 가볍다 | 2,250만 항: 0.55 GB를 노드당 0.06초(MPI 프로토타입은 같은 양에 1.2–1.4초). 14억 항: 45 GB, 노드당 2.5초(전체의 11%). cutoff 3e-6: 453 GB, 노드당 20.7초(9%) | 실측 |
+| 교환 속도는 아직 느리다 | 노드당 4.5–5.5 GB/s. host memory를 미리 고정하지 않아 생기는 비용으로 본다 | 실측, 원인은 추정 |
+| 구간이 도는 동안 MPI가 없다 | 호출 0회 | 실측 |
+| 다른 회로도 여러 노드에서 돈다 | 2D TFIM 11×11, cutoff 1e-5(층 경계 2.6억 항): 16 GPU 27.6초, 0.824629850051(단일 GPU 기준 없음). XXZ 6×6, cutoff 1e-4: 16 GPU 2.09초, 한 GPU로 돌린 엔진 값과 같은 0.00856594495115 | 실측 |
+| GPU에 다 들어가는 문제에서는 손해다 | 14억 항 설정 16 GPU: GPU 안에서만 도는 MPI 프로토타입 11.8초, 통합 엔진 23.3초. gate 적용은 둘 다 GPU당 8.9초이고 차이는 host 왕복이다 | 실측 |
 
 ---
 
@@ -231,20 +251,33 @@ ScaleQsim, Atlas, HyQuas, BMQSim은 모두 state-vector 시뮬레이터다. 이 
 
 회로는 일곱 가지로 한다 (2026-10-07 결정). 지금 실측은 1번뿐이다.
 
-| # | 회로 | 크기와 연결 | gate 구성 | 시험하는 것 | 상태 |
+| # | 회로 | 크기와 연결 | gate 구성 | 시험하는 것 | 엔진 이름 |
 |---|---|---|---|---|---|
-| 1 | Kicked Ising (IBM 실험 회로) | 127 qubit, heavy-hex | X rotation + ZZ(π/2, Clifford) | 기준 회로, Clifford frame | 실측 |
-| 2 | TFIM Trotter, 일반 각도 | 127 qubit, heavy-hex | X rotation + ZZ rotation | Clifford가 없을 때. parity 계열 둘을 번갈아 씀 | 모사로 확인 |
-| 3 | 2D TFIM Trotter | 정사각 격자 5×6(30 qubit), 11×11(121 qubit) | 2번과 같음 | 더 촘촘한 연결. 30 qubit은 state vector로 exact 값과 대조 | 없음 |
-| 4 | Heisenberg (XXZ) Trotter | heavy-hex 또는 정사각 격자 | XX, YY, ZZ rotation | parity 계열 셋. X와 Z bit를 함께 뒤집는 gate | 없음 |
-| 5 | QAOA MaxCut | 3-regular 무작위 그래프, 100–127 qubit, p=3–5 | ZZ rotation(그래프 edge) + X rotation | 격자가 아닌 연결. 관측량이 edge 합이라 수백 항에서 시작 | 없음 |
-| 6 | Hardware-efficient ansatz | 100 qubit 이상 | 층마다 모든 qubit에 RY, RZ + CZ 얽힘 | 한 층이 구간 둘. 일반 Clifford 층 | 없음 |
-| 7 | 잡음 있는 kicked Ising | 1번과 같음 | 1번 + depolarizing 잡음 | unitary가 아닌 연산. 실제 장치 모형 | 없음 |
+| 1 | Kicked Ising (IBM 실험 회로) | 127 qubit, heavy-hex | X rotation + ZZ(π/2, Clifford) | 기준 회로, Clifford frame | `ki`, `ki_lab` |
+| 2 | TFIM Trotter, 일반 각도 | 127 qubit, heavy-hex | X rotation + ZZ rotation | Clifford가 없을 때 | `tfim_hh` |
+| 3 | 2D TFIM Trotter | 정사각 격자 5×6(30 qubit), 11×11(121 qubit) | 2번과 같음 | 더 촘촘한 연결. 30 qubit은 state vector로 exact 값과 대조 가능 | `tfim_sq` |
+| 4 | Heisenberg (XXZ) Trotter | 정사각 격자, Néel 상태에서 시작 | XX, YY, ZZ rotation | X와 Z bit를 함께 뒤집는 gate | `xxz` |
+| 5 | QAOA MaxCut | 3-regular 무작위 그래프 | H + ZZ rotation(그래프 edge) + X rotation | 격자가 아닌 연결. 관측량이 edge 합 | `qaoa` |
+| 6 | Hardware-efficient ansatz | 선형 배치 | 층마다 모든 qubit에 RY, RZ + CZ 얽힘 | 한 층이 구간 둘. Clifford 얽힘 층 | `hea` |
+| 7 | 잡음 있는 kicked Ising | 1번과 같음 | 1번 + qubit마다 depolarizing 잡음 | unitary가 아닌 연산 | `ki_noisy` |
+
+일곱 가지 모두 통합 엔진으로 돌고, 작은 설정에서 단일 GPU 기준(`--mode ref`, 묶음 하나 = cuPauliProp 그대로)과 12자리까지 같다. 엔진 쪽은 묶음을 작게 잡아 분할과 재분배가 실제로 일어나게 했다.
+
+| 회로 | 설정 | 기대값 (기준 = 엔진) | 자동으로 잡힌 구간 | 묶음 실행 횟수 |
+|---|---|---|---|---|
+| 1 `ki` / `ki_lab` | θ=π/4, 20 step, cutoff 1e-4 | 0.153108187591 | 20 | 94 |
+| 2 `tfim_hh` | θ=0.2π, ZZ −0.3π, 20 step, cutoff 1e-4 | 0.324547666766 | 40 | 444 |
+| 3 `tfim_sq` 5×6 | 8 step, cutoff 1e-4 | 0.822306395555 | 16 | 279 |
+| 3 `tfim_sq` 11×11 | 10 step, cutoff 1e-4 | 0.798821812544 | 20 | 291 |
+| 4 `xxz` 6×6 | 4 step, cutoff 1e-3 | −0.000927434911496 | 14 | 80 |
+| 5 `qaoa` 60 qubit | p=3, cutoff 1e-4 | 47.4783067466 (edge 90개의 합) | 6 | 69 |
+| 6 `hea` 60 qubit | 8층, cutoff 1e-5 | 0.198250860182 | 16 | 59 |
+| 7 `ki_noisy` | 잡음 0.005, cutoff 1e-4 | 0.156114065827 | 20 | 116 |
 
 - 고른 기준: Pauli propagation 문헌에서 쓰는 종류(TFIM, Heisenberg, QAOA, hardware-efficient ansatz, 잡음 회로)이고, gate 구성·연결·qubit 수·관측량이 서로 다르다.
 - 3번의 30 qubit 격자는 "참값" 문제를 푼다. state vector로 exact 값을 구해 cutoff에 따른 오차를 직접 보인다.
-- 2, 3, 5, 7번은 지금 방식(X 층은 Z-bit parity, ZZ 층은 X-bit parity)으로 된다. 4, 6번은 Y가 들어가 parity 계열이 하나 더 필요하다. 회로마다 손으로 넣지 않도록 "구간 자동 결정"을 먼저 만든다.
-- 회로마다 각도, 깊이, 관측량, cutoff 범위를 정해야 한다. 아직 정하지 않았다.
+- 회로마다 규칙을 손으로 넣지 않는다. 엔진이 rotation 목록에서 구간과 parity를 실행 중에 정한다.
+- 위 설정은 답 대조용으로 작게 잡은 것이다. 논문용 크기(각도, 깊이, 관측량, cutoff 범위)는 아직 정하지 않았다. 4번은 cutoff 1e-4에서 단일 GPU에 들어가지 않아 기준이 없고, 6번은 항 수가 적어 분할이 적게 일어났다.
 
 ---
 
@@ -270,15 +303,18 @@ ScaleQsim, Atlas, HyQuas, BMQSim은 모두 state-vector 시뮬레이터다. 이 
 - 이 회로(θ=π/4, 20 step)의 수렴한 답. cutoff를 낮출수록 0.1531, 0.2286, 0.2892로 계속 변한다. 우리가 보이는 것은 "같은 cutoff에서 같은 답을 더 적은 자원으로"이지 "참값"이 아니다.
 - cuPauliProp이 원리상 느리다는 것. 느림의 일부는 구현(gate마다 메모리 할당)이라 고쳐질 수 있다. 주장은 구조적 차이(gate 중 통신 0, 전원 통신 횟수, 용량)에 둔다.
 
-**약한 점**
+**약한 점과 지금 상태**
 
-- 여러 노드에 걸친 묶음 풀이 없다. 16 GPU 수치는 MPI 프로토타입이고, out-of-core는 한 노드까지다.
-- 프로토타입은 X층과 ZZ층이 번갈아 나오는 회로만 처리한다. 일반 회로에서 구간을 실행 중에 정하는 부분이 없다.
-- Clifford frame은 ZZ가 Clifford 각도일 때만 쓴다.
-- out-of-core는 GPU 시간 기준 약 35% 더 든다 (host 복사, 분할).
-- MPI 재분배가 느리다 (0.6 GB에 1.2–1.4초).
-- 회로가 kicked Ising 하나, 관측량이 Z_62 하나다. 목표는 회로 7종이다 (8절).
-- 반복 측정이 없다. cuPauliProp 분산은 노드에 따라 33–48초로 흔들렸다.
+| 약한 점 | 상태 |
+|---|---|
+| 여러 노드에 걸친 저장소가 없었다 | 해결. 4 노드 16 GPU까지 실측. 64 GPU 이상은 아직 |
+| 일반 회로에서 구간을 정하지 못했다 | 해결. 회로 7종에서 자동으로 잡힌다 |
+| Clifford frame이 kicked Ising 전용이었다 | 해결. 임의의 H, S, CZ, Pauli gate, π/2 rotation. 남은 것은 끝에서 한꺼번에 적용하는 비용 |
+| MPI 재분배가 느렸다 (0.6 GB에 1.2–1.4초) | 해결. host memory의 묶음을 통째로 보내 같은 양이 0.06초. 큰 설정에서는 노드당 4.5–5.5 GB/s로 아직 여지가 있다 |
+| out-of-core 비용 | 남음. 16 GPU에서 gate 적용 8.9초에 host 왕복·분할·대기가 14초 더 든다. GPU에 들어가는 문제는 내리지 않게 하고, host buffer를 미리 고정해 재사용해야 한다 |
+| 회로가 하나였다 | 일부 해결. 7종 모두 작은 설정에서 기준과 대조. 큰 설정은 kicked Ising, 2D TFIM, XXZ만 |
+| 관측량이 Z 하나다 | 일부 해결. QAOA는 edge 90개의 합. 나머지는 Z 하나 |
+| 반복 측정이 없다 | 뒤로 미룸 (2026-10-07 결정) |
 
 ---
 
@@ -286,14 +322,14 @@ ScaleQsim, Atlas, HyQuas, BMQSim은 모두 state-vector 시뮬레이터다. 이 
 
 | 순서 | 실험 | 받치는 주장 |
 |---|---|---|
-| 1 | 여러 노드 묶음 풀, 64–1,024 GPU | 규모 |
-| 2 | cutoff 1e-6 이하까지 수렴 곡선. exact 값을 아는 설정(예: θ=π/2는 회로 전체가 Clifford)과 수렴이 쉬운 θ도 함께 | 정확도가 실제로 좋아짐 (그림 1b) |
-| 3 | 구간 자동 결정을 만들고 평가 회로 7종을 돌린다 (8절). 가장 먼저 한다 | 일반성 |
-| 4 | 관측량 추가 (IBM 실험의 weight-10/17, 자화) | 일반성 |
-| 5 | ORQA 방식 baseline | 관련 연구 대비 |
-| 6 | 3–5회 반복, 80 GB GPU | 신뢰도 |
-| 7 | GPU에 들어가면 안에서, 넘치면 묶음으로 자동 전환 | 작은 문제에서 손해 없음 |
-| 8 | 전송 최적화, 제자리 rotation kernel | 비용 절감 (메모리 7배는 추정치) |
+| 1 | 회로 7종의 논문용 크기를 정해 여러 노드에서 돌린다 | 일반성 |
+| 2 | host buffer를 고정해 재사용, GPU에 들어가는 묶음은 내리지 않기, 분할 kernel 개선 | out-of-core 비용 |
+| 3 | 64–1,024 GPU | 규모 |
+| 4 | cutoff 1e-6 이하까지 수렴 곡선. exact 값을 아는 설정(30 qubit 격자는 state vector로 대조)과 수렴이 쉬운 θ도 함께 | 정확도가 실제로 좋아짐 |
+| 5 | 관측량 추가 (IBM 실험의 weight-10/17, 자화) | 일반성 |
+| 6 | cuPauliProp 분산 모드에 같은 회로 7종, ORQA 방식 baseline | 비교 |
+| 7 | 제자리 rotation kernel | GPU당 항 수 (약 7배는 추정치) |
+| 8 | 3–5회 반복, 80 GB GPU | 신뢰도 (뒤로 미룸) |
 
 ---
 
@@ -316,6 +352,9 @@ jobs/env.sh               실행 환경
 src/plugin/prof_mpi.c     cuPauliProp MPI plugin 계측판
 src/driver/ki_prof.cpp    cuPauliProp gate별 계측 (단일·분산, --frame)
 src/driver/ki_split.cpp   단일 GPU 단계 분해, 스냅샷 dump
+src/engine/pp_engine.cpp  통합 엔진 (구간 자동 결정, 묶음 저장소, 여러 노드, checkpoint, 기준 모드)
+src/engine/circuit.hpp    회로 7종, Clifford frame, 연산의 bit 변환
+src/engine/gf2.hpp        GF(2) 소거, parity 공간
 src/proto/shuffle.cu      parity 계산·분할 kernel
 src/proto/lo_mpi.cpp      rank당 GPU 하나, MPI 재분배 (--frame)
 src/proto/lo_virtual.cpp  한 GPU 안 가상 rank 모사
@@ -333,10 +372,24 @@ analysis/                 요약·균형·검산 스크립트
 | logs/pp_lofr-59472166.out | Clifford frame 적용, 같은 회로의 cuPauliProp |
 | logs/pp_ooc-59472272.out | GPU 1장 out-of-core |
 | logs/pp_pool-59472385.out | 한 노드 1/2/4 GPU task 방식 |
+| logs/pp_engine-59474122.out | 통합 엔진, 1/2/4 노드 |
 
 gate별 기록은 `results/` 아래 작업 번호별 폴더에 있다.
 
 **저장소에 넣는 것:** 코드(`src/`), 빌드·작업 스크립트(`build.sh`, `jobs/`), 분석 스크립트(`analysis/`), 로그(`logs/`), 이 문서. `env/`, `bin/`, `results/`(원자료 약 480 MB), `third_party/`는 넣지 않는다. 원자료는 Perlmutter의 `/pscratch/sd/s/sgkim/kcj/pauliprop/results`에 있다. `src/plugin/orig_mpi.c`와 `src/driver/ibm_eagle.hpp`는 NVIDIA cuQuantum(BSD-3-Clause)에서 가져온 것이고 원래 저작권 표기를 그대로 둔다.
+
+**통합 엔진 쓰는 법**
+
+```
+# 단일 GPU 기준 (묶음 하나, cuPauliProp 그대로)
+bin/pp_engine --circuit tfim_sq --lx 11 --ly 11 --steps 10 --coef 1e-4 --mode ref
+# 한 노드 4 GPU
+bin/pp_engine --circuit tfim_sq --lx 11 --ly 11 --steps 10 --coef 1e-5 --gpus 4 --target 4000000
+# 4 노드 (노드당 프로세스 하나)
+srun -N 4 -n 4 --ntasks-per-node=1 -c 128 --gpus-per-node=4 bin/pp_engine --circuit ki --coef 1e-5 --gpus 4 --target 6000000
+```
+
+`--target`은 구간 시작 때 묶음 하나에 담을 항 수다. 층 안에서 약 10배로 불어나므로 GPU 버퍼 크기의 1/20 정도로 잡는다. 넘치면 엔진이 묶음을 쪼갠다.
 
 **실행할 때 주의**
 
