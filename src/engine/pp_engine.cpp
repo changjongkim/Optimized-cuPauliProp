@@ -102,6 +102,7 @@ struct Opts {
   double growthCap = 8.0;        // upper limit of the growth per window assumed when the bucket count is chosen
   int earlyPerNode = 1;          // in the first windows: this many buckets per node as soon as they would hold minBucketEarly terms (0 = off)
   long minBucketEarly = 2000;
+  int trace = 0;                 // print one line per window: operations, rows, sectors, terms in and out
   long shareAbove = 0;           // k > 0: a bucket above k terms is halved at a truncation while GPUs of its node wait (off: it did not pay, job 59483080)
   long chunk = 262144;           // terms per host chunk
   int pinned = 1, verify = 1;
@@ -1117,6 +1118,7 @@ int main(int argc, char** argv) {
     else if (a == "--early-per-node") o.earlyPerNode = atoi(next());
     else if (a == "--min-bucket-early") o.minBucketEarly = atol(next());
     else if (a == "--share-above") o.shareAbove = atol(next());
+    else if (a == "--trace")       o.trace = atoi(next());
     else if (a == "--chunk")       o.chunk = atol(next());
     else if (a == "--pinned")      o.pinned = atoi(next());
     else if (a == "--verify")      o.verify = atoi(next());
@@ -1284,6 +1286,13 @@ int main(int argc, char** argv) {
     for (auto& b : pool) NinLocal += b.n;
     MPI_Allreduce(&NinLocal, &Nin, 1, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
     maxBoundary = std::max(maxBoundary, Nin);
+    long trIn[2] = {0, 0}, trLargest = 0;     // --trace: non-empty buckets and the largest one at the window start
+    if (o.trace) {
+      long loc2[2] = {0, 0}, lmax = 0;
+      for (auto& b : pool) if (b.n > 0) { loc2[0]++; lmax = std::max<long>(lmax, b.n); }
+      MPI_Allreduce(loc2, trIn, 2, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
+      MPI_Allreduce(&lmax, &trLargest, 1, MPI_LONG, MPI_MAX, MPI_COMM_WORLD);
+    }
 
     // Where should this window end? Its rows stay valid for any shorter window. With several buckets,
     // every node runs one of its buckets ahead and the window ends at the truncation after which those
@@ -1383,6 +1392,17 @@ int main(int argc, char** argv) {
     tSync += now() - tr1;
     { double tm = tr1 - tr0; lastRunMax = tm; MPI_Allreduce(&tm, &lastRunMax, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD); }
     if (w.g == 0) tSingle += lastRunMax;
+    if (o.trace) {
+      long sl[2] = {sh.splits.load(), sh.runs.load()}, sg[2];
+      MPI_Allreduce(sl, sg, 2, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
+      int rot = 0;
+      for (int k = w.b; k < w.e; k++) rot += (g_ops[k].type == OP_ROT && g_ops[k].branches) ? 1 : 0;
+      if (g_rank == 0) {
+        printf("trace window=%d ops=%d..%d branching_rotations=%d generator_rank=%d valid_rows=%d rows=%d sectors=%ld largest_sector_in=%ld terms_in=%ld terms_out=%ld next_rows=%d splits_so_far=%ld sector_runs_so_far=%ld run=%.3f s\n",
+               wi, w.b, w.e, rot, 2 * g_L.n - w.annDim, w.annDim, w.g, trIn[0], trLargest, Nin, Nout, last ? -1 : nextW.g, sg[0], sg[1], lastRunMax);
+        fflush(stdout);
+      }
+    }
     if (Nin > 0 && Nout > 0) growth = std::max(1.0, std::min(o.growthCap, (double)Nout / (double)Nin * 1.3));
     if (last) break;
     if (!o.stream) exchangeBuckets(sh.nextB, tExchange, bytesMoved);

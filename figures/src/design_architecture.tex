@@ -1,57 +1,102 @@
-\documentclass[tikz,border=5pt]{standalone}
-\input{src/common.tex}
-\begin{document}
-\begin{tikzpicture}[x=1cm,y=1cm]
-% ---------- planner ----------
-\node[frame, fill=lav, minimum width=15.4cm, minimum height=1.5cm, anchor=south west] (plan) at (0,8.3) {};
-\node[font=\bfseries\large, anchor=west] at (0.25,9.05) {Planner};
-\node[box, minimum width=2.7cm] (pw) at (4.0,9.05) {Window Length};
-\node[box, minimum width=2.7cm] (pr) at (7.2,9.05) {Parity Rows};
-\node[box, minimum width=2.7cm] (pb) at (10.4,9.05) {Sector Count};
-\node[font=\small\itshape, anchor=west, align=left] at (12.0,9.05) {chosen at run time,\\once per window};
-% ---------- nodes ----------
-\foreach \n/\x in {1/0,2/7.9} {
-  \node[frame, fill=panel, minimum width=7.5cm, minimum height=6.1cm, anchor=south west] (N\n) at (\x,1.6) {};
-  \node[font=\bfseries\large, anchor=north west] at (\x+0.2,7.6) {Node \n};
-  % GPU workers
-  \foreach \g/\gx in {A/0.35,B/3.85} {
-    \node[frame, fill=white, minimum width=3.3cm, minimum height=1.7cm, anchor=south west] (G\n\g) at (\x+\gx,5.05) {};
-    \node[font=\bfseries, anchor=north] at ($(G\n\g.north)+(0,-0.06)$) {GPU Worker};
-    \node[frame, draw=teal, fill=tealfill, minimum width=1.5cm, minimum height=0.55cm, font=\small] (K\n\g) at ($(G\n\g.south)+(-0.55,0.55)$) {sector};
-    \node[stepno] at ($(G\n\g.south)+(0.85,0.55)$) {2};
+% Overall architecture of SectorQ (Section 3.1): the cycle that the scheme consists of.
+%   top     the planner (rank 0) turns the circuit into windows and gives every window its parity rows
+%   middle  one window: every node keeps its sectors in host memory and its GPUs take them one at a time;
+%           nothing moves between nodes while the window runs
+%   bottom  the window boundary: the outputs, already divided by the rows of the next window, go to the
+%           nodes that own the next sectors; checkpoint; then the next window
+% A sector has the color of the node that owns it (sector d lives on node d mod 4). Numbers are those of
+% the 127-qubit kicked Ising circuit on four nodes: 5,420 gates, 2,540 rotations after the Clifford frame,
+% 127 rotations per window, generator rank 127. The window shown is window 9 of the run on 16 GPUs
+% (logs/pp_e11-59488608.out): 158.9 million terms in 64 sectors (6 rows), largest sector 1.01 times the mean.
+\begin{tikzpicture}[x=1cm, y=1cm, font=\rmfamily\footnotesize]
+  \tikzset{g/.style={draw=black!70, line width=0.3pt, anchor=west, inner sep=0pt, minimum width=0.24cm, minimum height=0.34cm},
+           win/.style={draw=black!80, line width=0.45pt, fill=white, anchor=west, inner sep=0pt, minimum width=1.45cm,
+                       minimum height=0.42cm, font=\rmfamily\footnotesize},
+           sec/.style={draw=black!70, line width=0.35pt, anchor=west, inner sep=0pt, minimum width=0.46cm, minimum height=0.36cm,
+                       font=\rmfamily\scriptsize}}
+  % ================= planner: circuit -> windows -> rows =================
+  \node[layer, anchor=north west, minimum width=13.9cm, minimum height=2.22cm] at (0,0) {};
+  \node[lttl, anchor=north west] at (0.1,-0.04) {Planner};
+  % the circuit and the Clifford frame
+  \node[draw=black, fill=navyf, text=white, font=\rmfamily\bfseries\footnotesize, anchor=west, minimum width=1.25cm, minimum height=0.42cm] at (1.75,-0.48) {Circuit};
+  \foreach \i/\f in {0/genc, 1/white, 2/white, 3/genc, 4/genc, 5/white, 6/genc, 7/white, 8/white, 9/genc, 10/genc, 11/white}
+    \node[g, fill=\f] at ({3.2+0.24*\i},-0.48) {};
+  \node[comp, fill=peach, anchor=west, minimum width=1.9cm, minimum height=0.46cm, font=\rmfamily\bfseries\footnotesize] (cf) at (6.65,-0.48) {Clifford Frame};
+  \draw[sarr] (6.1,-0.48) -- (cf.west);
+  \foreach \i in {0,...,6}
+    \node[g, fill=genc] at ({9.1+0.24*\i},-0.48) {};
+  \draw[sarr] (cf.east) -- (9.1,-0.48);
+  \node[inote, anchor=west] at (10.85,-0.48) {5,420 to 2,540 Gates};
+  % windows of the rotation list, and the plan of one window
+  \node[num] at (0.35,-1.24) {1};
+  \node[cttl, anchor=west] at (0.55,-1.24) {Windows};
+  \node[win] at (1.75,-1.24) {Window 8};
+  \node[win, draw=dred, line width=1.0pt] (w12) at (3.25,-1.24) {Window 9};
+  \node[win] at (4.75,-1.24) {Window 10};
+  \node[blk, fill=genc, minimum width=1.75cm, minimum height=0.42cm, font=\rmfamily\footnotesize] (gen) at (7.6,-1.24) {127 Rotations};
+  \draw[sarr] (6.2,-1.24) -- (gen.west);
+  \node[dia, aspect=2.0, inner sep=0.2pt, font=\rmfamily\itshape\scriptsize] (vr) at (9.75,-1.24) {$r(Q){=}0$?};
+  \draw[sarr] (gen.east) -- (vr.west);
+  \foreach \i/\t in {0/$r_1$, 1/$r_2$, 2/$\cdots$, 3/$r_6$}
+    \node[blk, fill=rowc, minimum width=0.4cm, minimum height=0.42cm, font=\rmfamily\footnotesize] at ({11.25+0.4*\i},-1.24) {\t};
+  \draw[sarr] (vr.east) -- (11.05,-1.24);
+  \node[blk, fill=white, minimum width=1.0cm, minimum height=0.42cm, font=\rmfamily\footnotesize] at (13.25,-1.24) {$2^6$};
+  \node[inote, anchor=north] at (7.6,-1.5) {Generator Rank 127};
+  \node[inote, anchor=north] at (9.75,-1.62) {Valid Rows};
+  \node[inote, anchor=north] at (11.85,-1.5) {Even on a Sample};
+  \node[inote, anchor=north] at (13.25,-1.5) {Sectors};
+  \node[inote, anchor=north] at (4.0,-1.5) {127 Rotations Each, Chosen at Run Time};
+  % ================= one window on four nodes =================
+  \node[frame, anchor=north west, minimum width=13.9cm, minimum height=4.12cm] at (0,-2.42) {};
+  \node[lttl, anchor=north west] at (0.1,-2.46) {Window 9};
+  \node[note, anchor=north west] at (2.2,-2.5) {159 Million Terms in 64 Sectors};
+  \node[key, anchor=north east] at (13.8,-2.5) {No MPI While the Window Runs};
+  \node[cttl] at (2.75,-3.12) {Sectors in Host DRAM};
+  \node[cttl] at (7.25,-3.12) {GPUs: One Sector at a Time};
+  \node[cttl] at (12.05,-3.12) {Pieces of the Next Sectors};
+  \foreach \n/\f/\a/\b/\c/\d/\e in {0/sa/0/4/8/12/60, 1/sb/1/5/9/13/61, 2/sc/2/6/10/14/62, 3/sd/3/7/11/15/63}
+  {
+    \node[cttl, anchor=west] at (0.1,{-3.62-0.76*\n}) {Node \n};
+    % sectors of this node
+    \node[host, anchor=west, minimum width=3.3cm, minimum height=0.6cm] at (1.1,{-3.62-0.76*\n}) {};
+    \foreach \i/\t in {0/\a, 1/\b, 2/\c, 3/\d, 4/$\cdots$, 5/\e}
+      \node[sec, fill=\f] at ({1.37+0.46*\i},{-3.62-0.76*\n}) {\t};
+    % its four GPUs
+    \foreach \g in {0,1,2,3}
+      \node[gpu, anchor=west, minimum width=1.0cm, minimum height=0.6cm] at ({5.0+1.08*\g},{-3.62-0.76*\n}) {};
+    \node[sec, fill=\f] at (5.27,{-3.62-0.76*\n}) {\a};
+    \node[sec, fill=\f] at (6.35,{-3.62-0.76*\n}) {\b};
+    \node[sec, fill=\f] at (7.43,{-3.62-0.76*\n}) {\c};
+    \node[sec, fill=\f] at (8.51,{-3.62-0.76*\n}) {\d};
+    % its output, divided by the rows of the next window
+    \node[host, anchor=west, minimum width=3.3cm, minimum height=0.6cm] at (10.5,{-3.62-0.76*\n}) {};
+    \foreach \i/\ff in {0/sa, 1/sb, 2/sc, 3/sd, 4/sa, 5/sb}
+      \node[sec, fill=\ff] at ({10.77+0.46*\i},{-3.62-0.76*\n}) {};
+    \draw[sarr] (4.42,{-3.62-0.76*\n}) -- (4.98,{-3.62-0.76*\n});
+    \draw[sarr] (9.3,{-3.62-0.76*\n}) -- (10.48,{-3.62-0.76*\n});
   }
-  % host store
-  \node[frame, fill=sandlight, minimum width=6.8cm, minimum height=2.1cm, anchor=south west] (H\n) at (\x+0.35,1.95) {};
-  \node[font=\bfseries, anchor=north west] at ($(H\n.north west)+(0.1,-0.05)$) {Host Sector Store};
-  \node[font=\small\itshape, anchor=north east] at ($(H\n.north east)+(-0.1,-0.07)$) {pinned chunks};
-  \foreach \k/\w in {0/1.0,1/0.7,2/1.05,3/0.85,4/1.0} {
-    \pgfmathsetmacro{\bx}{0.3+\k*1.3}
-    \node[frame, draw=teal, fill=tealfill, minimum width=\w cm, minimum height=0.5cm, anchor=west] at ($(H\n.south west)+(\bx,0.55)$) {};
-  }
-  % load / store arrows
-  \draw[flow, teal]  ($(G\n A.south)+(-0.9,0)$) ++(0,-1.0) -- ++(0,1.0);
-  \node[stepno] at ($(G\n A.south)+(-1.3,-0.5)$) {1};
-  \draw[flow, brick] ($(G\n B.south)+(0.9,0)$) -- ++(0,-1.0);
-  \node[stepno] at ($(G\n B.south)+(1.3,-0.5)$) {3};
-}
-% planner -> nodes
-\draw[thin flow, ink] (3.75,8.3) -- (3.75,7.72);
-\draw[thin flow, ink] (11.65,8.3) -- (11.65,7.72);
-% exchange between nodes
-\draw[{Latex[length=2.4mm,width=1.9mm]}-{Latex[length=2.4mm,width=1.9mm]}, line width=1.0pt, sand!60!black] (H1.east) -- (H2.west);
-\node[stepno] at (7.7,3.45) {4};
-% checkpoint
-\node[box, minimum width=3.4cm] (ck1) at (3.75,0.75) {Checkpoint File};
-\node[box, minimum width=3.4cm] (ck2) at (11.65,0.75) {Checkpoint File};
-\draw[thin flow, ink] (3.75,1.95) -- (ck1.north);
-\draw[thin flow, ink] (11.65,1.95) -- (ck2.north);
-\node[stepno] at (4.15,1.5) {5};
-\node[stepno] at (12.05,1.5) {5};
-% legend
-\node[stepno] (l1) at (0.3,-0.15) {1}; \node[anchor=west, font=\small] at (0.55,-0.15) {Load Sector};
-\node[stepno] (l2) at (3.0,-0.15) {2}; \node[anchor=west, font=\small] at (3.25,-0.15) {Apply Gates, Merge, Truncate};
-\node[stepno] (l3) at (8.2,-0.15) {3}; \node[anchor=west, font=\small] at (8.45,-0.15) {Re-Partition for the Next Window};
-\node[stepno] (l4) at (0.3,-0.8) {4}; \node[anchor=west, font=\small] at (0.55,-0.8) {Exchange Sectors Between Nodes (window boundary only)};
-\node[stepno] (l5) at (10.0,-0.8) {5}; \node[anchor=west, font=\small] at (10.25,-0.8) {Checkpoint};
+  \foreach \n in {0,1,2}
+    \draw[black!55, dashed, line width=0.5pt] (0.1,{-4.0-0.76*\n}) -- (13.8,{-4.0-0.76*\n});
+  \node[num] at (4.7,-3.3) {2};
+  \node[num] at (9.89,-3.3) {4};
+  \node[num, anchor=east] at (5.36,-3.12) {3};
+  % ================= window boundary (read from right to left) =================
+  \node[layer, anchor=north west, minimum width=13.9cm, minimum height=1.32cm] at (0,-7.1) {};
+  \node[lttl, anchor=north west] at (0.1,-7.14) {Window Boundary};
+  \node[num] at (12.3,-7.98) {5};
+  \node[cttl, anchor=west] at (12.5,-7.98) {Exchange};
+  \foreach \i/\ff in {0/sa, 1/sb, 2/sc, 3/sd}
+    \node[sec, fill=\ff] at ({10.0+0.46*\i},-7.98) {};
+  \draw[fat, dblue] (9.85,-7.98) -- (8.95,-7.98);
+  \node[inote, text=dblue, anchor=south] at (9.4,-7.74) {MPI};
+  \foreach \i/\ff/\t in {0/sa/0, 1/sb/1, 2/sc/2, 3/sd/3}
+    \node[sec, fill=\ff, minimum width=0.95cm, font=\rmfamily\footnotesize] at ({5.0+0.95*\i},-7.98) {Node \t};
+  \node[inote, anchor=south] at (6.9,-7.74) {Every Next Sector on Its Node};
+  \draw[sarr] (4.95,-7.98) -- (4.5,-7.98);
+  \node[blk, fill=black!18, minimum width=1.4cm, minimum height=0.4cm, font=\rmfamily\footnotesize] at (3.75,-7.98) {Checkpoint};
+  \node[num] at (2.75,-7.98) {6};
+  % the cycle: down into the boundary on the right, up into the next window on the left
+  \draw[fat] (13.3,-6.54) -- (13.3,-7.1);
+  \draw[fat] (0.75,-7.1) -- (0.75,-6.54);
+  \node[note, anchor=west] at (1.0,-6.82) {Next Window};
 \end{tikzpicture}
-\end{document}

@@ -1,0 +1,57 @@
+% Shared TikZ style of the SectorQ design figures (CASCADE look).
+% Every design figure is drawn at a width of 13.9 cm; the font sizes below are final.
+%
+% Colors: one color per entity, kept in every box it appears in.
+%   sector 00 blue, 01 green, 10 yellow, 11 violet; a generator Q orange; a parity row teal
+%   GPU boxes cyan; host memory and planner decisions peach; red only for the key value of a
+%   figure and for the cost that SectorQ removes; blue arrows are MPI between nodes.
+% Typography (one rule for all figures):
+%   bold     names of boxes only: nodes, layers, components, GPUs, steps
+%   bold     the one or two key values of a figure (key, red)
+%   regular  everything inside a box: table headers (gray fill), cell values, block labels
+%   italic   labels of arrows and notes, never bold
+% Arrows: arr is at least 0.35 cm long; shorter arrows inside a box use sarr (at least 0.25 cm).
+% No text or arrow crosses the border of a box it does not belong to.
+\definecolor{panel}{gray}{0.94}
+\definecolor{cyanp}{HTML}{BFE6EC}
+\definecolor{peach}{HTML}{FBE1D2}
+\definecolor{dred}{HTML}{C00000}
+\definecolor{dblue}{HTML}{2E75B6}
+\definecolor{navyf}{HTML}{1F3864}
+\definecolor{badc}{HTML}{F8D7D0}
+\definecolor{sa}{HTML}{8FAADC}   % sector 00
+\definecolor{sb}{HTML}{A9D18E}   % sector 01
+\definecolor{sc}{HTML}{FFD966}   % sector 10
+\definecolor{sd}{HTML}{CDB5E8}   % sector 11
+\definecolor{genc}{HTML}{F4B183} % generator Q
+\definecolor{rowc}{HTML}{9FD8CB} % parity row
+\tikzset{
+  layer/.style={draw=black!70, fill=panel, line width=0.5pt},
+  frame/.style={draw=navyf, fill=white, line width=0.7pt},
+  gpu/.style={draw=navyf, fill=cyanp, line width=0.5pt},
+  host/.style={draw=black!70, fill=peach, line width=0.5pt},
+  comp/.style={draw=black, fill=white, line width=0.45pt, align=center,
+               font=\rmfamily\scriptsize, inner sep=1.5pt, minimum height=0.55cm},
+  blk/.style={draw=black!70, line width=0.35pt, minimum width=0.5cm, minimum height=0.36cm,
+              inner sep=0pt, font=\rmfamily\scriptsize},
+  free/.style={blk, pattern=north east lines, pattern color=black!55},
+  cell/.style={draw=black!70, line width=0.35pt, anchor=north west, inner sep=0pt,
+               minimum height=0.32cm, text height=0.19cm, text depth=0.06cm, font=\rmfamily\scriptsize},
+  hcell/.style={cell, fill=black!10},
+  lttl/.style={font=\rmfamily\bfseries\normalsize, inner sep=1.5pt},
+  ttl/.style={font=\rmfamily\bfseries\small, inner sep=1.5pt},
+  cttl/.style={font=\rmfamily\bfseries\footnotesize, inner sep=1.5pt},
+  ittl/.style={font=\rmfamily\bfseries\scriptsize, inner sep=1.5pt},
+  note/.style={font=\rmfamily\itshape\footnotesize, inner sep=1.5pt},
+  inote/.style={font=\rmfamily\itshape\scriptsize, inner sep=1.5pt},
+  key/.style={font=\rmfamily\itshape\bfseries\footnotesize, text=dred, inner sep=1.5pt},
+  arr/.style={-{Latex[length=1.6mm]}, line width=0.8pt},
+  sarr/.style={-{Latex[length=1.2mm,width=1.1mm]}, line width=0.6pt},
+  darr/.style={{Latex[length=1.6mm]}-{Latex[length=1.6mm]}, line width=0.8pt},
+  fat/.style={-{Triangle[length=2.2mm,width=3.4mm]}, line width=2.4pt},
+  dfat/.style={{Triangle[length=1.8mm,width=3.0mm]}-{Triangle[length=1.8mm,width=3.0mm]}, line width=2.0pt},
+  dia/.style={draw=black!80, fill=white, diamond, aspect=1.6, inner sep=0.4pt, line width=0.45pt,
+              font=\rmfamily\itshape\scriptsize},
+  num/.style={circle, fill=black, text=white, font=\sffamily\bfseries\scriptsize,
+              inner sep=0.6pt, minimum size=0.34cm},
+}

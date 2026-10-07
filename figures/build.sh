@@ -1,15 +1,18 @@
 #!/bin/bash
-# Builds the figures of the README. Design figures: TikZ (src/*.tex) -> PDF -> PNG.
-# Evaluation figures: make_eval_figures.py reads the run logs in ../logs.
+# Builds the figures of the README.
+#   design figures      TikZ (src/design_*.tex with src/tikz_style.tex) -> PDF -> PNG
+#   evaluation figures  make_eval_figures.py reads the run logs in ../logs
+# Usage: figures/build.sh [design [NAME]]
 set -euo pipefail
 cd "$(dirname "$0")"
 module load texlive/2024 2>/dev/null || true
-for t in src/design_*.tex; do
+if [ -n "${2:-}" ]; then list="src/$2.tex"; else list=$(ls src/design_*.tex); fi
+for t in $list; do
   n=$(basename "$t" .tex)
-  pdflatex -interaction=nonstopmode -halt-on-error -output-directory=src "$t" > src/$n.build.log 2>&1 || { tail -20 src/$n.build.log; exit 1; }
-  gs -q -dNOPAUSE -dBATCH -sDEVICE=png16m -r480 -dTextAlphaBits=4 -dGraphicsAlphaBits=4 -sOutputFile=src/$n.big.png src/$n.pdf
-  convert src/$n.big.png -resize 50% $n.png
-  rm -f src/$n.big.png src/$n.aux src/$n.log src/$n.build.log
+  ( cd src && pdflatex -interaction=nonstopmode -halt-on-error -jobname="$n" "\def\figfile{$n.tex}\input{standalone.tex}" > "$n.build.log" 2>&1 ) || { grep -A6 '^!' "src/$n.build.log" | head -20; exit 1; }
+  # four times the resolution, then scaled down: smooth text and lines, hatching stays intact
+  gs -q -dNOPAUSE -dBATCH -sDEVICE=png16m -r1200 -dDownScaleFactor=4 -sOutputFile="$n.png" "src/$n.pdf"
+  rm -f "src/$n.aux" "src/$n.log" "src/$n.build.log"
   echo "built $n.png"
 done
 [ "${1:-}" = "design" ] || ../env/bin/python make_eval_figures.py

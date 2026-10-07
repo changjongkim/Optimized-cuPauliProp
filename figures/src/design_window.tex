@@ -1,0 +1,69 @@
+% Windows in time (Section 3.3): where communication happens. One gate axis for three bands.
+%   top     cuPauliProp's distributed mode: a global merge after every gate (22 collective calls per gate on
+%           every rank, logs/pp_prof4n-59470888.out)
+%   middle  SectorQ on four nodes over three windows: inside a window every node works on its own sectors
+%           (a sector has the color of its node); at the end of a window the output is already divided into
+%           pieces of all next sectors; the exchange at the boundary puts every next sector on its node
+%   bottom  measured number of terms over the same three windows (kicked Ising, cutoff 1e-5, windows 8-10,
+%           results/profile/ki_lab_1e5.csv, job 59488608): 1.36 billion at the peak, 159 million at the
+%           boundary, because a window ends right after a truncation
+\input{window_curve.tex}
+\begin{tikzpicture}[x=1cm, y=1cm, font=\rmfamily\footnotesize]
+  \tikzset{sec/.style={draw=black!70, line width=0.3pt, anchor=west, inner sep=0pt, minimum width=0.46cm, minimum height=0.32cm,
+                       font=\rmfamily\scriptsize},
+           pc/.style={draw=black!70, line width=0.25pt, anchor=west, inner sep=0pt, minimum width=0.11cm, minimum height=0.32cm}}
+  % ================= cuPauliProp: a global step after every gate =================
+  \node[layer, anchor=north west, minimum width=13.9cm, minimum height=1.12cm] at (0,0) {};
+  \node[cttl, anchor=west, align=left] at (0.1,-0.56) {cuPauliProp\\Distributed};
+  \foreach \k in {0,...,35}
+  {
+    \node[draw=black!60, line width=0.3pt, fill=black!22, anchor=west, minimum width=0.2cm, minimum height=0.4cm, inner sep=0pt] at ({2.3+0.314*\k},-0.4) {};
+    \fill[dred] ({2.3+0.314*\k+0.218},-0.12) rectangle ++(0.065,-0.56);
+  }
+  \node[inote, anchor=west] at (2.25,-0.9) {One Gate};
+  \fill[dred] (3.75,-0.8) rectangle ++(0.065,-0.2);
+  \node[inote, anchor=west] at (3.87,-0.9) {Global Merge on All GPUs};
+  \node[key, anchor=east] at (13.8,-0.9) {22 Collective Calls per Gate};
+  % ================= SectorQ: four nodes, three windows =================
+  \node[frame, anchor=north west, minimum width=13.9cm, minimum height=3.3cm] at (0,-1.3) {};
+  \node[lttl, anchor=north west] at (0.1,-1.33) {SectorQ};
+  \foreach \x/\t in {4.05/Window 8, 7.95/Window 9, 11.85/Window 10}
+    \node[cttl] at (\x,-1.92) {\t: 127 Gates};
+  \foreach \n/\f/\a/\b/\c/\d/\e/\g in {0/sa/0/4/8/12/16/20, 1/sb/1/5/9/13/17/21, 2/sc/2/6/10/14/18/22, 3/sd/3/7/11/15/19/23}
+  {
+    \node[cttl, anchor=west] at (0.1,{-2.45-0.55*\n}) {Node \n};
+    \foreach \x in {2.3, 6.2, 10.1}
+    {
+      \node[gpu, anchor=west, minimum width=3.42cm, minimum height=0.44cm] at (\x,{-2.45-0.55*\n}) {};
+      \foreach \i/\t in {0/\a, 1/\b, 2/\c, 3/\d, 4/\e, 5/\g}
+        \node[sec, fill=\f] at ({\x+0.08+0.46*\i},{-2.45-0.55*\n}) {\t};
+      \foreach \i/\ff in {0/sa, 1/sb, 2/sc, 3/sd}
+        \node[pc, fill=\ff] at ({\x+2.92+0.11*\i},{-2.45-0.55*\n}) {};
+    }
+  }
+  % the exchange at the two boundaries
+  \foreach \x in {5.8, 9.7}
+  {
+    \fill[dblue!25] (\x,-2.2) rectangle ++(0.4,-2.15);
+    \draw[dfat, dblue] ({\x+0.2},-2.27) -- ({\x+0.2},-4.28);
+  }
+  \node[inote, text=dblue] at (6.0,-1.92) {MPI};
+  \node[inote, text=dblue] at (9.9,-1.92) {MPI};
+  \node[key, anchor=north east] at (13.8,-1.36) {No MPI Inside a Window};
+  \node[pc, fill=sa] at (2.3,-1.52) {}; \node[pc, fill=sb] at (2.41,-1.52) {}; \node[pc, fill=sc] at (2.52,-1.52) {}; \node[pc, fill=sd] at (2.63,-1.52) {};
+  \node[inote, anchor=west] at (2.78,-1.52) {Output, Divided for the Next Window};
+  % ================= measured number of terms =================
+  \node[layer, anchor=north west, minimum width=13.9cm, minimum height=1.82cm] at (0,-4.78) {};
+  \node[cttl, anchor=west, align=left] at (0.1,-5.5) {Terms\\(Measured)};
+  \foreach \x in {5.8, 9.7}
+    \fill[dblue!25] (\x,-4.9) rectangle ++(0.4,-1.38);
+  \fill[black!28] \curvepts -- (13.6,-6.22) -- (2.3,-6.22) -- cycle;
+  \draw[black!85, line width=0.7pt] plot coordinates {\curvepts};
+  \draw[black!70, line width=0.5pt] (2.3,-6.22) -- (13.6,-6.22);
+  \foreach \x in \truncticks
+    \draw[black!70, line width=0.5pt] (\x,-6.22) -- (\x,-6.31);
+  \node[key, anchor=west, inner sep=1pt] at (4.3,-5.08) {1.36 Billion at the Peak};
+  \node[key, anchor=south, inner sep=1pt] at (6.0,-5.78) {159M};
+  \node[inote, anchor=south, inner sep=1pt] at (9.9,-5.82) {147M};
+  \node[inote, anchor=west] at (10.5,-5.08) {Ticks: Truncations};
+\end{tikzpicture}

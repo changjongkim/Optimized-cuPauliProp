@@ -1,0 +1,94 @@
+% Sector-at-a-time execution (Section 3.4): what the host memory and one GPU hold while a window runs, and
+% how a sector that outgrows the GPU is halved. Data structures of src/engine/pp_engine.cpp: a sector is a
+% list of fixed-size chunks (262,144 terms each, pinned once and reused, ChunkPool); a worker keeps two
+% term buffers of 20% of the GPU memory each and the rest as scratch space (Worker::init, expShare = 0.2):
+% 190 million terms per buffer on 36 GB. Worker::process loads a sector, applies the operations of the
+% window, splits the sector by one more row of the window when the next operation does not fit
+% (splitCurrent), and divides the output by the rows of the next window into the tails of the next sectors.
+% Key value: 12.1 billion terms at a window boundary on 16 GPUs (logs/inter_run3.out).
+\begin{tikzpicture}[x=1cm, y=1cm, font=\rmfamily\footnotesize]
+  \tikzset{ch/.style={draw=black!70, line width=0.3pt, anchor=west, inner sep=0pt, minimum width=0.4cm, minimum height=0.3cm},
+           lab/.style={draw=black!70, line width=0.35pt, anchor=west, inner sep=0pt, minimum width=1.2cm, minimum height=0.3cm,
+                       font=\rmfamily\footnotesize}}
+  % ================= host memory =================
+  \node[host, anchor=north west, minimum width=6.3cm, minimum height=5.2cm] at (0,0) {};
+  \node[lttl, anchor=north] at (3.15,-0.03) {Host DRAM};
+  % sectors of this window
+  \node[comp, anchor=north west, minimum width=6.0cm, minimum height=2.1cm] at (0.15,-0.52) {};
+  \node[cttl, anchor=north west] at (0.2,-0.53) {Sectors of This Window};
+  \node[inote, anchor=north east] at (6.1,-0.55) {Chunk = 262,144 Terms};
+  \foreach \k/\t/\f/\n in {0/Sector 0/sa/6, 1/Sector 4/sb/5, 2/Sector 8/sc/7}
+  {
+    \node[lab, fill=\f] at (0.3,{-1.12-0.38*\k}) {\t};
+    \foreach \i in {1,...,\n}
+      \node[ch, fill=\f] at ({1.5+0.4*(\i-1)},{-1.12-0.38*\k}) {};
+  }
+  \node[lab, fill=sa, draw=dred, line width=0.9pt, minimum width=0.6cm] at (0.3,-2.3) {0a};
+  \foreach \i in {0,1,2}
+    \node[ch, fill=sa] at ({0.9+0.4*\i},-2.3) {};
+  \node[lab, fill=sa!50, draw=dred, line width=0.9pt, minimum width=0.6cm] at (3.3,-2.3) {0b};
+  \foreach \i in {0,1,2}
+    \node[ch, fill=sa!50] at ({3.9+0.4*\i},-2.3) {};
+  % sectors of the next window
+  \node[comp, anchor=north west, minimum width=6.0cm, minimum height=1.32cm] at (0.15,-2.76) {};
+  \node[cttl, anchor=north west] at (0.2,-2.77) {Sectors of the Next Window};
+  \foreach \k/\t/\f/\n in {0/Next 00/sa/3, 1/Next 01/sb/4}
+  {
+    \node[lab, fill=\f] at (0.3,{-3.38-0.38*\k}) {\t};
+    \foreach \i in {1,...,\n}
+      \node[ch, fill=\f] at ({1.5+0.4*(\i-1)},{-3.38-0.38*\k}) {};
+  }
+  \node[ch, fill=sa!40] at (2.7,-3.38) {};
+  \node[ch, fill=sb!40] at (3.1,-3.76) {};
+  \node[inote, anchor=west] at (3.65,-3.57) {Tails Fill Up};
+  % chunk pool
+  \node[comp, anchor=north west, minimum width=6.0cm, minimum height=0.86cm] at (0.15,-4.22) {};
+  \node[cttl, anchor=north west] at (0.2,-4.23) {Chunk Pool};
+  \node[inote, anchor=north east] at (6.1,-4.25) {Pinned Once, Reused};
+  \foreach \i in {0,...,8}
+    \node[ch, pattern=north east lines, pattern color=black!55] at ({0.3+0.4*\i},-4.83) {};
+  % ================= one GPU =================
+  \node[gpu, anchor=north west, minimum width=6.9cm, minimum height=5.2cm] at (7.0,0) {};
+  \node[lttl, anchor=north] at (10.45,-0.03) {GPU 0};
+  % memory of the GPU: two term buffers and scratch space
+  \node[ittl, anchor=south west] at (7.2,-0.92) {Input 20\%};
+  \node[ittl, anchor=south west] at (8.5,-0.92) {Output 20\%};
+  \node[ittl, anchor=south west] at (9.95,-0.92) {Scratch 60\%};
+  \node[draw=black!80, line width=0.45pt, fill=white, anchor=west, minimum width=1.3cm, minimum height=0.4cm] at (7.2,-1.15) {};
+  \node[draw=black!80, line width=0.45pt, fill=sa, anchor=west, minimum width=0.5cm, minimum height=0.4cm, inner sep=0pt] at (7.2,-1.15) {0};
+  \node[draw=dred, line width=1.0pt, fill=white, anchor=west, minimum width=1.3cm, minimum height=0.4cm] (ob) at (8.5,-1.15) {};
+  \node[draw=black!80, line width=0.45pt, fill=sa, anchor=west, minimum width=1.2cm, minimum height=0.4cm, inner sep=0pt] at (8.5,-1.15) {};
+  \node[draw=black!80, line width=0.45pt, pattern=north east lines, pattern color=black!45, anchor=west, minimum width=3.85cm, minimum height=0.4cm] at (9.85,-1.15) {};
+  \node[key, anchor=east] at (13.75,-1.72) {190 Million Terms per Buffer};
+  \node[num] at (7.42,-1.72) {2};
+  \node[inote, anchor=west] at (7.62,-1.72) {127 Gates};
+  % does the next gate fit?
+  \node[dia, draw=dred, line width=1.0pt, font=\rmfamily\itshape\footnotesize] (fit) at (12.6,-2.5) {Fits?};
+  \draw[sarr] (9.15,-1.36) -- (9.15,-2.02) -- (12.6,-2.02) -- (fit.north);
+  \node[blk, fill=rowc, minimum width=2.0cm, minimum height=0.4cm, font=\rmfamily\footnotesize] (row) at (10.45,-2.5) {One More Row};
+  \draw[sarr, dred] (fit.west) -- (row.east);
+  \node[inote, text=dred, anchor=south, inner sep=1pt] at (11.72,-2.5) {No};
+  \node[blk, fill=sa, minimum width=0.6cm, minimum height=0.4cm, font=\rmfamily\footnotesize] at (8.0,-2.5) {0a};
+  \node[blk, fill=sa!50, minimum width=0.6cm, minimum height=0.4cm, font=\rmfamily\footnotesize] at (8.6,-2.5) {0b};
+  \draw[sarr, dred] (row.west) -- (8.92,-2.5);
+  % the output goes to the sectors of the next window
+  \node[blk, fill=sa, minimum width=1.1cm, minimum height=0.4cm, font=\rmfamily\footnotesize] (out) at (12.6,-3.57) {Output};
+  \draw[sarr] (fit.south) -- (out.north);
+  \node[inote, anchor=west, inner sep=1pt] at (12.66,-3.15) {Yes};
+  \node[blk, fill=rowc, minimum width=1.4cm, minimum height=0.4cm, font=\rmfamily\footnotesize] (nr) at (10.72,-3.57) {Next Rows};
+  \draw[sarr] (out.west) -- (nr.east);
+  \foreach \i/\f/\t in {0/sa/00, 1/sb/01, 2/sc/10, 3/sd/11}
+    \node[blk, fill=\f, minimum width=0.42cm, minimum height=0.4cm, font=\rmfamily\scriptsize] at ({7.91+0.42*\i},-3.57) {\t};
+  \draw[sarr] (nr.west) -- (9.4,-3.57);
+  % key value
+  \node[draw=black!70, line width=0.45pt, fill=white, anchor=north west, minimum width=6.6cm, minimum height=0.72cm] at (7.15,-4.3) {};
+  \node[key, anchor=west] at (7.25,-4.66) {12.1 Billion Terms on 16 GPUs};
+  \node[inote, anchor=east] at (13.68,-4.66) {Held in Host Memory};
+  % ================= the three paths between host and GPU =================
+  \draw[arr] (6.3,-1.15) -- (7.0,-1.15);
+  \node[num] at (6.65,-0.86) {1};
+  \draw[arr, dred] (7.0,-2.5) -- (6.3,-2.5);
+  \node[num] at (6.65,-2.21) {3};
+  \draw[arr] (7.0,-3.57) -- (6.3,-3.57);
+  \node[num] at (6.65,-3.28) {4};
+\end{tikzpicture}
