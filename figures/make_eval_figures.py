@@ -6,6 +6,7 @@ Run times, expectation values and time breakdowns are read from the run logs in 
 background figure and of the exact-value check come from earlier logs with other formats
 and are listed below with their source.
 """
+import glob
 import os
 import re
 import sys
@@ -75,6 +76,9 @@ def parse(name):
         m = re.match(r"max_terms_at_window_boundary=(\d+)", line)
         if m:
             cur["boundary"] = int(m.group(1))
+        m = re.match(r"integrity: (\d+) term checks", line)
+        if m:
+            cur["checks"] = int(m.group(1))
         m = re.match(r"exit=(\d+)", line)
         if m:
             cur["exit"] = int(m.group(1))
@@ -276,6 +280,131 @@ def gpus_and_reach(run4, run5, allruns, big):
 
 
 # ---------------------------------------------------------------------------------------
+# scaling on 4-128 GPUs, 40 GB nodes at 36 GB per GPU: engine from job set e13 (default settings),
+# cuPauliProp from job set e12
+# ---------------------------------------------------------------------------------------
+SCALE3 = [("ki_lab", "Kicked Ising", 3e-6), ("tfim_hh", "TFIM heavy-hex", 5e-6), ("ki_noisy", "Noisy Kicked Ising", 5e-6)]
+WEAK_CUTOFF = {4: 1e-5, 8: 7e-6, 16: 4.8e-6, 32: 3.4e-6, 64: 2.3e-6, 128: 1.6e-6}
+
+
+def cut(v):
+    """A cutoff as 3e-6 instead of 3e-06."""
+    return f"{v:g}".replace("e-0", "e-")
+
+
+def many(pattern):
+    out = []
+    for path in sorted(glob.glob(os.path.join(LOGS, pattern))):
+        out += parse(os.path.basename(path))
+    return out
+
+
+def default_run(runs, circuit, coef, gpus):
+    """The engine with its default sector limit and chunk size."""
+    hits = [r for r in runs if r["kind"] == "engine" and r["circuit"] == circuit and abs(r["coef"] / coef - 1) < 1e-9
+            and r["gpus"] == gpus and "--gmax" not in r["opt"] and "--chunk" not in r["opt"] and ok(r)]
+    return hits[-1] if hits else None
+
+
+def scaling(e13):
+    counts = [g for g in (4, 8, 16, 32, 64, 128) if default_run(e13, "ki_lab", 3e-6, g)]
+    fig, axes = plt.subplots(2, 3, figsize=(13.6, 6.9), gridspec_kw={"wspace": 0.2, "hspace": 0.5})
+    strong, weak = [], []
+    for j, (c, title, coef) in enumerate(SCALE3):
+        # strong scaling: the same problem on every GPU count
+        ax = axes[0][j]
+        rs = [default_run(e13, c, coef, g) for g in counts]
+        t0, g0 = rs[0]["wall"], counts[0]
+        for i, (g, r) in enumerate(zip(counts, rs)):
+            if r is None:
+                continue
+            ax.bar(i, r["wall"], width=0.62, color=OURS)
+            ideal = t0 * g0 / g
+            ax.plot([i - 0.38, i + 0.38], [ideal, ideal], color=INK, linewidth=1.6)
+            ax.text(i, r["wall"] * 1.12, secs(r["wall"]) + " s" if i == 0 else times(t0, r["wall"]), ha="center", va="bottom", fontsize=12)
+            strong.append((title, coef, g, r))
+        ax.set_yscale("log")
+        ax.set_ylim(t0 / (counts[-1] / g0) / 2.2, t0 * 2.6)
+        ax.set_xticks(range(len(counts)))
+        ax.set_xticklabels([str(g) for g in counts])
+        ax.set_xlabel(f"GPUs (cutoff {cut(coef)})")
+        ax.set_title(title, fontsize=14, fontweight="bold", pad=8)
+        ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:g}"))
+        ax.yaxis.set_minor_formatter(NullFormatter())
+        if j == 0:
+            ax.set_ylabel("Time (s)")
+        clean(ax)
+        # weak scaling: the cutoff is lowered with the GPU count, the rate is terms per second and GPU
+        ax = axes[1][j]
+        rs = [default_run(e13, c, WEAK_CUTOFF[g], g) for g in counts]
+        rate = [None if r is None else r["checks"] / r["wall"] / g for g, r in zip(counts, rs)]
+        for i, (g, r) in enumerate(zip(counts, rs)):
+            if r is None:
+                continue
+            pct = 100 * rate[i] / rate[0]
+            ax.bar(i, pct, width=0.62, color=OURS)
+            ax.text(i, 103, f"{pct:.0f}%", ha="center", va="bottom", fontsize=12)      # all labels in one row above the ideal line
+            weak.append((title, g, r, rate[i], pct))
+        ax.axhline(100, color=INK, linewidth=1.6)
+        ax.set_ylim(0, 118)
+        ax.set_yticks([0, 25, 50, 75, 100])
+        ax.set_xticks(range(len(counts)))
+        ax.set_xticklabels([f"{g}\n{cut(WEAK_CUTOFF[g])}" for g in counts], fontsize=11)
+        ax.set_xlabel("GPUs and Cutoff of the Run")
+        if j == 0:
+            ax.set_ylabel("Terms per Second per GPU\n(% of 4 GPUs)")
+        clean(ax)
+    fig.legend([plt.Rectangle((0, 0), 1, 1, color=OURS), plt.Line2D([0], [0], color=INK, linewidth=1.6)], ["SectorQ", "Ideal scaling from 4 GPUs"],
+               loc="upper center", ncol=2, bbox_to_anchor=(0.5, 0.985), fontsize=12.5, columnspacing=2.2, handlelength=1.4)
+    for ax, label in ((axes[0][0], "Strong Scaling"), (axes[1][0], "Weak Scaling")):
+        box = ax.get_position()
+        fig.text(0.028, (box.y0 + box.y1) / 2, label, fontsize=13.5, fontweight="bold", rotation=90, ha="center", va="center")
+    save(fig, "eval_scaling.png")
+    return strong, weak
+
+
+def scaling_baselines(e13, e12):
+    """Cutoff 1e-5 on 16 GPUs and more: the engine against both cuPauliProp modes on the same kind of node."""
+    counts = [g for g in (16, 32, 64, 128) if default_run(e13, "ki_lab", 1e-5, g)]
+    fig, axes = plt.subplots(1, 3, figsize=(13.6, 3.8), gridspec_kw={"wspace": 0.16})
+    rows = []
+    w = 0.27
+    for j, (c, title, _) in enumerate(SCALE3):
+        ax = axes[j]
+        for i, g in enumerate(counts):
+            e = default_run(e13, c, 1e-5, g)
+            t = find(e12, "cupp", c, 1e-5, gpus=g, tuned=True)
+            d = find(e12, "cupp", c, 1e-5, gpus=g)
+            rows.append((title, g, e, t, d))
+            for k, (r, col) in enumerate(((e, OURS), (t, TUNED), (d, BASE))):
+                if not ok(r):
+                    continue
+                x = i + (k - 1) * w
+                ax.bar(x, r["wall"], width=w * 0.94, color=col)
+                # the engine's time and the tuned multiple grow to the left, the default multiple to the right
+                ax.text(x + (-w * 0.47 if k == 2 else w * 0.47), r["wall"] * 1.1, secs(r["wall"]) if k == 0 else times(r["wall"], e["wall"]),
+                        ha="left" if k == 2 else "right", va="bottom", fontsize=10.5)
+        ax.set_yscale("log")
+        ax.set_ylim(4.5, 220)
+        ax.set_xlim(-0.6, len(counts) - 0.4)
+        ax.set_xticks(range(len(counts)))
+        ax.set_xticklabels([str(g) for g in counts])
+        ax.set_xlabel("GPUs (cutoff 1e-5)")
+        ax.set_title(title, fontsize=14, fontweight="bold", pad=8)
+        ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:g}"))
+        ax.yaxis.set_minor_formatter(NullFormatter())
+        if j == 0:
+            ax.set_ylabel("Time (s)")
+        else:
+            ax.set_yticklabels([])
+        clean(ax)
+    fig.legend([plt.Rectangle((0, 0), 1, 1, color=c) for c in (OURS, TUNED, BASE)], ["SectorQ", "cuPauliProp distributed, hand-tuned", "cuPauliProp distributed"],
+               loc="upper center", ncol=3, bbox_to_anchor=(0.5, 1.1), fontsize=12.5, columnspacing=2.2, handlelength=1.4)
+    save(fig, "eval_scaling_base.png")
+    return rows
+
+
+# ---------------------------------------------------------------------------------------
 # exact-value check: 5x6 square-lattice TFIM, 30 qubits (logs/pp_e2b-59475514.out,
 # logs/inter_run2.out, logs/inter_run3.out; exact values from analysis/exact_sv.py)
 # ---------------------------------------------------------------------------------------
@@ -353,6 +482,9 @@ def main():
     background()
     table = speed(run5 + run6 + [r for r in big if r["kind"] == "engine"], e3 + run3 + run4 + run5 + run6, big)
     rows, reach = gpus_and_reach(run4, run5, run4 + run5 + run6, big)
+    e12, e13 = many("pp_e12_g*-*.out"), many("pp_e13_g*-*.out")
+    strong, weak = scaling(e13)
+    base = scaling_baselines(e13, e12)
     accuracy()
     parts = breakdown(big)
     if "--print" in sys.argv:
@@ -369,6 +501,16 @@ def main():
         print("\n# reach: cutoff | engine | cuPauliProp")
         for coef, e, d in reach:
             print(coef, (secs(e["wall"]), e["value"], e.get("boundary")) if ok(e) else e and e["exit"], secs(d["wall"]) if ok(d) else (d and ("OOM" if d["fatal"] else d["exit"])))
+        print("\n# strong scaling: circuit | cutoff | GPUs | time | gate time per GPU | exchange | host GiB")
+        for title, coef, g, r in strong:
+            print(f"{title:20s} {coef:g} {g:4d} {r['wall']:8.1f} {r['parts']['operations'] / g:8.1f} {r['parts'].get('exchange', 0):6.1f}")
+        print("\n# weak scaling: circuit | GPUs | cutoff | time | work (1e9 terms) | rate (1e6 terms/s/GPU) | % of 4 GPUs")
+        for title, g, r, rate, pct in weak:
+            print(f"{title:20s} {g:4d} {r['coef']:g} {r['wall']:8.1f} {r['checks'] / 1e9:8.2f} {rate / 1e6:6.2f} {pct:5.0f}%")
+        print("\n# cutoff 1e-5 on 16 GPUs and more: circuit | GPUs | engine | tuned | default")
+        for title, g, e, t, d in base:
+            f3 = lambda r: ("%.1f" % r["wall"]) if ok(r) else "-"
+            print(f"{title:20s} {g:4d} {f3(e)} | {f3(t)} | {f3(d)}")
         print("\n# breakdown")
         for label, wall, share in parts:
             print(label, wall, {k: round(v * 100, 1) for k, v in share.items()})
