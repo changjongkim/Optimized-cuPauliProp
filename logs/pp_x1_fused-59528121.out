@@ -1,0 +1,153 @@
+===== fused_test args: --coef 1e-3 --fuse 0
+circuit: noisy kicked Ising, Eagle heavy-hex; 7960 operations: 2540 branching rotations, 2880 rotations with a Clifford angle, 0 Clifford gates, 2540 noise channels
+fuse=0 coef=0.001 expectation=0.208575897209 final_terms=2400 largest_expansion=210876 terms
+wall=0.775 s; branching rotations=0.255 s in 2540 calls; Clifford-angle rotations=0.323 s in 2880 calls; Clifford gates=0.000 s in 0 calls (0 operations); noise channels=0.121 s in 2540 calls (2540 operations)
+fused calls=0 covering 0 operations; group sizes refused by the device=0
+exit=0
+===== fused_test args: --coef 1e-3 --fuse 2
+circuit: noisy kicked Ising, Eagle heavy-hex; 7960 operations: 2540 branching rotations, 2880 rotations with a Clifford angle, 0 Clifford gates, 2540 noise channels
+fuse=2 coef=0.001 expectation=0.208575897209 final_terms=2400 largest_expansion=210876 terms
+wall=0.529 s; branching rotations=0.171 s in 2540 calls; Clifford-angle rotations=0.280 s in 2880 calls; Clifford gates=0.000 s in 0 calls (0 operations); noise channels=0.065 s in 1280 calls (2540 operations)
+fused calls=1260 covering 2520 operations; group sizes refused by the device=0
+exit=0
+===== fused_test args: --coef 1e-3 --fuse 5
+circuit: noisy kicked Ising, Eagle heavy-hex; 7960 operations: 2540 branching rotations, 2880 rotations with a Clifford angle, 0 Clifford gates, 2540 noise channels
+fuse=5 coef=0.001 expectation=0.208575897209 final_terms=2400 largest_expansion=210876 terms
+wall=0.502 s; branching rotations=0.174 s in 2540 calls; Clifford-angle rotations=0.281 s in 2880 calls; Clifford gates=0.000 s in 0 calls (0 operations); noise channels=0.034 s in 524 calls (2540 operations)
+fused calls=516 covering 2532 operations; group sizes refused by the device=0
+exit=0
+===== fused_test args: --coef 1e-3 --fuse 10
+circuit: noisy kicked Ising, Eagle heavy-hex; 7960 operations: 2540 branching rotations, 2880 rotations with a Clifford angle, 0 Clifford gates, 2540 noise channels
+fuse=10 coef=0.001 expectation=0.208575897209 final_terms=2400 largest_expansion=210876 terms
+wall=0.497 s; branching rotations=0.173 s in 2540 calls; Clifford-angle rotations=0.283 s in 2880 calls; Clifford gates=0.000 s in 0 calls (0 operations); noise channels=0.029 s in 272 calls (2540 operations)
+fused calls=268 covering 2536 operations; group sizes refused by the device=0
+exit=0
+===== fused_test args: --coef 1e-4 --fuse 0
+circuit: noisy kicked Ising, Eagle heavy-hex; 7960 operations: 2540 branching rotations, 2880 rotations with a Clifford angle, 0 Clifford gates, 2540 noise channels
+fuse=0 coef=0.0001 expectation=0.156114065827 final_terms=205674 largest_expansion=13713476 terms
+wall=1.999 s; branching rotations=0.881 s in 2540 calls; Clifford-angle rotations=0.917 s in 2880 calls; Clifford gates=0.000 s in 0 calls (0 operations); noise channels=0.188 s in 2540 calls (2540 operations)
+fused calls=0 covering 0 operations; group sizes refused by the device=0
+exit=0
+===== fused_test args: --coef 1e-4 --fuse 2
+circuit: noisy kicked Ising, Eagle heavy-hex; 7960 operations: 2540 branching rotations, 2880 rotations with a Clifford angle, 0 Clifford gates, 2540 noise channels
+fuse=2 coef=0.0001 expectation=0.156114065827 final_terms=205674 largest_expansion=13713476 terms
+wall=1.931 s; branching rotations=0.877 s in 2540 calls; Clifford-angle rotations=0.922 s in 2880 calls; Clifford gates=0.000 s in 0 calls (0 operations); noise channels=0.119 s in 1280 calls (2540 operations)
+fused calls=1260 covering 2520 operations; group sizes refused by the device=0
+exit=0
+===== fused_test args: --coef 1e-4 --fuse 5
+circuit: noisy kicked Ising, Eagle heavy-hex; 7960 operations: 2540 branching rotations, 2880 rotations with a Clifford angle, 0 Clifford gates, 2540 noise channels
+fuse=5 coef=0.0001 expectation=0.156114065827 final_terms=205674 largest_expansion=13713476 terms
+wall=1.881 s; branching rotations=0.877 s in 2540 calls; Clifford-angle rotations=0.920 s in 2880 calls; Clifford gates=0.000 s in 0 calls (0 operations); noise channels=0.072 s in 524 calls (2540 operations)
+fused calls=516 covering 2532 operations; group sizes refused by the device=0
+exit=0
+===== fused_test args: --coef 1e-4 --fuse 10
+circuit: noisy kicked Ising, Eagle heavy-hex; 7960 operations: 2540 branching rotations, 2880 rotations with a Clifford angle, 0 Clifford gates, 2540 noise channels
+fuse=10 coef=0.0001 expectation=0.156114065827 final_terms=205674 largest_expansion=13713476 terms
+wall=1.865 s; branching rotations=0.879 s in 2540 calls; Clifford-angle rotations=0.918 s in 2880 calls; Clifford gates=0.000 s in 0 calls (0 operations); noise channels=0.056 s in 272 calls (2540 operations)
+fused calls=268 covering 2536 operations; group sizes refused by the device=0
+exit=0
+===== fused_test args: --coef 3e-5 --fuse 0
+out of memory at operation 2585 of 7960 with 94824866 terms (status 0)
+FATAL: capacity (line 141)
+circuit: noisy kicked Ising, Eagle heavy-hex; 7960 operations: 2540 branching rotations, 2880 rotations with a Clifford angle, 0 Clifford gates, 2540 noise channels
+srun: error: nid001360: task 0: Exited with exit code 1
+srun: Terminating StepId=59528121.8
+exit=1
+===== fused_test args: --coef 3e-5 --fuse 2
+out of memory at operation 2585 of 7960 with 94824866 terms (status 0)
+FATAL: capacity (line 141)
+circuit: noisy kicked Ising, Eagle heavy-hex; 7960 operations: 2540 branching rotations, 2880 rotations with a Clifford angle, 0 Clifford gates, 2540 noise channels
+srun: error: nid001360: task 0: Exited with exit code 1
+srun: Terminating StepId=59528121.9
+exit=1
+===== fused_test args: --coef 3e-5 --fuse 5
+out of memory at operation 2585 of 7960 with 94824866 terms (status 0)
+FATAL: capacity (line 141)
+circuit: noisy kicked Ising, Eagle heavy-hex; 7960 operations: 2540 branching rotations, 2880 rotations with a Clifford angle, 0 Clifford gates, 2540 noise channels
+srun: error: nid001360: task 0: Exited with exit code 1
+srun: Terminating StepId=59528121.10
+exit=1
+===== fused_test args: --coef 3e-5 --fuse 10
+out of memory at operation 2585 of 7960 with 94824866 terms (status 0)
+FATAL: capacity (line 141)
+circuit: noisy kicked Ising, Eagle heavy-hex; 7960 operations: 2540 branching rotations, 2880 rotations with a Clifford angle, 0 Clifford gates, 2540 noise channels
+srun: error: nid001360: task 0: Exited with exit code 1
+srun: Terminating StepId=59528121.11
+exit=1
+===== fused_test args: --coef 1e-3 --fuse 0
+circuit: noisy kicked Ising, Eagle heavy-hex; 7960 operations: 2540 branching rotations, 2880 rotations with a Clifford angle, 0 Clifford gates, 2540 noise channels
+fuse=0 coef=0.001 expectation=0.208575897209 final_terms=2400 largest_expansion=210876 terms
+wall=0.540 s; branching rotations=0.171 s in 2540 calls; Clifford-angle rotations=0.279 s in 2880 calls; Clifford gates=0.000 s in 0 calls (0 operations); noise channels=0.078 s in 2540 calls (2540 operations)
+fused calls=0 covering 0 operations; group sizes refused by the device=0
+exit=0
+===== fused_test args: --coef 1e-3 --fuse 2
+circuit: noisy kicked Ising, Eagle heavy-hex; 7960 operations: 2540 branching rotations, 2880 rotations with a Clifford angle, 0 Clifford gates, 2540 noise channels
+fuse=2 coef=0.001 expectation=0.208575897209 final_terms=2400 largest_expansion=210876 terms
+wall=0.521 s; branching rotations=0.173 s in 2540 calls; Clifford-angle rotations=0.280 s in 2880 calls; Clifford gates=0.000 s in 0 calls (0 operations); noise channels=0.054 s in 1280 calls (2540 operations)
+fused calls=1260 covering 2520 operations; group sizes refused by the device=0
+exit=0
+===== fused_test args: --coef 1e-3 --fuse 5
+circuit: noisy kicked Ising, Eagle heavy-hex; 7960 operations: 2540 branching rotations, 2880 rotations with a Clifford angle, 0 Clifford gates, 2540 noise channels
+fuse=5 coef=0.001 expectation=0.208575897209 final_terms=2400 largest_expansion=210876 terms
+wall=0.496 s; branching rotations=0.171 s in 2540 calls; Clifford-angle rotations=0.279 s in 2880 calls; Clifford gates=0.000 s in 0 calls (0 operations); noise channels=0.034 s in 524 calls (2540 operations)
+fused calls=516 covering 2532 operations; group sizes refused by the device=0
+exit=0
+===== fused_test args: --coef 1e-3 --fuse 10
+circuit: noisy kicked Ising, Eagle heavy-hex; 7960 operations: 2540 branching rotations, 2880 rotations with a Clifford angle, 0 Clifford gates, 2540 noise channels
+fuse=10 coef=0.001 expectation=0.208575897209 final_terms=2400 largest_expansion=210876 terms
+wall=0.494 s; branching rotations=0.173 s in 2540 calls; Clifford-angle rotations=0.281 s in 2880 calls; Clifford gates=0.000 s in 0 calls (0 operations); noise channels=0.028 s in 272 calls (2540 operations)
+fused calls=268 covering 2536 operations; group sizes refused by the device=0
+exit=0
+===== fused_test args: --coef 1e-4 --fuse 0
+circuit: noisy kicked Ising, Eagle heavy-hex; 7960 operations: 2540 branching rotations, 2880 rotations with a Clifford angle, 0 Clifford gates, 2540 noise channels
+fuse=0 coef=0.0001 expectation=0.156114065827 final_terms=205674 largest_expansion=13713476 terms
+wall=2.001 s; branching rotations=0.879 s in 2540 calls; Clifford-angle rotations=0.919 s in 2880 calls; Clifford gates=0.000 s in 0 calls (0 operations); noise channels=0.190 s in 2540 calls (2540 operations)
+fused calls=0 covering 0 operations; group sizes refused by the device=0
+exit=0
+===== fused_test args: --coef 1e-4 --fuse 2
+circuit: noisy kicked Ising, Eagle heavy-hex; 7960 operations: 2540 branching rotations, 2880 rotations with a Clifford angle, 0 Clifford gates, 2540 noise channels
+fuse=2 coef=0.0001 expectation=0.156114065827 final_terms=205674 largest_expansion=13713476 terms
+wall=1.930 s; branching rotations=0.878 s in 2540 calls; Clifford-angle rotations=0.921 s in 2880 calls; Clifford gates=0.000 s in 0 calls (0 operations); noise channels=0.119 s in 1280 calls (2540 operations)
+fused calls=1260 covering 2520 operations; group sizes refused by the device=0
+exit=0
+===== fused_test args: --coef 1e-4 --fuse 5
+circuit: noisy kicked Ising, Eagle heavy-hex; 7960 operations: 2540 branching rotations, 2880 rotations with a Clifford angle, 0 Clifford gates, 2540 noise channels
+fuse=5 coef=0.0001 expectation=0.156114065827 final_terms=205674 largest_expansion=13713476 terms
+wall=1.873 s; branching rotations=0.874 s in 2540 calls; Clifford-angle rotations=0.916 s in 2880 calls; Clifford gates=0.000 s in 0 calls (0 operations); noise channels=0.071 s in 524 calls (2540 operations)
+fused calls=516 covering 2532 operations; group sizes refused by the device=0
+exit=0
+===== fused_test args: --coef 1e-4 --fuse 10
+circuit: noisy kicked Ising, Eagle heavy-hex; 7960 operations: 2540 branching rotations, 2880 rotations with a Clifford angle, 0 Clifford gates, 2540 noise channels
+fuse=10 coef=0.0001 expectation=0.156114065827 final_terms=205674 largest_expansion=13713476 terms
+wall=1.867 s; branching rotations=0.878 s in 2540 calls; Clifford-angle rotations=0.921 s in 2880 calls; Clifford gates=0.000 s in 0 calls (0 operations); noise channels=0.056 s in 272 calls (2540 operations)
+fused calls=268 covering 2536 operations; group sizes refused by the device=0
+exit=0
+===== fused_test args: --coef 3e-5 --fuse 0
+out of memory at operation 2585 of 7960 with 94824866 terms (status 0)
+FATAL: capacity (line 141)
+circuit: noisy kicked Ising, Eagle heavy-hex; 7960 operations: 2540 branching rotations, 2880 rotations with a Clifford angle, 0 Clifford gates, 2540 noise channels
+srun: error: nid001360: task 0: Exited with exit code 1
+srun: Terminating StepId=59528121.20
+exit=1
+===== fused_test args: --coef 3e-5 --fuse 2
+out of memory at operation 2585 of 7960 with 94824866 terms (status 0)
+FATAL: capacity (line 141)
+circuit: noisy kicked Ising, Eagle heavy-hex; 7960 operations: 2540 branching rotations, 2880 rotations with a Clifford angle, 0 Clifford gates, 2540 noise channels
+srun: error: nid001360: task 0: Exited with exit code 1
+srun: Terminating StepId=59528121.21
+exit=1
+===== fused_test args: --coef 3e-5 --fuse 5
+out of memory at operation 2585 of 7960 with 94824866 terms (status 0)
+FATAL: capacity (line 141)
+circuit: noisy kicked Ising, Eagle heavy-hex; 7960 operations: 2540 branching rotations, 2880 rotations with a Clifford angle, 0 Clifford gates, 2540 noise channels
+srun: error: nid001360: task 0: Exited with exit code 1
+srun: Terminating StepId=59528121.22
+exit=1
+===== fused_test args: --coef 3e-5 --fuse 10
+out of memory at operation 2585 of 7960 with 94824866 terms (status 0)
+FATAL: capacity (line 141)
+circuit: noisy kicked Ising, Eagle heavy-hex; 7960 operations: 2540 branching rotations, 2880 rotations with a Clifford angle, 0 Clifford gates, 2540 noise channels
+srun: error: nid001360: task 0: Exited with exit code 1
+srun: Terminating StepId=59528121.23
+exit=1
+done after 94s

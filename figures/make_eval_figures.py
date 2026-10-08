@@ -205,7 +205,7 @@ def speed(same16, all16, big):
     for ax in axes[1:]:
         ax.set_yticklabels([])
     handles = [plt.Rectangle((0, 0), 1, 1, color=c) for c in (OURS, TUNED, BASE)]
-    fig.legend(handles, ["SectorQ", "cuPauliProp distributed, hand-tuned", "cuPauliProp distributed"], loc="upper center", ncol=3,
+    fig.legend(handles, ["SectorQ", "cuPauliProp distributed, dedup deferred", "cuPauliProp distributed"], loc="upper center", ncol=3,
                bbox_to_anchor=(0.5, 1.08), fontsize=12.5, columnspacing=2.2, handlelength=1.4)
     save(fig, "eval_speed.png")
     return table
@@ -273,7 +273,7 @@ def gpus_and_reach(run4, run5, allruns, big):
     ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:g}"))
     ax.yaxis.set_minor_formatter(NullFormatter())
     clean(ax)
-    fig.legend([plt.Rectangle((0, 0), 1, 1, color=c) for c in (OURS, TUNED, BASE)], ["SectorQ", "cuPauliProp distributed, hand-tuned", "cuPauliProp distributed"],
+    fig.legend([plt.Rectangle((0, 0), 1, 1, color=c) for c in (OURS, TUNED, BASE)], ["SectorQ", "cuPauliProp distributed, dedup deferred", "cuPauliProp distributed"],
                loc="upper center", ncol=3, bbox_to_anchor=(0.5, 1.07), fontsize=12.5, columnspacing=2.2, handlelength=1.4)
     save(fig, "eval_gpus.png")
     return rows, reach
@@ -343,13 +343,13 @@ def scaling(e13):
                 continue
             pct = 100 * rate[i] / rate[0]
             ax.bar(i, pct, width=0.62, color=OURS)
-            ax.text(i, 103, f"{pct:.0f}%", ha="center", va="bottom", fontsize=12)      # all labels in one row above the ideal line
+            ax.text(i, 103, f"{pct:.0f}%", ha="center", va="bottom", fontsize=12 if len(counts) <= 5 else 11)      # all labels in one row above the ideal line
             weak.append((title, g, r, rate[i], pct))
         ax.axhline(100, color=INK, linewidth=1.6)
         ax.set_ylim(0, 118)
         ax.set_yticks([0, 25, 50, 75, 100])
         ax.set_xticks(range(len(counts)))
-        ax.set_xticklabels([f"{g}\n{cut(WEAK_CUTOFF[g])}" for g in counts], fontsize=11)
+        ax.set_xticklabels([f"{g}\n{cut(WEAK_CUTOFF[g])}" for g in counts], fontsize=11 if len(counts) <= 5 else 9.5)
         ax.set_xlabel("GPUs and Cutoff of the Run")
         if j == 0:
             ax.set_ylabel("Terms per Second per GPU\n(% of 4 GPUs)")
@@ -398,7 +398,7 @@ def scaling_baselines(e13, e12):
         else:
             ax.set_yticklabels([])
         clean(ax)
-    fig.legend([plt.Rectangle((0, 0), 1, 1, color=c) for c in (OURS, TUNED, BASE)], ["SectorQ", "cuPauliProp distributed, hand-tuned", "cuPauliProp distributed"],
+    fig.legend([plt.Rectangle((0, 0), 1, 1, color=c) for c in (OURS, TUNED, BASE)], ["SectorQ", "cuPauliProp distributed, dedup deferred", "cuPauliProp distributed"],
                loc="upper center", ncol=3, bbox_to_anchor=(0.5, 1.1), fontsize=12.5, columnspacing=2.2, handlelength=1.4)
     save(fig, "eval_scaling_base.png")
     return rows
