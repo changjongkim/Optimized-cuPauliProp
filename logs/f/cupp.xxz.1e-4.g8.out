@@ -1,0 +1,7 @@
+===== cupp nodes=2 gpus=8 args: --circuit xxz --lx 8 --ly 8 --jxy 0.1 --jz 0.15 --steps 6 --coef 1e-4 --vram-frac 0.9
+circuit: XXZ Trotter, square lattice; 64 qubits; 2048 gates -> 2048 operations on the data (2016 branching rotations, 32 Clifford, 0 noise); 32 Clifford gates deferred by the frame
+mode=cupp ranks=8 (one GPU each) coef=0.0001 weight=0 default: global deduplication in every operation
+expectation=0.00558248729487
+largest_local_expansion=7481768 terms
+wall=17.494 s
+exit=0

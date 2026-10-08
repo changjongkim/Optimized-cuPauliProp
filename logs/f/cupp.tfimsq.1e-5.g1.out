@@ -1,0 +1,9 @@
+===== ref nodes=1 gpus=1 args: --circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 1e-5 --vram-frac 0.9
+circuit: TFIM Trotter, square lattice; 121 qubits; 3410 gates -> 3410 operations on the data (3410 branching rotations, 0 Clifford, 0 noise); 0 Clifford gates deferred by the frame
+mode=ref nodes=1 gpus/node=1 coef=1e-05 weight=0 truncEvery=10 GPU capacity=188801777 terms/buffer bucket target=4000000 gmax=0 window=ann host=pinned chunks
+operation 1295: 111970391 terms do not fit the GPU
+[node 0] FATAL: capacity (this mode cannot split) (line 819)
+MPICH ERROR [Rank 0] [job id 59537381.76] [Thu Oct  8 02:20:20 2026] [nid001073] - Abort(1) (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 0
+srun: error: nid001073: task 0: Exited with exit code 1
+srun: Terminating StepId=59537381.76
+exit=1

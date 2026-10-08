@@ -1,0 +1,7 @@
+===== cupp nodes=4 gpus=16 args: --circuit ki_lab --weight 0 --coef 1e-4 --vram-frac 0.9 --frame 0
+circuit: kicked Ising, Eagle heavy-hex; 127 qubits; 5420 gates -> 5420 operations on the data (2540 branching rotations, 2880 Clifford, 0 noise); 0 Clifford gates deferred by the frame
+mode=cupp ranks=16 (one GPU each) coef=0.0001 weight=0 default: global deduplication in every operation
+expectation=0.153108187591
+largest_local_expansion=1410321 terms
+wall=59.682 s
+exit=0

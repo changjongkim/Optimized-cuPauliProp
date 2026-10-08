@@ -1,0 +1,8 @@
+===== cupp nodes=1 gpus=2 args: --circuit ki_lab --weight 0 --coef 1e-5 --vram-frac 0.9 --frame 0
+circuit: kicked Ising, Eagle heavy-hex; 127 qubits; 5420 gates -> 5420 operations on the data (2540 branching rotations, 2880 Clifford, 0 noise); 0 Clifford gates deferred by the frame
+mode=cupp ranks=2 (one GPU each) coef=1e-05 weight=0 default: global deduplication in every operation
+[rank 1] cuPauliProp distributed mode ran out of memory at operation 1817 of 5420 with 105174778 local terms (status 8)
+[node 1] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 0] cuPauliProp distributed mode ran out of memory at operation 1817 of 5420 with 105205240 local terms (status 8)
+[node 0] FATAL: cuPauliProp distributed capacity (line 991)
+exit=255

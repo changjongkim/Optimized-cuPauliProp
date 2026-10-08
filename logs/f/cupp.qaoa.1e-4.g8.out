@@ -1,0 +1,7 @@
+===== cupp nodes=2 gpus=8 args: --circuit qaoa --n 100 --layers 4 --coef 1e-4 --vram-frac 0.9
+circuit: QAOA MaxCut, random 3-regular graph; 100 qubits; 1100 gates -> 1100 operations on the data (1000 branching rotations, 100 Clifford, 0 noise); 100 Clifford gates deferred by the frame
+mode=cupp ranks=8 (one GPU each) coef=0.0001 weight=0 default: global deduplication in every operation
+expectation=81.8841164502
+largest_local_expansion=6144488 terms
+wall=11.047 s
+exit=0

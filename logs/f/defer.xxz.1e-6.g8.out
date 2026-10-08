@@ -1,0 +1,21 @@
+===== cupp nodes=2 gpus=8 args: --circuit xxz --lx 8 --ly 8 --jxy 0.1 --jz 0.15 --steps 6 --coef 1e-6 --vram-frac 0.9 --cupp-tuned 1
+circuit: XXZ Trotter, square lattice; 64 qubits; 2048 gates -> 2048 operations on the data (2016 branching rotations, 32 Clifford, 0 noise); 32 Clifford gates deferred by the frame
+mode=cupp ranks=8 (one GPU each) coef=1e-06 weight=0 tuned: rank-local application, global deduplication before each truncation
+[rank 0] cuPauliProp distributed mode ran out of memory at operation 377 of 2048 with 161410923 local terms (status 0)
+[node 0] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 1] cuPauliProp distributed mode ran out of memory at operation 377 of 2048 with 161396597 local terms (status 0)
+[node 1] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 4] cuPauliProp distributed mode ran out of memory at operation 377 of 2048 with 161451501 local terms (status 0)
+[node 4] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 2] cuPauliProp distributed mode ran out of memory at operation 377 of 2048 with 161406832 local terms (status 0)
+[node 2] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 5] cuPauliProp distributed mode ran out of memory at operation 377 of 2048 with 161405149 local terms (status 0)
+[node 5] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 3] cuPauliProp distributed mode ran out of memory at operation 377 of 2048 with 161173597 local terms (status 0)
+[node 3] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 6] cuPauliProp distributed mode ran out of memory at operation 377 of 2048 with 161426974 local terms (status 0)
+[node 6] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 7] cuPauliProp distributed mode ran out of memory at operation 377 of 2048 with 161320405 local terms (status 0)
+[node 7] FATAL: cuPauliProp distributed capacity (line 991)
+[2026-10-08T09:43:07.227] error: *** STEP 59538706.25 ON nid001073 CANCELLED AT 2026-10-08T09:43:07 DUE TO TASK FAILURE ***
+exit=255

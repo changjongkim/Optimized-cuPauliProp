@@ -1,0 +1,13 @@
+===== cupp nodes=1 gpus=4 args: --circuit xxz --lx 8 --ly 8 --jxy 0.1 --jz 0.15 --steps 6 --coef 1e-6 --vram-frac 0.9 --cupp-tuned 1
+circuit: XXZ Trotter, square lattice; 64 qubits; 2048 gates -> 2048 operations on the data (2016 branching rotations, 32 Clifford, 0 noise); 32 Clifford gates deferred by the frame
+mode=cupp ranks=4 (one GPU each) coef=1e-06 weight=0 tuned: rank-local application, global deduplication before each truncation
+[rank 0] cuPauliProp distributed mode ran out of memory at operation 375 of 2048 with 206972782 local terms (status 0)
+[node 0] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 1] cuPauliProp distributed mode ran out of memory at operation 375 of 2048 with 206913091 local terms (status 0)
+[node 1] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 2] cuPauliProp distributed mode ran out of memory at operation 375 of 2048 with 206956254 local terms (status 0)
+[node 2] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 3] cuPauliProp distributed mode ran out of memory at operation 375 of 2048 with 206841326 local terms (status 0)
+[node 3] FATAL: cuPauliProp distributed capacity (line 991)
+[2026-10-08T09:23:18.451] error: *** STEP 59537380.85 ON nid001044 CANCELLED AT 2026-10-08T09:23:18 DUE TO TASK FAILURE ***
+exit=255

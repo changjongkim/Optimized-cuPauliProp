@@ -1,0 +1,18 @@
+===== engine nodes=1 gpus=4 args: --circuit qaoa --n 100 --layers 4 --coef 1e-6 --target 4000000 --trace 1 --vram-frac 0.9 --gpus 4
+circuit: QAOA MaxCut, random 3-regular graph; 100 qubits; 1100 gates -> 1100 operations on the data (1000 branching rotations, 100 Clifford, 0 noise); 100 Clifford gates deferred by the frame
+mode=engine nodes=1 gpus/node=4 coef=1e-06 weight=0 truncEvery=10 GPU capacity=188801777 terms/buffer bucket target=4000000 gmax=8 window=ann host=pinned chunks
+trace window=0 ops=0..100 branching_rotations=100 generator_rank=100 valid_rows=100 rows=0 sectors=1 largest_sector_in=150 terms_in=150 terms_out=600 next_rows=0 splits_so_far=0 sector_runs_so_far=1 run=0.052 s
+trace window=1 ops=100..250 branching_rotations=150 generator_rank=100 valid_rows=100 rows=0 sectors=1 largest_sector_in=600 terms_in=600 terms_out=3350 next_rows=0 splits_so_far=0 sector_runs_so_far=2 run=0.015 s
+trace window=2 ops=250..350 branching_rotations=100 generator_rank=100 valid_rows=100 rows=0 sectors=1 largest_sector_in=3350 terms_in=3350 terms_out=25100 next_rows=0 splits_so_far=0 sector_runs_so_far=3 run=0.011 s
+trace window=3 ops=350..500 branching_rotations=150 generator_rank=100 valid_rows=100 rows=0 sectors=1 largest_sector_in=25100 terms_in=25100 terms_out=2613565 next_rows=0 splits_so_far=0 sector_runs_so_far=4 run=0.110 s
+trace window=4 ops=500..600 branching_rotations=100 generator_rank=100 valid_rows=100 rows=0 sectors=1 largest_sector_in=2613565 terms_in=2613565 terms_out=66299960 next_rows=3 splits_so_far=0 sector_runs_so_far=5 run=2.535 s
+trace window=5 ops=600..750 branching_rotations=150 generator_rank=100 valid_rows=100 rows=3 sectors=8 largest_sector_in=8306964 terms_in=66299960 terms_out=1051998229 next_rows=8 splits_so_far=8 sector_runs_so_far=29 run=29.972 s
+trace window=6 ops=750..850 branching_rotations=100 generator_rank=100 valid_rows=100 rows=8 sectors=256 largest_sector_in=4171798 terms_in=1051998229 terms_out=1083433436 next_rows=8 splits_so_far=8 sector_runs_so_far=285 run=15.900 s
+trace window=7 ops=850..1100 branching_rotations=150 generator_rank=99 valid_rows=101 rows=8 sectors=256 largest_sector_in=4280797 terms_in=1083433436 terms_out=6371594888 next_rows=-1 splits_so_far=8 sector_runs_so_far=541 run=85.347 s
+expectation=82.3256865097
+windows=8 (longest 250 operations, smallest row space 100 of 200, largest coset share 0.0000) partitioned boundaries=3
+max_terms_at_window_boundary=1083433436 largest_bucket_on_a_gpu=90004775 bucket_runs=541 splits_on_gpu=8 splits_on_host=0
+wall=134.058 s; summed over 4 GPU workers: operations=451.536 partition=3.270 host->gpu=5.066 gpu->host=49.332 idle=26.338; planning=0.113; pilot=0.000 (0 window ends chosen)
+host memory in chunks: 42.44 GiB on the busiest node
+wall on a node, averaged over nodes: windows running=133.942, waiting for the slowest node=0.000; windows with a single bucket=2.723; buckets shared out inside a node=0
+exit=0

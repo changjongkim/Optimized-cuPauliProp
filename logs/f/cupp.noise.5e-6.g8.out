@@ -1,0 +1,20 @@
+===== cupp nodes=2 gpus=8 args: --circuit ki_noisy --noise 0.005 --coef 5e-6 --vram-frac 0.9
+circuit: noisy kicked Ising, Eagle heavy-hex; 127 qubits; 7960 gates -> 7960 operations on the data (2540 branching rotations, 2880 Clifford, 2540 noise); 2880 Clifford gates deferred by the frame
+mode=cupp ranks=8 (one GPU each) coef=5e-06 weight=0 default: global deduplication in every operation
+[rank 0] cuPauliProp distributed mode ran out of memory at operation 2565 of 7960 with 105068453 local terms (status 8)
+[node 0] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 4] cuPauliProp distributed mode ran out of memory at operation 2565 of 7960 with 105072334 local terms (status 8)
+[node 4] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 1] cuPauliProp distributed mode ran out of memory at operation 2565 of 7960 with 105071681 local terms (status 8)
+[node 1] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 5] cuPauliProp distributed mode ran out of memory at operation 2565 of 7960 with 105069974 local terms (status 8)
+[node 5] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 2] cuPauliProp distributed mode ran out of memory at operation 2565 of 7960 with 105073568 local terms (status 8)
+[node 2] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 6] cuPauliProp distributed mode ran out of memory at operation 2565 of 7960 with 105063029 local terms (status 8)
+[node 6] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 3] cuPauliProp distributed mode ran out of memory at operation 2565 of 7960 with 105069477 local terms (status 8)
+[node 3] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 7] cuPauliProp distributed mode ran out of memory at operation 2565 of 7960 with 105068711 local terms (status 8)
+[node 7] FATAL: cuPauliProp distributed capacity (line 991)
+exit=255

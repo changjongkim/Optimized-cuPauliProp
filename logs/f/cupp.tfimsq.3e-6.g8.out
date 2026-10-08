@@ -1,0 +1,21 @@
+===== cupp nodes=2 gpus=8 args: --circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 3e-6 --vram-frac 0.9
+circuit: TFIM Trotter, square lattice; 121 qubits; 3410 gates -> 3410 operations on the data (3410 branching rotations, 0 Clifford, 0 noise); 0 Clifford gates deferred by the frame
+mode=cupp ranks=8 (one GPU each) coef=3e-06 weight=0 default: global deduplication in every operation
+[rank 0] cuPauliProp distributed mode ran out of memory at operation 1306 of 3410 with 115150799 local terms (status 8)
+[node 0] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 4] cuPauliProp distributed mode ran out of memory at operation 1306 of 3410 with 115169836 local terms (status 8)
+[node 4] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 1] cuPauliProp distributed mode ran out of memory at operation 1306 of 3410 with 115182625 local terms (status 8)
+[node 1] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 5] cuPauliProp distributed mode ran out of memory at operation 1306 of 3410 with 115175203 local terms (status 8)
+[node 5] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 2] cuPauliProp distributed mode ran out of memory at operation 1306 of 3410 with 115160775 local terms (status 8)
+[node 2] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 6] cuPauliProp distributed mode ran out of memory at operation 1306 of 3410 with 115160320 local terms (status 8)
+[node 6] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 3] cuPauliProp distributed mode ran out of memory at operation 1306 of 3410 with 115152410 local terms (status 8)
+[node 3] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 7] cuPauliProp distributed mode ran out of memory at operation 1306 of 3410 with 115176850 local terms (status 8)
+[node 7] FATAL: cuPauliProp distributed capacity (line 991)
+[2026-10-08T09:42:36.091] error: *** STEP 59538706.21 ON nid001073 CANCELLED AT 2026-10-08T09:42:36 DUE TO TASK FAILURE ***
+exit=255

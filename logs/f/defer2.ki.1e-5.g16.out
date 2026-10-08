@@ -1,0 +1,38 @@
+===== cupp nodes=4 gpus=16 args: --circuit ki_lab --weight 0 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1 --cupp-dedup-every 2
+circuit: kicked Ising, Eagle heavy-hex; 127 qubits; 5420 gates -> 2540 operations on the data (2540 branching rotations, 0 Clifford, 0 noise); 2880 Clifford gates deferred by the frame
+mode=cupp ranks=16 (one GPU each) coef=1e-05 weight=0 tuned: rank-local application, global deduplication before each truncation
+tuned: additional global deduplication every 2 operations
+[rank 0] cuPauliProp distributed mode ran out of memory at operation 957 of 2540 with 96108938 local terms (status 0)
+[node 0] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 1] cuPauliProp distributed mode ran out of memory at operation 957 of 2540 with 96101518 local terms (status 0)
+[node 1] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 2] cuPauliProp distributed mode ran out of memory at operation 957 of 2540 with 96122414 local terms (status 0)
+[node 2] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 3] cuPauliProp distributed mode ran out of memory at operation 957 of 2540 with 96108431 local terms (status 0)
+[node 3] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 4] cuPauliProp distributed mode ran out of memory at operation 957 of 2540 with 96089602 local terms (status 0)
+[node 4] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 5] cuPauliProp distributed mode ran out of memory at operation 957 of 2540 with 96112848 local terms (status 0)
+[node 5] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 12] cuPauliProp distributed mode ran out of memory at operation 957 of 2540 with 96116318 local terms (status 0)
+[node 12] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 6] cuPauliProp distributed mode ran out of memory at operation 957 of 2540 with 96089371 local terms (status 0)
+[node 6] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 13] cuPauliProp distributed mode ran out of memory at operation 957 of 2540 with 96125842 local terms (status 0)
+[node 13] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 7] cuPauliProp distributed mode ran out of memory at operation 957 of 2540 with 96106494 local terms (status 0)
+[node 7] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 14] cuPauliProp distributed mode ran out of memory at operation 957 of 2540 with 96109825 local terms (status 0)
+[node 14] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 8] cuPauliProp distributed mode ran out of memory at operation 957 of 2540 with 96108197 local terms (status 0)
+[node 8] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 15] cuPauliProp distributed mode ran out of memory at operation 957 of 2540 with 96116274 local terms (status 0)
+[node 15] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 9] cuPauliProp distributed mode ran out of memory at operation 957 of 2540 with 96088519 local terms (status 0)
+[node 9] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 10] cuPauliProp distributed mode ran out of memory at operation 957 of 2540 with 96097793 local terms (status 0)
+[node 10] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 11] cuPauliProp distributed mode ran out of memory at operation 957 of 2540 with 96111537 local terms (status 0)
+[node 11] FATAL: cuPauliProp distributed capacity (line 991)
+[2026-10-08T09:55:28.933] error: *** STEP 59538707.56 ON nid001132 CANCELLED AT 2026-10-08T09:55:28 DUE TO TASK FAILURE ***
+exit=255

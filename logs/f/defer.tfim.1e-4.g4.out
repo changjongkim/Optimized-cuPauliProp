@@ -1,0 +1,7 @@
+===== cupp nodes=1 gpus=4 args: --circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-4 --vram-frac 0.9 --cupp-tuned 1
+circuit: TFIM Trotter, Eagle heavy-hex; 127 qubits; 5420 gates -> 5420 operations on the data (5420 branching rotations, 0 Clifford, 0 noise); 0 Clifford gates deferred by the frame
+mode=cupp ranks=4 (one GPU each) coef=0.0001 weight=0 tuned: rank-local application, global deduplication before each truncation
+expectation=0.324547666766
+largest_local_expansion=11097678 terms
+wall=7.918 s
+exit=0

@@ -1,0 +1,7 @@
+===== cupp nodes=1 gpus=4 args: --circuit xxz --lx 8 --ly 8 --jxy 0.1 --jz 0.15 --steps 6 --coef 1e-4 --vram-frac 0.9 --cupp-tuned 1
+circuit: XXZ Trotter, square lattice; 64 qubits; 2048 gates -> 2048 operations on the data (2016 branching rotations, 32 Clifford, 0 noise); 32 Clifford gates deferred by the frame
+mode=cupp ranks=4 (one GPU each) coef=0.0001 weight=0 tuned: rank-local application, global deduplication before each truncation
+expectation=0.00558248729487
+largest_local_expansion=43923797 terms
+wall=5.060 s
+exit=0

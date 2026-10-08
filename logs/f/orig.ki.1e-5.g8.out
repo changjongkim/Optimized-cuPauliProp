@@ -1,0 +1,21 @@
+===== cupp nodes=2 gpus=8 args: --circuit ki_lab --weight 0 --coef 1e-5 --vram-frac 0.9 --frame 0
+circuit: kicked Ising, Eagle heavy-hex; 127 qubits; 5420 gates -> 5420 operations on the data (2540 branching rotations, 2880 Clifford, 0 noise); 0 Clifford gates deferred by the frame
+mode=cupp ranks=8 (one GPU each) coef=1e-05 weight=0 default: global deduplication in every operation
+[rank 0] cuPauliProp distributed mode ran out of memory at operation 1839 of 5420 with 103732582 local terms (status 8)
+[node 0] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 2] cuPauliProp distributed mode ran out of memory at operation 1839 of 5420 with 103731819 local terms (status 8)
+[node 2] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 3] cuPauliProp distributed mode ran out of memory at operation 1839 of 5420 with 103739674 local terms (status 8)
+[node 3] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 4] cuPauliProp distributed mode ran out of memory at operation 1839 of 5420 with 103744832 local terms (status 8)
+[node 4] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 5] cuPauliProp distributed mode ran out of memory at operation 1839 of 5420 with 103725334 local terms (status 8)
+[node 5] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 1] cuPauliProp distributed mode ran out of memory at operation 1839 of 5420 with 103722346 local terms (status 8)
+[node 1] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 6] cuPauliProp distributed mode ran out of memory at operation 1839 of 5420 with 103734317 local terms (status 8)
+[node 6] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 7] cuPauliProp distributed mode ran out of memory at operation 1839 of 5420 with 103718910 local terms (status 8)
+[node 7] FATAL: cuPauliProp distributed capacity (line 991)
+[2026-10-08T09:41:21.844] error: *** STEP 59538707.28 ON nid001132 CANCELLED AT 2026-10-08T09:41:21 DUE TO TASK FAILURE ***
+exit=255

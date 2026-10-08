@@ -59,7 +59,9 @@ def main():
         while os.path.exists(os.path.join(OUT, name + ".launch.json")):     # a run cut off by the end of an allocation
             n += 1
             name = f"{item_id}.retry{n}"
-        source = os.path.join(IMPL, "results", "own_perf_v1_n1", case + "_engine_r0.ir.json")
+        source = os.path.join(OUT, "ir", case + ".ir.json")                 # the four circuits exported for this campaign
+        if not os.path.exists(source):
+            source = os.path.join(IMPL, "results", "own_perf_v1_n1", case + "_engine_r0.ir.json")
         t0 = time.time()
         try:
             r = run_external(a.job, int(nodes), backend, source, OUT, name, policy, float(coef), int(rpn), int(threads),

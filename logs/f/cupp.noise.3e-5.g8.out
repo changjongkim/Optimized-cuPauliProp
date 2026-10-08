@@ -1,0 +1,7 @@
+===== cupp nodes=2 gpus=8 args: --circuit ki_noisy --noise 0.005 --coef 3e-5 --vram-frac 0.9
+circuit: noisy kicked Ising, Eagle heavy-hex; 127 qubits; 7960 gates -> 7960 operations on the data (2540 branching rotations, 2880 Clifford, 2540 noise); 2880 Clifford gates deferred by the frame
+mode=cupp ranks=8 (one GPU each) coef=3e-05 weight=0 default: global deduplication in every operation
+expectation=0.154419952246
+largest_local_expansion=11856898 terms
+wall=51.104 s
+exit=0

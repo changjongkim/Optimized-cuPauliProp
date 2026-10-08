@@ -1,0 +1,509 @@
+eng.ki.1e-3.g1|1|1|eng|122|--circuit ki_lab --weight 0 --coef 1e-3 --target 6000000 --trace 1 --vram-frac 0.9
+eng.ki.1e-3.g2|1|2|eng|106|--circuit ki_lab --weight 0 --coef 1e-3 --target 6000000 --trace 1 --vram-frac 0.9
+eng.ki.1e-3.g4|1|4|eng|98|--circuit ki_lab --weight 0 --coef 1e-3 --target 6000000 --trace 1 --vram-frac 0.9
+eng.ki.1e-3.g8|2|4|eng|98|--circuit ki_lab --weight 0 --coef 1e-3 --target 6000000 --trace 1 --vram-frac 0.9
+eng.ki.1e-3.g16|4|4|eng|98|--circuit ki_lab --weight 0 --coef 1e-3 --target 6000000 --trace 1 --vram-frac 0.9
+eng.ki.3e-4.g1|1|1|eng|122|--circuit ki_lab --weight 0 --coef 3e-4 --target 6000000 --trace 1 --vram-frac 0.9
+eng.ki.3e-4.g2|1|2|eng|106|--circuit ki_lab --weight 0 --coef 3e-4 --target 6000000 --trace 1 --vram-frac 0.9
+eng.ki.3e-4.g4|1|4|eng|98|--circuit ki_lab --weight 0 --coef 3e-4 --target 6000000 --trace 1 --vram-frac 0.9
+eng.ki.3e-4.g8|2|4|eng|98|--circuit ki_lab --weight 0 --coef 3e-4 --target 6000000 --trace 1 --vram-frac 0.9
+eng.ki.3e-4.g16|4|4|eng|98|--circuit ki_lab --weight 0 --coef 3e-4 --target 6000000 --trace 1 --vram-frac 0.9
+eng.ki.1e-4.g1|1|1|eng|128|--circuit ki_lab --weight 0 --coef 1e-4 --target 6000000 --trace 1 --vram-frac 0.9
+eng.ki.1e-4.g2|1|2|eng|109|--circuit ki_lab --weight 0 --coef 1e-4 --target 6000000 --trace 1 --vram-frac 0.9
+eng.ki.1e-4.g4|1|4|eng|99|--circuit ki_lab --weight 0 --coef 1e-4 --target 6000000 --trace 1 --vram-frac 0.9
+eng.ki.1e-4.g8|2|4|eng|98|--circuit ki_lab --weight 0 --coef 1e-4 --target 6000000 --trace 1 --vram-frac 0.9
+eng.ki.1e-4.g16|4|4|eng|98|--circuit ki_lab --weight 0 --coef 1e-4 --target 6000000 --trace 1 --vram-frac 0.9
+eng.ki.3e-5.g1|1|1|eng|218|--circuit ki_lab --weight 0 --coef 3e-5 --target 6000000 --trace 1 --vram-frac 0.9
+eng.ki.3e-5.g2|1|2|eng|154|--circuit ki_lab --weight 0 --coef 3e-5 --target 6000000 --trace 1 --vram-frac 0.9
+eng.ki.3e-5.g4|1|4|eng|122|--circuit ki_lab --weight 0 --coef 3e-5 --target 6000000 --trace 1 --vram-frac 0.9
+eng.ki.3e-5.g8|2|4|eng|106|--circuit ki_lab --weight 0 --coef 3e-5 --target 6000000 --trace 1 --vram-frac 0.9
+eng.ki.3e-5.g16|4|4|eng|98|--circuit ki_lab --weight 0 --coef 3e-5 --target 6000000 --trace 1 --vram-frac 0.9
+eng.ki.1e-5.g1|1|1|eng|557|--circuit ki_lab --weight 0 --coef 1e-5 --target 6000000 --trace 1 --vram-frac 0.9
+eng.ki.1e-5.g2|1|2|eng|323|--circuit ki_lab --weight 0 --coef 1e-5 --target 6000000 --trace 1 --vram-frac 0.9
+eng.ki.1e-5.g4|1|4|eng|206|--circuit ki_lab --weight 0 --coef 1e-5 --target 6000000 --trace 1 --vram-frac 0.9
+eng.ki.1e-5.g8|2|4|eng|148|--circuit ki_lab --weight 0 --coef 1e-5 --target 6000000 --trace 1 --vram-frac 0.9
+eng.ki.1e-5.g16|4|4|eng|119|--circuit ki_lab --weight 0 --coef 1e-5 --target 6000000 --trace 1 --vram-frac 0.9
+eng.ki.3e-6.g1|1|1|eng|3000|--circuit ki_lab --weight 0 --coef 3e-6 --target 6000000 --trace 1 --vram-frac 0.9
+eng.ki.3e-6.g2|1|2|eng|2218|--circuit ki_lab --weight 0 --coef 3e-6 --target 6000000 --trace 1 --vram-frac 0.9
+eng.ki.3e-6.g4|1|4|eng|1154|--circuit ki_lab --weight 0 --coef 3e-6 --target 6000000 --trace 1 --vram-frac 0.9
+eng.ki.3e-6.g8|2|4|eng|622|--circuit ki_lab --weight 0 --coef 3e-6 --target 6000000 --trace 1 --vram-frac 0.9
+eng.ki.3e-6.g16|4|4|eng|356|--circuit ki_lab --weight 0 --coef 3e-6 --target 6000000 --trace 1 --vram-frac 0.9
+weak.ki.2e-5.g1|1|1|eng|314|--circuit ki_lab --weight 0 --coef 2e-5 --target 6000000 --trace 1 --vram-frac 0.9
+weak.ki.1.4e-5.g2|1|2|eng|250|--circuit ki_lab --weight 0 --coef 1.4e-5 --target 6000000 --trace 1 --vram-frac 0.9
+weak.ki.7e-6.g8|2|4|eng|194|--circuit ki_lab --weight 0 --coef 7e-6 --target 6000000 --trace 1 --vram-frac 0.9
+weak.ki.4.8e-6.g16|4|4|eng|194|--circuit ki_lab --weight 0 --coef 4.8e-6 --target 6000000 --trace 1 --vram-frac 0.9
+eng.tfim.1e-3.g1|1|1|eng|122|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-3 --target 4000000 --trace 1 --vram-frac 0.9
+eng.tfim.1e-3.g2|1|2|eng|106|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-3 --target 4000000 --trace 1 --vram-frac 0.9
+eng.tfim.1e-3.g4|1|4|eng|98|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-3 --target 4000000 --trace 1 --vram-frac 0.9
+eng.tfim.1e-3.g8|2|4|eng|98|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-3 --target 4000000 --trace 1 --vram-frac 0.9
+eng.tfim.1e-3.g16|4|4|eng|98|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-3 --target 4000000 --trace 1 --vram-frac 0.9
+eng.tfim.3e-4.g1|1|1|eng|138|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 3e-4 --target 4000000 --trace 1 --vram-frac 0.9
+eng.tfim.3e-4.g2|1|2|eng|114|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 3e-4 --target 4000000 --trace 1 --vram-frac 0.9
+eng.tfim.3e-4.g4|1|4|eng|102|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 3e-4 --target 4000000 --trace 1 --vram-frac 0.9
+eng.tfim.3e-4.g8|2|4|eng|98|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 3e-4 --target 4000000 --trace 1 --vram-frac 0.9
+eng.tfim.3e-4.g16|4|4|eng|98|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 3e-4 --target 4000000 --trace 1 --vram-frac 0.9
+eng.tfim.1e-4.g1|1|1|eng|157|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-4 --target 4000000 --trace 1 --vram-frac 0.9
+eng.tfim.1e-4.g2|1|2|eng|123|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-4 --target 4000000 --trace 1 --vram-frac 0.9
+eng.tfim.1e-4.g4|1|4|eng|106|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-4 --target 4000000 --trace 1 --vram-frac 0.9
+eng.tfim.1e-4.g8|2|4|eng|98|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-4 --target 4000000 --trace 1 --vram-frac 0.9
+eng.tfim.1e-4.g16|4|4|eng|98|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-4 --target 4000000 --trace 1 --vram-frac 0.9
+eng.tfim.3e-5.g1|1|1|eng|282|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 3e-5 --target 4000000 --trace 1 --vram-frac 0.9
+eng.tfim.3e-5.g2|1|2|eng|186|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 3e-5 --target 4000000 --trace 1 --vram-frac 0.9
+eng.tfim.3e-5.g4|1|4|eng|138|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 3e-5 --target 4000000 --trace 1 --vram-frac 0.9
+eng.tfim.3e-5.g8|2|4|eng|114|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 3e-5 --target 4000000 --trace 1 --vram-frac 0.9
+eng.tfim.3e-5.g16|4|4|eng|102|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 3e-5 --target 4000000 --trace 1 --vram-frac 0.9
+eng.tfim.1e-5.g1|1|1|eng|650|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-5 --target 4000000 --trace 1 --vram-frac 0.9
+eng.tfim.1e-5.g2|1|2|eng|370|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-5 --target 4000000 --trace 1 --vram-frac 0.9
+eng.tfim.1e-5.g4|1|4|eng|230|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-5 --target 4000000 --trace 1 --vram-frac 0.9
+eng.tfim.1e-5.g8|2|4|eng|160|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-5 --target 4000000 --trace 1 --vram-frac 0.9
+eng.tfim.1e-5.g16|4|4|eng|125|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-5 --target 4000000 --trace 1 --vram-frac 0.9
+eng.tfim.5e-6.g1|1|1|eng|2074|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 5e-6 --target 4000000 --trace 1 --vram-frac 0.9
+eng.tfim.5e-6.g2|1|2|eng|1082|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 5e-6 --target 4000000 --trace 1 --vram-frac 0.9
+eng.tfim.5e-6.g4|1|4|eng|586|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 5e-6 --target 4000000 --trace 1 --vram-frac 0.9
+eng.tfim.5e-6.g8|2|4|eng|338|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 5e-6 --target 4000000 --trace 1 --vram-frac 0.9
+eng.tfim.5e-6.g16|4|4|eng|214|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 5e-6 --target 4000000 --trace 1 --vram-frac 0.9
+weak.tfim.2e-5.g1|1|1|eng|378|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 2e-5 --target 4000000 --trace 1 --vram-frac 0.9
+weak.tfim.1.4e-5.g2|1|2|eng|298|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1.4e-5 --target 4000000 --trace 1 --vram-frac 0.9
+weak.tfim.7e-6.g8|2|4|eng|218|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 7e-6 --target 4000000 --trace 1 --vram-frac 0.9
+weak.tfim.4.8e-6.g16|4|4|eng|222|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 4.8e-6 --target 4000000 --trace 1 --vram-frac 0.9
+eng.noise.1e-3.g1|1|1|eng|122|--circuit ki_noisy --noise 0.005 --coef 1e-3 --target 6000000 --trace 1 --vram-frac 0.9
+eng.noise.1e-3.g2|1|2|eng|106|--circuit ki_noisy --noise 0.005 --coef 1e-3 --target 6000000 --trace 1 --vram-frac 0.9
+eng.noise.1e-3.g4|1|4|eng|98|--circuit ki_noisy --noise 0.005 --coef 1e-3 --target 6000000 --trace 1 --vram-frac 0.9
+eng.noise.1e-3.g8|2|4|eng|98|--circuit ki_noisy --noise 0.005 --coef 1e-3 --target 6000000 --trace 1 --vram-frac 0.9
+eng.noise.1e-3.g16|4|4|eng|98|--circuit ki_noisy --noise 0.005 --coef 1e-3 --target 6000000 --trace 1 --vram-frac 0.9
+eng.noise.3e-4.g1|1|1|eng|138|--circuit ki_noisy --noise 0.005 --coef 3e-4 --target 6000000 --trace 1 --vram-frac 0.9
+eng.noise.3e-4.g2|1|2|eng|114|--circuit ki_noisy --noise 0.005 --coef 3e-4 --target 6000000 --trace 1 --vram-frac 0.9
+eng.noise.3e-4.g4|1|4|eng|102|--circuit ki_noisy --noise 0.005 --coef 3e-4 --target 6000000 --trace 1 --vram-frac 0.9
+eng.noise.3e-4.g8|2|4|eng|98|--circuit ki_noisy --noise 0.005 --coef 3e-4 --target 6000000 --trace 1 --vram-frac 0.9
+eng.noise.3e-4.g16|4|4|eng|98|--circuit ki_noisy --noise 0.005 --coef 3e-4 --target 6000000 --trace 1 --vram-frac 0.9
+eng.noise.1e-4.g1|1|1|eng|163|--circuit ki_noisy --noise 0.005 --coef 1e-4 --target 6000000 --trace 1 --vram-frac 0.9
+eng.noise.1e-4.g2|1|2|eng|126|--circuit ki_noisy --noise 0.005 --coef 1e-4 --target 6000000 --trace 1 --vram-frac 0.9
+eng.noise.1e-4.g4|1|4|eng|108|--circuit ki_noisy --noise 0.005 --coef 1e-4 --target 6000000 --trace 1 --vram-frac 0.9
+eng.noise.1e-4.g8|2|4|eng|99|--circuit ki_noisy --noise 0.005 --coef 1e-4 --target 6000000 --trace 1 --vram-frac 0.9
+eng.noise.1e-4.g16|4|4|eng|98|--circuit ki_noisy --noise 0.005 --coef 1e-4 --target 6000000 --trace 1 --vram-frac 0.9
+eng.noise.3e-5.g1|1|1|eng|218|--circuit ki_noisy --noise 0.005 --coef 3e-5 --target 6000000 --trace 1 --vram-frac 0.9
+eng.noise.3e-5.g2|1|2|eng|154|--circuit ki_noisy --noise 0.005 --coef 3e-5 --target 6000000 --trace 1 --vram-frac 0.9
+eng.noise.3e-5.g4|1|4|eng|122|--circuit ki_noisy --noise 0.005 --coef 3e-5 --target 6000000 --trace 1 --vram-frac 0.9
+eng.noise.3e-5.g8|2|4|eng|106|--circuit ki_noisy --noise 0.005 --coef 3e-5 --target 6000000 --trace 1 --vram-frac 0.9
+eng.noise.3e-5.g16|4|4|eng|98|--circuit ki_noisy --noise 0.005 --coef 3e-5 --target 6000000 --trace 1 --vram-frac 0.9
+eng.noise.1e-5.g1|1|1|eng|461|--circuit ki_noisy --noise 0.005 --coef 1e-5 --target 6000000 --trace 1 --vram-frac 0.9
+eng.noise.1e-5.g2|1|2|eng|275|--circuit ki_noisy --noise 0.005 --coef 1e-5 --target 6000000 --trace 1 --vram-frac 0.9
+eng.noise.1e-5.g4|1|4|eng|182|--circuit ki_noisy --noise 0.005 --coef 1e-5 --target 6000000 --trace 1 --vram-frac 0.9
+eng.noise.1e-5.g8|2|4|eng|136|--circuit ki_noisy --noise 0.005 --coef 1e-5 --target 6000000 --trace 1 --vram-frac 0.9
+eng.noise.1e-5.g16|4|4|eng|113|--circuit ki_noisy --noise 0.005 --coef 1e-5 --target 6000000 --trace 1 --vram-frac 0.9
+eng.noise.5e-6.g1|1|1|eng|1178|--circuit ki_noisy --noise 0.005 --coef 5e-6 --target 6000000 --trace 1 --vram-frac 0.9
+eng.noise.5e-6.g2|1|2|eng|634|--circuit ki_noisy --noise 0.005 --coef 5e-6 --target 6000000 --trace 1 --vram-frac 0.9
+eng.noise.5e-6.g4|1|4|eng|362|--circuit ki_noisy --noise 0.005 --coef 5e-6 --target 6000000 --trace 1 --vram-frac 0.9
+eng.noise.5e-6.g8|2|4|eng|226|--circuit ki_noisy --noise 0.005 --coef 5e-6 --target 6000000 --trace 1 --vram-frac 0.9
+eng.noise.5e-6.g16|4|4|eng|158|--circuit ki_noisy --noise 0.005 --coef 5e-6 --target 6000000 --trace 1 --vram-frac 0.9
+weak.noise.2e-5.g1|1|1|eng|282|--circuit ki_noisy --noise 0.005 --coef 2e-5 --target 6000000 --trace 1 --vram-frac 0.9
+weak.noise.1.4e-5.g2|1|2|eng|218|--circuit ki_noisy --noise 0.005 --coef 1.4e-5 --target 6000000 --trace 1 --vram-frac 0.9
+weak.noise.7e-6.g8|2|4|eng|162|--circuit ki_noisy --noise 0.005 --coef 7e-6 --target 6000000 --trace 1 --vram-frac 0.9
+weak.noise.4.8e-6.g16|4|4|eng|162|--circuit ki_noisy --noise 0.005 --coef 4.8e-6 --target 6000000 --trace 1 --vram-frac 0.9
+cupp.ki.1e-3.g1|1|1|ref|300|--circuit ki_lab --weight 0 --coef 1e-3 --vram-frac 0.9
+cupp.ki.1e-3.g2|1|2|cupp|300|--circuit ki_lab --weight 0 --coef 1e-3 --vram-frac 0.9
+cupp.ki.1e-3.g4|1|4|cupp|300|--circuit ki_lab --weight 0 --coef 1e-3 --vram-frac 0.9
+cupp.ki.1e-3.g8|2|4|cupp|300|--circuit ki_lab --weight 0 --coef 1e-3 --vram-frac 0.9
+cupp.ki.1e-3.g16|4|4|cupp|300|--circuit ki_lab --weight 0 --coef 1e-3 --vram-frac 0.9
+defer.ki.1e-3.g2|1|2|cupp|300|--circuit ki_lab --weight 0 --coef 1e-3 --vram-frac 0.9 --cupp-tuned 1
+defer.ki.1e-3.g4|1|4|cupp|300|--circuit ki_lab --weight 0 --coef 1e-3 --vram-frac 0.9 --cupp-tuned 1
+defer.ki.1e-3.g8|2|4|cupp|300|--circuit ki_lab --weight 0 --coef 1e-3 --vram-frac 0.9 --cupp-tuned 1
+defer.ki.1e-3.g16|4|4|cupp|300|--circuit ki_lab --weight 0 --coef 1e-3 --vram-frac 0.9 --cupp-tuned 1
+cupp.ki.3e-4.g1|1|1|ref|300|--circuit ki_lab --weight 0 --coef 3e-4 --vram-frac 0.9
+cupp.ki.3e-4.g2|1|2|cupp|300|--circuit ki_lab --weight 0 --coef 3e-4 --vram-frac 0.9
+cupp.ki.3e-4.g4|1|4|cupp|300|--circuit ki_lab --weight 0 --coef 3e-4 --vram-frac 0.9
+cupp.ki.3e-4.g8|2|4|cupp|300|--circuit ki_lab --weight 0 --coef 3e-4 --vram-frac 0.9
+cupp.ki.3e-4.g16|4|4|cupp|300|--circuit ki_lab --weight 0 --coef 3e-4 --vram-frac 0.9
+defer.ki.3e-4.g2|1|2|cupp|300|--circuit ki_lab --weight 0 --coef 3e-4 --vram-frac 0.9 --cupp-tuned 1
+defer.ki.3e-4.g4|1|4|cupp|300|--circuit ki_lab --weight 0 --coef 3e-4 --vram-frac 0.9 --cupp-tuned 1
+defer.ki.3e-4.g8|2|4|cupp|300|--circuit ki_lab --weight 0 --coef 3e-4 --vram-frac 0.9 --cupp-tuned 1
+defer.ki.3e-4.g16|4|4|cupp|300|--circuit ki_lab --weight 0 --coef 3e-4 --vram-frac 0.9 --cupp-tuned 1
+cupp.ki.1e-4.g1|1|1|ref|300|--circuit ki_lab --weight 0 --coef 1e-4 --vram-frac 0.9
+cupp.ki.1e-4.g2|1|2|cupp|300|--circuit ki_lab --weight 0 --coef 1e-4 --vram-frac 0.9
+cupp.ki.1e-4.g4|1|4|cupp|300|--circuit ki_lab --weight 0 --coef 1e-4 --vram-frac 0.9
+cupp.ki.1e-4.g8|2|4|cupp|300|--circuit ki_lab --weight 0 --coef 1e-4 --vram-frac 0.9
+cupp.ki.1e-4.g16|4|4|cupp|300|--circuit ki_lab --weight 0 --coef 1e-4 --vram-frac 0.9
+defer.ki.1e-4.g2|1|2|cupp|300|--circuit ki_lab --weight 0 --coef 1e-4 --vram-frac 0.9 --cupp-tuned 1
+defer.ki.1e-4.g4|1|4|cupp|300|--circuit ki_lab --weight 0 --coef 1e-4 --vram-frac 0.9 --cupp-tuned 1
+defer.ki.1e-4.g8|2|4|cupp|300|--circuit ki_lab --weight 0 --coef 1e-4 --vram-frac 0.9 --cupp-tuned 1
+defer.ki.1e-4.g16|4|4|cupp|300|--circuit ki_lab --weight 0 --coef 1e-4 --vram-frac 0.9 --cupp-tuned 1
+cupp.ki.3e-5.g1|1|1|ref|300|--circuit ki_lab --weight 0 --coef 3e-5 --vram-frac 0.9
+cupp.ki.3e-5.g2|1|2|cupp|300|--circuit ki_lab --weight 0 --coef 3e-5 --vram-frac 0.9
+cupp.ki.3e-5.g4|1|4|cupp|300|--circuit ki_lab --weight 0 --coef 3e-5 --vram-frac 0.9
+cupp.ki.3e-5.g8|2|4|cupp|300|--circuit ki_lab --weight 0 --coef 3e-5 --vram-frac 0.9
+cupp.ki.3e-5.g16|4|4|cupp|300|--circuit ki_lab --weight 0 --coef 3e-5 --vram-frac 0.9
+defer.ki.3e-5.g2|1|2|cupp|300|--circuit ki_lab --weight 0 --coef 3e-5 --vram-frac 0.9 --cupp-tuned 1
+defer.ki.3e-5.g4|1|4|cupp|300|--circuit ki_lab --weight 0 --coef 3e-5 --vram-frac 0.9 --cupp-tuned 1
+defer.ki.3e-5.g8|2|4|cupp|300|--circuit ki_lab --weight 0 --coef 3e-5 --vram-frac 0.9 --cupp-tuned 1
+defer.ki.3e-5.g16|4|4|cupp|300|--circuit ki_lab --weight 0 --coef 3e-5 --vram-frac 0.9 --cupp-tuned 1
+cupp.ki.1e-5.g1|1|1|ref|300|--circuit ki_lab --weight 0 --coef 1e-5 --vram-frac 0.9
+cupp.ki.1e-5.g2|1|2|cupp|300|--circuit ki_lab --weight 0 --coef 1e-5 --vram-frac 0.9
+cupp.ki.1e-5.g4|1|4|cupp|300|--circuit ki_lab --weight 0 --coef 1e-5 --vram-frac 0.9
+cupp.ki.1e-5.g8|2|4|cupp|300|--circuit ki_lab --weight 0 --coef 1e-5 --vram-frac 0.9
+cupp.ki.1e-5.g16|4|4|cupp|300|--circuit ki_lab --weight 0 --coef 1e-5 --vram-frac 0.9
+defer.ki.1e-5.g2|1|2|cupp|300|--circuit ki_lab --weight 0 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1
+defer.ki.1e-5.g4|1|4|cupp|300|--circuit ki_lab --weight 0 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1
+defer.ki.1e-5.g8|2|4|cupp|300|--circuit ki_lab --weight 0 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1
+defer.ki.1e-5.g16|4|4|cupp|300|--circuit ki_lab --weight 0 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1
+cupp.ki.3e-6.g1|1|1|ref|300|--circuit ki_lab --weight 0 --coef 3e-6 --vram-frac 0.9
+cupp.ki.3e-6.g2|1|2|cupp|300|--circuit ki_lab --weight 0 --coef 3e-6 --vram-frac 0.9
+cupp.ki.3e-6.g4|1|4|cupp|300|--circuit ki_lab --weight 0 --coef 3e-6 --vram-frac 0.9
+cupp.ki.3e-6.g8|2|4|cupp|300|--circuit ki_lab --weight 0 --coef 3e-6 --vram-frac 0.9
+cupp.ki.3e-6.g16|4|4|cupp|300|--circuit ki_lab --weight 0 --coef 3e-6 --vram-frac 0.9
+defer.ki.3e-6.g2|1|2|cupp|300|--circuit ki_lab --weight 0 --coef 3e-6 --vram-frac 0.9 --cupp-tuned 1
+defer.ki.3e-6.g4|1|4|cupp|300|--circuit ki_lab --weight 0 --coef 3e-6 --vram-frac 0.9 --cupp-tuned 1
+defer.ki.3e-6.g8|2|4|cupp|300|--circuit ki_lab --weight 0 --coef 3e-6 --vram-frac 0.9 --cupp-tuned 1
+defer.ki.3e-6.g16|4|4|cupp|300|--circuit ki_lab --weight 0 --coef 3e-6 --vram-frac 0.9 --cupp-tuned 1
+defer3.ki.3e-5.g2|1|2|cupp|300|--circuit ki_lab --weight 0 --coef 3e-5 --vram-frac 0.9 --cupp-tuned 1 --cupp-dedup-every 3
+defer2.ki.3e-5.g2|1|2|cupp|300|--circuit ki_lab --weight 0 --coef 3e-5 --vram-frac 0.9 --cupp-tuned 1 --cupp-dedup-every 2
+defer3.ki.3e-5.g4|1|4|cupp|300|--circuit ki_lab --weight 0 --coef 3e-5 --vram-frac 0.9 --cupp-tuned 1 --cupp-dedup-every 3
+defer2.ki.3e-5.g4|1|4|cupp|300|--circuit ki_lab --weight 0 --coef 3e-5 --vram-frac 0.9 --cupp-tuned 1 --cupp-dedup-every 2
+defer3.ki.3e-5.g8|2|4|cupp|300|--circuit ki_lab --weight 0 --coef 3e-5 --vram-frac 0.9 --cupp-tuned 1 --cupp-dedup-every 3
+defer2.ki.3e-5.g8|2|4|cupp|300|--circuit ki_lab --weight 0 --coef 3e-5 --vram-frac 0.9 --cupp-tuned 1 --cupp-dedup-every 2
+defer3.ki.3e-5.g16|4|4|cupp|300|--circuit ki_lab --weight 0 --coef 3e-5 --vram-frac 0.9 --cupp-tuned 1 --cupp-dedup-every 3
+defer2.ki.3e-5.g16|4|4|cupp|300|--circuit ki_lab --weight 0 --coef 3e-5 --vram-frac 0.9 --cupp-tuned 1 --cupp-dedup-every 2
+defer3.ki.1e-5.g2|1|2|cupp|300|--circuit ki_lab --weight 0 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1 --cupp-dedup-every 3
+defer2.ki.1e-5.g2|1|2|cupp|300|--circuit ki_lab --weight 0 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1 --cupp-dedup-every 2
+defer3.ki.1e-5.g4|1|4|cupp|300|--circuit ki_lab --weight 0 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1 --cupp-dedup-every 3
+defer2.ki.1e-5.g4|1|4|cupp|300|--circuit ki_lab --weight 0 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1 --cupp-dedup-every 2
+defer3.ki.1e-5.g8|2|4|cupp|300|--circuit ki_lab --weight 0 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1 --cupp-dedup-every 3
+defer2.ki.1e-5.g8|2|4|cupp|300|--circuit ki_lab --weight 0 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1 --cupp-dedup-every 2
+defer3.ki.1e-5.g16|4|4|cupp|300|--circuit ki_lab --weight 0 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1 --cupp-dedup-every 3
+defer2.ki.1e-5.g16|4|4|cupp|300|--circuit ki_lab --weight 0 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1 --cupp-dedup-every 2
+cupp.tfim.1e-3.g1|1|1|ref|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-3 --vram-frac 0.9
+cupp.tfim.1e-3.g2|1|2|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-3 --vram-frac 0.9
+cupp.tfim.1e-3.g4|1|4|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-3 --vram-frac 0.9
+cupp.tfim.1e-3.g8|2|4|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-3 --vram-frac 0.9
+cupp.tfim.1e-3.g16|4|4|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-3 --vram-frac 0.9
+defer.tfim.1e-3.g2|1|2|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-3 --vram-frac 0.9 --cupp-tuned 1
+defer.tfim.1e-3.g4|1|4|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-3 --vram-frac 0.9 --cupp-tuned 1
+defer.tfim.1e-3.g8|2|4|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-3 --vram-frac 0.9 --cupp-tuned 1
+defer.tfim.1e-3.g16|4|4|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-3 --vram-frac 0.9 --cupp-tuned 1
+cupp.tfim.3e-4.g1|1|1|ref|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 3e-4 --vram-frac 0.9
+cupp.tfim.3e-4.g2|1|2|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 3e-4 --vram-frac 0.9
+cupp.tfim.3e-4.g4|1|4|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 3e-4 --vram-frac 0.9
+cupp.tfim.3e-4.g8|2|4|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 3e-4 --vram-frac 0.9
+cupp.tfim.3e-4.g16|4|4|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 3e-4 --vram-frac 0.9
+defer.tfim.3e-4.g2|1|2|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 3e-4 --vram-frac 0.9 --cupp-tuned 1
+defer.tfim.3e-4.g4|1|4|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 3e-4 --vram-frac 0.9 --cupp-tuned 1
+defer.tfim.3e-4.g8|2|4|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 3e-4 --vram-frac 0.9 --cupp-tuned 1
+defer.tfim.3e-4.g16|4|4|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 3e-4 --vram-frac 0.9 --cupp-tuned 1
+cupp.tfim.1e-4.g1|1|1|ref|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-4 --vram-frac 0.9
+cupp.tfim.1e-4.g2|1|2|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-4 --vram-frac 0.9
+cupp.tfim.1e-4.g4|1|4|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-4 --vram-frac 0.9
+cupp.tfim.1e-4.g8|2|4|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-4 --vram-frac 0.9
+cupp.tfim.1e-4.g16|4|4|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-4 --vram-frac 0.9
+defer.tfim.1e-4.g2|1|2|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-4 --vram-frac 0.9 --cupp-tuned 1
+defer.tfim.1e-4.g4|1|4|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-4 --vram-frac 0.9 --cupp-tuned 1
+defer.tfim.1e-4.g8|2|4|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-4 --vram-frac 0.9 --cupp-tuned 1
+defer.tfim.1e-4.g16|4|4|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-4 --vram-frac 0.9 --cupp-tuned 1
+cupp.tfim.3e-5.g1|1|1|ref|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 3e-5 --vram-frac 0.9
+cupp.tfim.3e-5.g2|1|2|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 3e-5 --vram-frac 0.9
+cupp.tfim.3e-5.g4|1|4|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 3e-5 --vram-frac 0.9
+cupp.tfim.3e-5.g8|2|4|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 3e-5 --vram-frac 0.9
+cupp.tfim.3e-5.g16|4|4|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 3e-5 --vram-frac 0.9
+defer.tfim.3e-5.g2|1|2|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 3e-5 --vram-frac 0.9 --cupp-tuned 1
+defer.tfim.3e-5.g4|1|4|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 3e-5 --vram-frac 0.9 --cupp-tuned 1
+defer.tfim.3e-5.g8|2|4|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 3e-5 --vram-frac 0.9 --cupp-tuned 1
+defer.tfim.3e-5.g16|4|4|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 3e-5 --vram-frac 0.9 --cupp-tuned 1
+cupp.tfim.1e-5.g1|1|1|ref|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-5 --vram-frac 0.9
+cupp.tfim.1e-5.g2|1|2|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-5 --vram-frac 0.9
+cupp.tfim.1e-5.g4|1|4|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-5 --vram-frac 0.9
+cupp.tfim.1e-5.g8|2|4|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-5 --vram-frac 0.9
+cupp.tfim.1e-5.g16|4|4|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-5 --vram-frac 0.9
+defer.tfim.1e-5.g2|1|2|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1
+defer.tfim.1e-5.g4|1|4|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1
+defer.tfim.1e-5.g8|2|4|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1
+defer.tfim.1e-5.g16|4|4|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1
+cupp.tfim.5e-6.g1|1|1|ref|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 5e-6 --vram-frac 0.9
+cupp.tfim.5e-6.g2|1|2|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 5e-6 --vram-frac 0.9
+cupp.tfim.5e-6.g4|1|4|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 5e-6 --vram-frac 0.9
+cupp.tfim.5e-6.g8|2|4|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 5e-6 --vram-frac 0.9
+cupp.tfim.5e-6.g16|4|4|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 5e-6 --vram-frac 0.9
+defer.tfim.5e-6.g2|1|2|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 5e-6 --vram-frac 0.9 --cupp-tuned 1
+defer.tfim.5e-6.g4|1|4|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 5e-6 --vram-frac 0.9 --cupp-tuned 1
+defer.tfim.5e-6.g8|2|4|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 5e-6 --vram-frac 0.9 --cupp-tuned 1
+defer.tfim.5e-6.g16|4|4|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 5e-6 --vram-frac 0.9 --cupp-tuned 1
+defer3.tfim.3e-5.g2|1|2|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 3e-5 --vram-frac 0.9 --cupp-tuned 1 --cupp-dedup-every 3
+defer2.tfim.3e-5.g2|1|2|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 3e-5 --vram-frac 0.9 --cupp-tuned 1 --cupp-dedup-every 2
+defer3.tfim.3e-5.g4|1|4|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 3e-5 --vram-frac 0.9 --cupp-tuned 1 --cupp-dedup-every 3
+defer2.tfim.3e-5.g4|1|4|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 3e-5 --vram-frac 0.9 --cupp-tuned 1 --cupp-dedup-every 2
+defer3.tfim.3e-5.g8|2|4|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 3e-5 --vram-frac 0.9 --cupp-tuned 1 --cupp-dedup-every 3
+defer2.tfim.3e-5.g8|2|4|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 3e-5 --vram-frac 0.9 --cupp-tuned 1 --cupp-dedup-every 2
+defer3.tfim.3e-5.g16|4|4|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 3e-5 --vram-frac 0.9 --cupp-tuned 1 --cupp-dedup-every 3
+defer2.tfim.3e-5.g16|4|4|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 3e-5 --vram-frac 0.9 --cupp-tuned 1 --cupp-dedup-every 2
+defer3.tfim.1e-5.g2|1|2|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1 --cupp-dedup-every 3
+defer2.tfim.1e-5.g2|1|2|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1 --cupp-dedup-every 2
+defer3.tfim.1e-5.g4|1|4|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1 --cupp-dedup-every 3
+defer2.tfim.1e-5.g4|1|4|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1 --cupp-dedup-every 2
+defer3.tfim.1e-5.g8|2|4|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1 --cupp-dedup-every 3
+defer2.tfim.1e-5.g8|2|4|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1 --cupp-dedup-every 2
+defer3.tfim.1e-5.g16|4|4|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1 --cupp-dedup-every 3
+defer2.tfim.1e-5.g16|4|4|cupp|300|--circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1 --cupp-dedup-every 2
+cupp.noise.1e-3.g1|1|1|ref|300|--circuit ki_noisy --noise 0.005 --coef 1e-3 --vram-frac 0.9
+cupp.noise.1e-3.g2|1|2|cupp|300|--circuit ki_noisy --noise 0.005 --coef 1e-3 --vram-frac 0.9
+cupp.noise.1e-3.g4|1|4|cupp|300|--circuit ki_noisy --noise 0.005 --coef 1e-3 --vram-frac 0.9
+cupp.noise.1e-3.g8|2|4|cupp|300|--circuit ki_noisy --noise 0.005 --coef 1e-3 --vram-frac 0.9
+cupp.noise.1e-3.g16|4|4|cupp|300|--circuit ki_noisy --noise 0.005 --coef 1e-3 --vram-frac 0.9
+defer.noise.1e-3.g2|1|2|cupp|300|--circuit ki_noisy --noise 0.005 --coef 1e-3 --vram-frac 0.9 --cupp-tuned 1
+defer.noise.1e-3.g4|1|4|cupp|300|--circuit ki_noisy --noise 0.005 --coef 1e-3 --vram-frac 0.9 --cupp-tuned 1
+defer.noise.1e-3.g8|2|4|cupp|300|--circuit ki_noisy --noise 0.005 --coef 1e-3 --vram-frac 0.9 --cupp-tuned 1
+defer.noise.1e-3.g16|4|4|cupp|300|--circuit ki_noisy --noise 0.005 --coef 1e-3 --vram-frac 0.9 --cupp-tuned 1
+cupp.noise.3e-4.g1|1|1|ref|300|--circuit ki_noisy --noise 0.005 --coef 3e-4 --vram-frac 0.9
+cupp.noise.3e-4.g2|1|2|cupp|300|--circuit ki_noisy --noise 0.005 --coef 3e-4 --vram-frac 0.9
+cupp.noise.3e-4.g4|1|4|cupp|300|--circuit ki_noisy --noise 0.005 --coef 3e-4 --vram-frac 0.9
+cupp.noise.3e-4.g8|2|4|cupp|300|--circuit ki_noisy --noise 0.005 --coef 3e-4 --vram-frac 0.9
+cupp.noise.3e-4.g16|4|4|cupp|300|--circuit ki_noisy --noise 0.005 --coef 3e-4 --vram-frac 0.9
+defer.noise.3e-4.g2|1|2|cupp|300|--circuit ki_noisy --noise 0.005 --coef 3e-4 --vram-frac 0.9 --cupp-tuned 1
+defer.noise.3e-4.g4|1|4|cupp|300|--circuit ki_noisy --noise 0.005 --coef 3e-4 --vram-frac 0.9 --cupp-tuned 1
+defer.noise.3e-4.g8|2|4|cupp|300|--circuit ki_noisy --noise 0.005 --coef 3e-4 --vram-frac 0.9 --cupp-tuned 1
+defer.noise.3e-4.g16|4|4|cupp|300|--circuit ki_noisy --noise 0.005 --coef 3e-4 --vram-frac 0.9 --cupp-tuned 1
+cupp.noise.1e-4.g1|1|1|ref|300|--circuit ki_noisy --noise 0.005 --coef 1e-4 --vram-frac 0.9
+cupp.noise.1e-4.g2|1|2|cupp|300|--circuit ki_noisy --noise 0.005 --coef 1e-4 --vram-frac 0.9
+cupp.noise.1e-4.g4|1|4|cupp|300|--circuit ki_noisy --noise 0.005 --coef 1e-4 --vram-frac 0.9
+cupp.noise.1e-4.g8|2|4|cupp|300|--circuit ki_noisy --noise 0.005 --coef 1e-4 --vram-frac 0.9
+cupp.noise.1e-4.g16|4|4|cupp|300|--circuit ki_noisy --noise 0.005 --coef 1e-4 --vram-frac 0.9
+defer.noise.1e-4.g2|1|2|cupp|300|--circuit ki_noisy --noise 0.005 --coef 1e-4 --vram-frac 0.9 --cupp-tuned 1
+defer.noise.1e-4.g4|1|4|cupp|300|--circuit ki_noisy --noise 0.005 --coef 1e-4 --vram-frac 0.9 --cupp-tuned 1
+defer.noise.1e-4.g8|2|4|cupp|300|--circuit ki_noisy --noise 0.005 --coef 1e-4 --vram-frac 0.9 --cupp-tuned 1
+defer.noise.1e-4.g16|4|4|cupp|300|--circuit ki_noisy --noise 0.005 --coef 1e-4 --vram-frac 0.9 --cupp-tuned 1
+cupp.noise.3e-5.g1|1|1|ref|300|--circuit ki_noisy --noise 0.005 --coef 3e-5 --vram-frac 0.9
+cupp.noise.3e-5.g2|1|2|cupp|300|--circuit ki_noisy --noise 0.005 --coef 3e-5 --vram-frac 0.9
+cupp.noise.3e-5.g4|1|4|cupp|300|--circuit ki_noisy --noise 0.005 --coef 3e-5 --vram-frac 0.9
+cupp.noise.3e-5.g8|2|4|cupp|300|--circuit ki_noisy --noise 0.005 --coef 3e-5 --vram-frac 0.9
+cupp.noise.3e-5.g16|4|4|cupp|300|--circuit ki_noisy --noise 0.005 --coef 3e-5 --vram-frac 0.9
+defer.noise.3e-5.g2|1|2|cupp|300|--circuit ki_noisy --noise 0.005 --coef 3e-5 --vram-frac 0.9 --cupp-tuned 1
+defer.noise.3e-5.g4|1|4|cupp|300|--circuit ki_noisy --noise 0.005 --coef 3e-5 --vram-frac 0.9 --cupp-tuned 1
+defer.noise.3e-5.g8|2|4|cupp|300|--circuit ki_noisy --noise 0.005 --coef 3e-5 --vram-frac 0.9 --cupp-tuned 1
+defer.noise.3e-5.g16|4|4|cupp|300|--circuit ki_noisy --noise 0.005 --coef 3e-5 --vram-frac 0.9 --cupp-tuned 1
+cupp.noise.1e-5.g1|1|1|ref|300|--circuit ki_noisy --noise 0.005 --coef 1e-5 --vram-frac 0.9
+cupp.noise.1e-5.g2|1|2|cupp|300|--circuit ki_noisy --noise 0.005 --coef 1e-5 --vram-frac 0.9
+cupp.noise.1e-5.g4|1|4|cupp|300|--circuit ki_noisy --noise 0.005 --coef 1e-5 --vram-frac 0.9
+cupp.noise.1e-5.g8|2|4|cupp|300|--circuit ki_noisy --noise 0.005 --coef 1e-5 --vram-frac 0.9
+cupp.noise.1e-5.g16|4|4|cupp|300|--circuit ki_noisy --noise 0.005 --coef 1e-5 --vram-frac 0.9
+defer.noise.1e-5.g2|1|2|cupp|300|--circuit ki_noisy --noise 0.005 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1
+defer.noise.1e-5.g4|1|4|cupp|300|--circuit ki_noisy --noise 0.005 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1
+defer.noise.1e-5.g8|2|4|cupp|300|--circuit ki_noisy --noise 0.005 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1
+defer.noise.1e-5.g16|4|4|cupp|300|--circuit ki_noisy --noise 0.005 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1
+cupp.noise.5e-6.g1|1|1|ref|300|--circuit ki_noisy --noise 0.005 --coef 5e-6 --vram-frac 0.9
+cupp.noise.5e-6.g2|1|2|cupp|300|--circuit ki_noisy --noise 0.005 --coef 5e-6 --vram-frac 0.9
+cupp.noise.5e-6.g4|1|4|cupp|300|--circuit ki_noisy --noise 0.005 --coef 5e-6 --vram-frac 0.9
+cupp.noise.5e-6.g8|2|4|cupp|300|--circuit ki_noisy --noise 0.005 --coef 5e-6 --vram-frac 0.9
+cupp.noise.5e-6.g16|4|4|cupp|300|--circuit ki_noisy --noise 0.005 --coef 5e-6 --vram-frac 0.9
+defer.noise.5e-6.g2|1|2|cupp|300|--circuit ki_noisy --noise 0.005 --coef 5e-6 --vram-frac 0.9 --cupp-tuned 1
+defer.noise.5e-6.g4|1|4|cupp|300|--circuit ki_noisy --noise 0.005 --coef 5e-6 --vram-frac 0.9 --cupp-tuned 1
+defer.noise.5e-6.g8|2|4|cupp|300|--circuit ki_noisy --noise 0.005 --coef 5e-6 --vram-frac 0.9 --cupp-tuned 1
+defer.noise.5e-6.g16|4|4|cupp|300|--circuit ki_noisy --noise 0.005 --coef 5e-6 --vram-frac 0.9 --cupp-tuned 1
+defer3.noise.3e-5.g2|1|2|cupp|300|--circuit ki_noisy --noise 0.005 --coef 3e-5 --vram-frac 0.9 --cupp-tuned 1 --cupp-dedup-every 3
+defer2.noise.3e-5.g2|1|2|cupp|300|--circuit ki_noisy --noise 0.005 --coef 3e-5 --vram-frac 0.9 --cupp-tuned 1 --cupp-dedup-every 2
+defer3.noise.3e-5.g4|1|4|cupp|300|--circuit ki_noisy --noise 0.005 --coef 3e-5 --vram-frac 0.9 --cupp-tuned 1 --cupp-dedup-every 3
+defer2.noise.3e-5.g4|1|4|cupp|300|--circuit ki_noisy --noise 0.005 --coef 3e-5 --vram-frac 0.9 --cupp-tuned 1 --cupp-dedup-every 2
+defer3.noise.3e-5.g8|2|4|cupp|300|--circuit ki_noisy --noise 0.005 --coef 3e-5 --vram-frac 0.9 --cupp-tuned 1 --cupp-dedup-every 3
+defer2.noise.3e-5.g8|2|4|cupp|300|--circuit ki_noisy --noise 0.005 --coef 3e-5 --vram-frac 0.9 --cupp-tuned 1 --cupp-dedup-every 2
+defer3.noise.3e-5.g16|4|4|cupp|300|--circuit ki_noisy --noise 0.005 --coef 3e-5 --vram-frac 0.9 --cupp-tuned 1 --cupp-dedup-every 3
+defer2.noise.3e-5.g16|4|4|cupp|300|--circuit ki_noisy --noise 0.005 --coef 3e-5 --vram-frac 0.9 --cupp-tuned 1 --cupp-dedup-every 2
+defer3.noise.1e-5.g2|1|2|cupp|300|--circuit ki_noisy --noise 0.005 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1 --cupp-dedup-every 3
+defer2.noise.1e-5.g2|1|2|cupp|300|--circuit ki_noisy --noise 0.005 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1 --cupp-dedup-every 2
+defer3.noise.1e-5.g4|1|4|cupp|300|--circuit ki_noisy --noise 0.005 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1 --cupp-dedup-every 3
+defer2.noise.1e-5.g4|1|4|cupp|300|--circuit ki_noisy --noise 0.005 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1 --cupp-dedup-every 2
+defer3.noise.1e-5.g8|2|4|cupp|300|--circuit ki_noisy --noise 0.005 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1 --cupp-dedup-every 3
+defer2.noise.1e-5.g8|2|4|cupp|300|--circuit ki_noisy --noise 0.005 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1 --cupp-dedup-every 2
+defer3.noise.1e-5.g16|4|4|cupp|300|--circuit ki_noisy --noise 0.005 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1 --cupp-dedup-every 3
+defer2.noise.1e-5.g16|4|4|cupp|300|--circuit ki_noisy --noise 0.005 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1 --cupp-dedup-every 2
+orig.ki.1e-4.g1|1|1|ref|300|--circuit ki_lab --weight 0 --coef 1e-4 --vram-frac 0.9 --frame 0
+orig.ki.1e-4.g2|1|2|cupp|300|--circuit ki_lab --weight 0 --coef 1e-4 --vram-frac 0.9 --frame 0
+orig.ki.1e-4.g4|1|4|cupp|300|--circuit ki_lab --weight 0 --coef 1e-4 --vram-frac 0.9 --frame 0
+orig.ki.1e-4.g8|2|4|cupp|300|--circuit ki_lab --weight 0 --coef 1e-4 --vram-frac 0.9 --frame 0
+orig.ki.1e-4.g16|4|4|cupp|300|--circuit ki_lab --weight 0 --coef 1e-4 --vram-frac 0.9 --frame 0
+orig.ki.1e-5.g1|1|1|ref|300|--circuit ki_lab --weight 0 --coef 1e-5 --vram-frac 0.9 --frame 0
+orig.ki.1e-5.g2|1|2|cupp|300|--circuit ki_lab --weight 0 --coef 1e-5 --vram-frac 0.9 --frame 0
+orig.ki.1e-5.g4|1|4|cupp|300|--circuit ki_lab --weight 0 --coef 1e-5 --vram-frac 0.9 --frame 0
+orig.ki.1e-5.g8|2|4|cupp|300|--circuit ki_lab --weight 0 --coef 1e-5 --vram-frac 0.9 --frame 0
+orig.ki.1e-5.g16|4|4|cupp|300|--circuit ki_lab --weight 0 --coef 1e-5 --vram-frac 0.9 --frame 0
+orig.noise.1e-4.g1|1|1|ref|300|--circuit ki_noisy --noise 0.005 --coef 1e-4 --vram-frac 0.9 --frame 0
+orig.noise.1e-4.g2|1|2|cupp|300|--circuit ki_noisy --noise 0.005 --coef 1e-4 --vram-frac 0.9 --frame 0
+orig.noise.1e-4.g4|1|4|cupp|300|--circuit ki_noisy --noise 0.005 --coef 1e-4 --vram-frac 0.9 --frame 0
+orig.noise.1e-4.g8|2|4|cupp|300|--circuit ki_noisy --noise 0.005 --coef 1e-4 --vram-frac 0.9 --frame 0
+orig.noise.1e-4.g16|4|4|cupp|300|--circuit ki_noisy --noise 0.005 --coef 1e-4 --vram-frac 0.9 --frame 0
+orig.noise.1e-5.g1|1|1|ref|300|--circuit ki_noisy --noise 0.005 --coef 1e-5 --vram-frac 0.9 --frame 0
+orig.noise.1e-5.g2|1|2|cupp|300|--circuit ki_noisy --noise 0.005 --coef 1e-5 --vram-frac 0.9 --frame 0
+orig.noise.1e-5.g4|1|4|cupp|300|--circuit ki_noisy --noise 0.005 --coef 1e-5 --vram-frac 0.9 --frame 0
+orig.noise.1e-5.g8|2|4|cupp|300|--circuit ki_noisy --noise 0.005 --coef 1e-5 --vram-frac 0.9 --frame 0
+orig.noise.1e-5.g16|4|4|cupp|300|--circuit ki_noisy --noise 0.005 --coef 1e-5 --vram-frac 0.9 --frame 0
+eng.tfimsq.1e-4.g1|1|1|eng|400|--circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 1e-4 --target 4000000 --trace 1 --vram-frac 0.9
+eng.tfimsq.1e-4.g2|1|2|eng|300|--circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 1e-4 --target 4000000 --trace 1 --vram-frac 0.9
+eng.tfimsq.1e-4.g4|1|4|eng|300|--circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 1e-4 --target 4000000 --trace 1 --vram-frac 0.9
+eng.tfimsq.1e-4.g8|2|4|eng|300|--circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 1e-4 --target 4000000 --trace 1 --vram-frac 0.9
+eng.tfimsq.1e-4.g16|4|4|eng|300|--circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 1e-4 --target 4000000 --trace 1 --vram-frac 0.9
+eng.tfimsq.1e-5.g1|1|1|eng|400|--circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 1e-5 --target 4000000 --trace 1 --vram-frac 0.9
+eng.tfimsq.1e-5.g2|1|2|eng|300|--circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 1e-5 --target 4000000 --trace 1 --vram-frac 0.9
+eng.tfimsq.1e-5.g4|1|4|eng|300|--circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 1e-5 --target 4000000 --trace 1 --vram-frac 0.9
+eng.tfimsq.1e-5.g8|2|4|eng|300|--circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 1e-5 --target 4000000 --trace 1 --vram-frac 0.9
+eng.tfimsq.1e-5.g16|4|4|eng|300|--circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 1e-5 --target 4000000 --trace 1 --vram-frac 0.9
+eng.tfimsq.3e-6.g1|1|1|eng|400|--circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 3e-6 --target 4000000 --trace 1 --vram-frac 0.9
+eng.tfimsq.3e-6.g2|1|2|eng|300|--circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 3e-6 --target 4000000 --trace 1 --vram-frac 0.9
+eng.tfimsq.3e-6.g4|1|4|eng|300|--circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 3e-6 --target 4000000 --trace 1 --vram-frac 0.9
+eng.tfimsq.3e-6.g8|2|4|eng|300|--circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 3e-6 --target 4000000 --trace 1 --vram-frac 0.9
+eng.tfimsq.3e-6.g16|4|4|eng|300|--circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 3e-6 --target 4000000 --trace 1 --vram-frac 0.9
+cupp.tfimsq.1e-4.g1|1|1|ref|300|--circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 1e-4 --vram-frac 0.9
+cupp.tfimsq.1e-4.g2|1|2|cupp|300|--circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 1e-4 --vram-frac 0.9
+cupp.tfimsq.1e-4.g4|1|4|cupp|300|--circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 1e-4 --vram-frac 0.9
+cupp.tfimsq.1e-4.g8|2|4|cupp|300|--circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 1e-4 --vram-frac 0.9
+cupp.tfimsq.1e-4.g16|4|4|cupp|300|--circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 1e-4 --vram-frac 0.9
+defer.tfimsq.1e-4.g2|1|2|cupp|300|--circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 1e-4 --vram-frac 0.9 --cupp-tuned 1
+defer.tfimsq.1e-4.g4|1|4|cupp|300|--circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 1e-4 --vram-frac 0.9 --cupp-tuned 1
+defer.tfimsq.1e-4.g8|2|4|cupp|300|--circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 1e-4 --vram-frac 0.9 --cupp-tuned 1
+defer.tfimsq.1e-4.g16|4|4|cupp|300|--circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 1e-4 --vram-frac 0.9 --cupp-tuned 1
+cupp.tfimsq.1e-5.g1|1|1|ref|300|--circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 1e-5 --vram-frac 0.9
+cupp.tfimsq.1e-5.g2|1|2|cupp|300|--circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 1e-5 --vram-frac 0.9
+cupp.tfimsq.1e-5.g4|1|4|cupp|300|--circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 1e-5 --vram-frac 0.9
+cupp.tfimsq.1e-5.g8|2|4|cupp|300|--circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 1e-5 --vram-frac 0.9
+cupp.tfimsq.1e-5.g16|4|4|cupp|300|--circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 1e-5 --vram-frac 0.9
+defer.tfimsq.1e-5.g2|1|2|cupp|300|--circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1
+defer.tfimsq.1e-5.g4|1|4|cupp|300|--circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1
+defer.tfimsq.1e-5.g8|2|4|cupp|300|--circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1
+defer.tfimsq.1e-5.g16|4|4|cupp|300|--circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1
+cupp.tfimsq.3e-6.g1|1|1|ref|300|--circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 3e-6 --vram-frac 0.9
+cupp.tfimsq.3e-6.g2|1|2|cupp|300|--circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 3e-6 --vram-frac 0.9
+cupp.tfimsq.3e-6.g4|1|4|cupp|300|--circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 3e-6 --vram-frac 0.9
+cupp.tfimsq.3e-6.g8|2|4|cupp|300|--circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 3e-6 --vram-frac 0.9
+cupp.tfimsq.3e-6.g16|4|4|cupp|300|--circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 3e-6 --vram-frac 0.9
+defer.tfimsq.3e-6.g2|1|2|cupp|300|--circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 3e-6 --vram-frac 0.9 --cupp-tuned 1
+defer.tfimsq.3e-6.g4|1|4|cupp|300|--circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 3e-6 --vram-frac 0.9 --cupp-tuned 1
+defer.tfimsq.3e-6.g8|2|4|cupp|300|--circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 3e-6 --vram-frac 0.9 --cupp-tuned 1
+defer.tfimsq.3e-6.g16|4|4|cupp|300|--circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 3e-6 --vram-frac 0.9 --cupp-tuned 1
+eng.xxz.1e-4.g1|1|1|eng|400|--circuit xxz --lx 8 --ly 8 --jxy 0.1 --jz 0.15 --steps 6 --coef 1e-4 --target 4000000 --trace 1 --vram-frac 0.9
+eng.xxz.1e-4.g2|1|2|eng|300|--circuit xxz --lx 8 --ly 8 --jxy 0.1 --jz 0.15 --steps 6 --coef 1e-4 --target 4000000 --trace 1 --vram-frac 0.9
+eng.xxz.1e-4.g4|1|4|eng|300|--circuit xxz --lx 8 --ly 8 --jxy 0.1 --jz 0.15 --steps 6 --coef 1e-4 --target 4000000 --trace 1 --vram-frac 0.9
+eng.xxz.1e-4.g8|2|4|eng|300|--circuit xxz --lx 8 --ly 8 --jxy 0.1 --jz 0.15 --steps 6 --coef 1e-4 --target 4000000 --trace 1 --vram-frac 0.9
+eng.xxz.1e-4.g16|4|4|eng|300|--circuit xxz --lx 8 --ly 8 --jxy 0.1 --jz 0.15 --steps 6 --coef 1e-4 --target 4000000 --trace 1 --vram-frac 0.9
+eng.xxz.1e-5.g1|1|1|eng|400|--circuit xxz --lx 8 --ly 8 --jxy 0.1 --jz 0.15 --steps 6 --coef 1e-5 --target 4000000 --trace 1 --vram-frac 0.9
+eng.xxz.1e-5.g2|1|2|eng|300|--circuit xxz --lx 8 --ly 8 --jxy 0.1 --jz 0.15 --steps 6 --coef 1e-5 --target 4000000 --trace 1 --vram-frac 0.9
+eng.xxz.1e-5.g4|1|4|eng|300|--circuit xxz --lx 8 --ly 8 --jxy 0.1 --jz 0.15 --steps 6 --coef 1e-5 --target 4000000 --trace 1 --vram-frac 0.9
+eng.xxz.1e-5.g8|2|4|eng|300|--circuit xxz --lx 8 --ly 8 --jxy 0.1 --jz 0.15 --steps 6 --coef 1e-5 --target 4000000 --trace 1 --vram-frac 0.9
+eng.xxz.1e-5.g16|4|4|eng|300|--circuit xxz --lx 8 --ly 8 --jxy 0.1 --jz 0.15 --steps 6 --coef 1e-5 --target 4000000 --trace 1 --vram-frac 0.9
+eng.xxz.1e-6.g1|1|1|eng|400|--circuit xxz --lx 8 --ly 8 --jxy 0.1 --jz 0.15 --steps 6 --coef 1e-6 --target 4000000 --trace 1 --vram-frac 0.9
+eng.xxz.1e-6.g2|1|2|eng|300|--circuit xxz --lx 8 --ly 8 --jxy 0.1 --jz 0.15 --steps 6 --coef 1e-6 --target 4000000 --trace 1 --vram-frac 0.9
+eng.xxz.1e-6.g4|1|4|eng|300|--circuit xxz --lx 8 --ly 8 --jxy 0.1 --jz 0.15 --steps 6 --coef 1e-6 --target 4000000 --trace 1 --vram-frac 0.9
+eng.xxz.1e-6.g8|2|4|eng|300|--circuit xxz --lx 8 --ly 8 --jxy 0.1 --jz 0.15 --steps 6 --coef 1e-6 --target 4000000 --trace 1 --vram-frac 0.9
+eng.xxz.1e-6.g16|4|4|eng|300|--circuit xxz --lx 8 --ly 8 --jxy 0.1 --jz 0.15 --steps 6 --coef 1e-6 --target 4000000 --trace 1 --vram-frac 0.9
+cupp.xxz.1e-4.g1|1|1|ref|300|--circuit xxz --lx 8 --ly 8 --jxy 0.1 --jz 0.15 --steps 6 --coef 1e-4 --vram-frac 0.9
+cupp.xxz.1e-4.g2|1|2|cupp|300|--circuit xxz --lx 8 --ly 8 --jxy 0.1 --jz 0.15 --steps 6 --coef 1e-4 --vram-frac 0.9
+cupp.xxz.1e-4.g4|1|4|cupp|300|--circuit xxz --lx 8 --ly 8 --jxy 0.1 --jz 0.15 --steps 6 --coef 1e-4 --vram-frac 0.9
+cupp.xxz.1e-4.g8|2|4|cupp|300|--circuit xxz --lx 8 --ly 8 --jxy 0.1 --jz 0.15 --steps 6 --coef 1e-4 --vram-frac 0.9
+cupp.xxz.1e-4.g16|4|4|cupp|300|--circuit xxz --lx 8 --ly 8 --jxy 0.1 --jz 0.15 --steps 6 --coef 1e-4 --vram-frac 0.9
+defer.xxz.1e-4.g2|1|2|cupp|300|--circuit xxz --lx 8 --ly 8 --jxy 0.1 --jz 0.15 --steps 6 --coef 1e-4 --vram-frac 0.9 --cupp-tuned 1
+defer.xxz.1e-4.g4|1|4|cupp|300|--circuit xxz --lx 8 --ly 8 --jxy 0.1 --jz 0.15 --steps 6 --coef 1e-4 --vram-frac 0.9 --cupp-tuned 1
+defer.xxz.1e-4.g8|2|4|cupp|300|--circuit xxz --lx 8 --ly 8 --jxy 0.1 --jz 0.15 --steps 6 --coef 1e-4 --vram-frac 0.9 --cupp-tuned 1
+defer.xxz.1e-4.g16|4|4|cupp|300|--circuit xxz --lx 8 --ly 8 --jxy 0.1 --jz 0.15 --steps 6 --coef 1e-4 --vram-frac 0.9 --cupp-tuned 1
+cupp.xxz.1e-5.g1|1|1|ref|300|--circuit xxz --lx 8 --ly 8 --jxy 0.1 --jz 0.15 --steps 6 --coef 1e-5 --vram-frac 0.9
+cupp.xxz.1e-5.g2|1|2|cupp|300|--circuit xxz --lx 8 --ly 8 --jxy 0.1 --jz 0.15 --steps 6 --coef 1e-5 --vram-frac 0.9
+cupp.xxz.1e-5.g4|1|4|cupp|300|--circuit xxz --lx 8 --ly 8 --jxy 0.1 --jz 0.15 --steps 6 --coef 1e-5 --vram-frac 0.9
+cupp.xxz.1e-5.g8|2|4|cupp|300|--circuit xxz --lx 8 --ly 8 --jxy 0.1 --jz 0.15 --steps 6 --coef 1e-5 --vram-frac 0.9
+cupp.xxz.1e-5.g16|4|4|cupp|300|--circuit xxz --lx 8 --ly 8 --jxy 0.1 --jz 0.15 --steps 6 --coef 1e-5 --vram-frac 0.9
+defer.xxz.1e-5.g2|1|2|cupp|300|--circuit xxz --lx 8 --ly 8 --jxy 0.1 --jz 0.15 --steps 6 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1
+defer.xxz.1e-5.g4|1|4|cupp|300|--circuit xxz --lx 8 --ly 8 --jxy 0.1 --jz 0.15 --steps 6 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1
+defer.xxz.1e-5.g8|2|4|cupp|300|--circuit xxz --lx 8 --ly 8 --jxy 0.1 --jz 0.15 --steps 6 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1
+defer.xxz.1e-5.g16|4|4|cupp|300|--circuit xxz --lx 8 --ly 8 --jxy 0.1 --jz 0.15 --steps 6 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1
+cupp.xxz.1e-6.g1|1|1|ref|300|--circuit xxz --lx 8 --ly 8 --jxy 0.1 --jz 0.15 --steps 6 --coef 1e-6 --vram-frac 0.9
+cupp.xxz.1e-6.g2|1|2|cupp|300|--circuit xxz --lx 8 --ly 8 --jxy 0.1 --jz 0.15 --steps 6 --coef 1e-6 --vram-frac 0.9
+cupp.xxz.1e-6.g4|1|4|cupp|300|--circuit xxz --lx 8 --ly 8 --jxy 0.1 --jz 0.15 --steps 6 --coef 1e-6 --vram-frac 0.9
+cupp.xxz.1e-6.g8|2|4|cupp|300|--circuit xxz --lx 8 --ly 8 --jxy 0.1 --jz 0.15 --steps 6 --coef 1e-6 --vram-frac 0.9
+cupp.xxz.1e-6.g16|4|4|cupp|300|--circuit xxz --lx 8 --ly 8 --jxy 0.1 --jz 0.15 --steps 6 --coef 1e-6 --vram-frac 0.9
+defer.xxz.1e-6.g2|1|2|cupp|300|--circuit xxz --lx 8 --ly 8 --jxy 0.1 --jz 0.15 --steps 6 --coef 1e-6 --vram-frac 0.9 --cupp-tuned 1
+defer.xxz.1e-6.g4|1|4|cupp|300|--circuit xxz --lx 8 --ly 8 --jxy 0.1 --jz 0.15 --steps 6 --coef 1e-6 --vram-frac 0.9 --cupp-tuned 1
+defer.xxz.1e-6.g8|2|4|cupp|300|--circuit xxz --lx 8 --ly 8 --jxy 0.1 --jz 0.15 --steps 6 --coef 1e-6 --vram-frac 0.9 --cupp-tuned 1
+defer.xxz.1e-6.g16|4|4|cupp|300|--circuit xxz --lx 8 --ly 8 --jxy 0.1 --jz 0.15 --steps 6 --coef 1e-6 --vram-frac 0.9 --cupp-tuned 1
+eng.qaoa.1e-4.g1|1|1|eng|400|--circuit qaoa --n 100 --layers 4 --coef 1e-4 --target 4000000 --trace 1 --vram-frac 0.9
+eng.qaoa.1e-4.g2|1|2|eng|300|--circuit qaoa --n 100 --layers 4 --coef 1e-4 --target 4000000 --trace 1 --vram-frac 0.9
+eng.qaoa.1e-4.g4|1|4|eng|300|--circuit qaoa --n 100 --layers 4 --coef 1e-4 --target 4000000 --trace 1 --vram-frac 0.9
+eng.qaoa.1e-4.g8|2|4|eng|300|--circuit qaoa --n 100 --layers 4 --coef 1e-4 --target 4000000 --trace 1 --vram-frac 0.9
+eng.qaoa.1e-4.g16|4|4|eng|300|--circuit qaoa --n 100 --layers 4 --coef 1e-4 --target 4000000 --trace 1 --vram-frac 0.9
+eng.qaoa.1e-5.g1|1|1|eng|400|--circuit qaoa --n 100 --layers 4 --coef 1e-5 --target 4000000 --trace 1 --vram-frac 0.9
+eng.qaoa.1e-5.g2|1|2|eng|300|--circuit qaoa --n 100 --layers 4 --coef 1e-5 --target 4000000 --trace 1 --vram-frac 0.9
+eng.qaoa.1e-5.g4|1|4|eng|300|--circuit qaoa --n 100 --layers 4 --coef 1e-5 --target 4000000 --trace 1 --vram-frac 0.9
+eng.qaoa.1e-5.g8|2|4|eng|300|--circuit qaoa --n 100 --layers 4 --coef 1e-5 --target 4000000 --trace 1 --vram-frac 0.9
+eng.qaoa.1e-5.g16|4|4|eng|300|--circuit qaoa --n 100 --layers 4 --coef 1e-5 --target 4000000 --trace 1 --vram-frac 0.9
+eng.qaoa.1e-6.g1|1|1|eng|400|--circuit qaoa --n 100 --layers 4 --coef 1e-6 --target 4000000 --trace 1 --vram-frac 0.9
+eng.qaoa.1e-6.g2|1|2|eng|300|--circuit qaoa --n 100 --layers 4 --coef 1e-6 --target 4000000 --trace 1 --vram-frac 0.9
+eng.qaoa.1e-6.g4|1|4|eng|300|--circuit qaoa --n 100 --layers 4 --coef 1e-6 --target 4000000 --trace 1 --vram-frac 0.9
+eng.qaoa.1e-6.g8|2|4|eng|300|--circuit qaoa --n 100 --layers 4 --coef 1e-6 --target 4000000 --trace 1 --vram-frac 0.9
+eng.qaoa.1e-6.g16|4|4|eng|300|--circuit qaoa --n 100 --layers 4 --coef 1e-6 --target 4000000 --trace 1 --vram-frac 0.9
+cupp.qaoa.1e-4.g1|1|1|ref|300|--circuit qaoa --n 100 --layers 4 --coef 1e-4 --vram-frac 0.9
+cupp.qaoa.1e-4.g2|1|2|cupp|300|--circuit qaoa --n 100 --layers 4 --coef 1e-4 --vram-frac 0.9
+cupp.qaoa.1e-4.g4|1|4|cupp|300|--circuit qaoa --n 100 --layers 4 --coef 1e-4 --vram-frac 0.9
+cupp.qaoa.1e-4.g8|2|4|cupp|300|--circuit qaoa --n 100 --layers 4 --coef 1e-4 --vram-frac 0.9
+cupp.qaoa.1e-4.g16|4|4|cupp|300|--circuit qaoa --n 100 --layers 4 --coef 1e-4 --vram-frac 0.9
+defer.qaoa.1e-4.g2|1|2|cupp|300|--circuit qaoa --n 100 --layers 4 --coef 1e-4 --vram-frac 0.9 --cupp-tuned 1
+defer.qaoa.1e-4.g4|1|4|cupp|300|--circuit qaoa --n 100 --layers 4 --coef 1e-4 --vram-frac 0.9 --cupp-tuned 1
+defer.qaoa.1e-4.g8|2|4|cupp|300|--circuit qaoa --n 100 --layers 4 --coef 1e-4 --vram-frac 0.9 --cupp-tuned 1
+defer.qaoa.1e-4.g16|4|4|cupp|300|--circuit qaoa --n 100 --layers 4 --coef 1e-4 --vram-frac 0.9 --cupp-tuned 1
+cupp.qaoa.1e-5.g1|1|1|ref|300|--circuit qaoa --n 100 --layers 4 --coef 1e-5 --vram-frac 0.9
+cupp.qaoa.1e-5.g2|1|2|cupp|300|--circuit qaoa --n 100 --layers 4 --coef 1e-5 --vram-frac 0.9
+cupp.qaoa.1e-5.g4|1|4|cupp|300|--circuit qaoa --n 100 --layers 4 --coef 1e-5 --vram-frac 0.9
+cupp.qaoa.1e-5.g8|2|4|cupp|300|--circuit qaoa --n 100 --layers 4 --coef 1e-5 --vram-frac 0.9
+cupp.qaoa.1e-5.g16|4|4|cupp|300|--circuit qaoa --n 100 --layers 4 --coef 1e-5 --vram-frac 0.9
+defer.qaoa.1e-5.g2|1|2|cupp|300|--circuit qaoa --n 100 --layers 4 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1
+defer.qaoa.1e-5.g4|1|4|cupp|300|--circuit qaoa --n 100 --layers 4 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1
+defer.qaoa.1e-5.g8|2|4|cupp|300|--circuit qaoa --n 100 --layers 4 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1
+defer.qaoa.1e-5.g16|4|4|cupp|300|--circuit qaoa --n 100 --layers 4 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1
+cupp.qaoa.1e-6.g1|1|1|ref|300|--circuit qaoa --n 100 --layers 4 --coef 1e-6 --vram-frac 0.9
+cupp.qaoa.1e-6.g2|1|2|cupp|300|--circuit qaoa --n 100 --layers 4 --coef 1e-6 --vram-frac 0.9
+cupp.qaoa.1e-6.g4|1|4|cupp|300|--circuit qaoa --n 100 --layers 4 --coef 1e-6 --vram-frac 0.9
+cupp.qaoa.1e-6.g8|2|4|cupp|300|--circuit qaoa --n 100 --layers 4 --coef 1e-6 --vram-frac 0.9
+cupp.qaoa.1e-6.g16|4|4|cupp|300|--circuit qaoa --n 100 --layers 4 --coef 1e-6 --vram-frac 0.9
+defer.qaoa.1e-6.g2|1|2|cupp|300|--circuit qaoa --n 100 --layers 4 --coef 1e-6 --vram-frac 0.9 --cupp-tuned 1
+defer.qaoa.1e-6.g4|1|4|cupp|300|--circuit qaoa --n 100 --layers 4 --coef 1e-6 --vram-frac 0.9 --cupp-tuned 1
+defer.qaoa.1e-6.g8|2|4|cupp|300|--circuit qaoa --n 100 --layers 4 --coef 1e-6 --vram-frac 0.9 --cupp-tuned 1
+defer.qaoa.1e-6.g16|4|4|cupp|300|--circuit qaoa --n 100 --layers 4 --coef 1e-6 --vram-frac 0.9 --cupp-tuned 1
+eng.hea.1e-5.g1|1|1|eng|400|--circuit hea --n 100 --layers 16 --amp 0.4 --coef 1e-5 --target 4000000 --trace 1 --vram-frac 0.9
+eng.hea.1e-5.g2|1|2|eng|300|--circuit hea --n 100 --layers 16 --amp 0.4 --coef 1e-5 --target 4000000 --trace 1 --vram-frac 0.9
+eng.hea.1e-5.g4|1|4|eng|300|--circuit hea --n 100 --layers 16 --amp 0.4 --coef 1e-5 --target 4000000 --trace 1 --vram-frac 0.9
+eng.hea.1e-5.g8|2|4|eng|300|--circuit hea --n 100 --layers 16 --amp 0.4 --coef 1e-5 --target 4000000 --trace 1 --vram-frac 0.9
+eng.hea.1e-5.g16|4|4|eng|300|--circuit hea --n 100 --layers 16 --amp 0.4 --coef 1e-5 --target 4000000 --trace 1 --vram-frac 0.9
+eng.hea.1e-6.g1|1|1|eng|400|--circuit hea --n 100 --layers 16 --amp 0.4 --coef 1e-6 --target 4000000 --trace 1 --vram-frac 0.9
+eng.hea.1e-6.g2|1|2|eng|300|--circuit hea --n 100 --layers 16 --amp 0.4 --coef 1e-6 --target 4000000 --trace 1 --vram-frac 0.9
+eng.hea.1e-6.g4|1|4|eng|300|--circuit hea --n 100 --layers 16 --amp 0.4 --coef 1e-6 --target 4000000 --trace 1 --vram-frac 0.9
+eng.hea.1e-6.g8|2|4|eng|300|--circuit hea --n 100 --layers 16 --amp 0.4 --coef 1e-6 --target 4000000 --trace 1 --vram-frac 0.9
+eng.hea.1e-6.g16|4|4|eng|300|--circuit hea --n 100 --layers 16 --amp 0.4 --coef 1e-6 --target 4000000 --trace 1 --vram-frac 0.9
+eng.hea.1e-7.g1|1|1|eng|400|--circuit hea --n 100 --layers 16 --amp 0.4 --coef 1e-7 --target 4000000 --trace 1 --vram-frac 0.9
+eng.hea.1e-7.g2|1|2|eng|300|--circuit hea --n 100 --layers 16 --amp 0.4 --coef 1e-7 --target 4000000 --trace 1 --vram-frac 0.9
+eng.hea.1e-7.g4|1|4|eng|300|--circuit hea --n 100 --layers 16 --amp 0.4 --coef 1e-7 --target 4000000 --trace 1 --vram-frac 0.9
+eng.hea.1e-7.g8|2|4|eng|300|--circuit hea --n 100 --layers 16 --amp 0.4 --coef 1e-7 --target 4000000 --trace 1 --vram-frac 0.9
+eng.hea.1e-7.g16|4|4|eng|300|--circuit hea --n 100 --layers 16 --amp 0.4 --coef 1e-7 --target 4000000 --trace 1 --vram-frac 0.9
+cupp.hea.1e-5.g1|1|1|ref|300|--circuit hea --n 100 --layers 16 --amp 0.4 --coef 1e-5 --vram-frac 0.9
+cupp.hea.1e-5.g2|1|2|cupp|300|--circuit hea --n 100 --layers 16 --amp 0.4 --coef 1e-5 --vram-frac 0.9
+cupp.hea.1e-5.g4|1|4|cupp|300|--circuit hea --n 100 --layers 16 --amp 0.4 --coef 1e-5 --vram-frac 0.9
+cupp.hea.1e-5.g8|2|4|cupp|300|--circuit hea --n 100 --layers 16 --amp 0.4 --coef 1e-5 --vram-frac 0.9
+cupp.hea.1e-5.g16|4|4|cupp|300|--circuit hea --n 100 --layers 16 --amp 0.4 --coef 1e-5 --vram-frac 0.9
+defer.hea.1e-5.g2|1|2|cupp|300|--circuit hea --n 100 --layers 16 --amp 0.4 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1
+defer.hea.1e-5.g4|1|4|cupp|300|--circuit hea --n 100 --layers 16 --amp 0.4 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1
+defer.hea.1e-5.g8|2|4|cupp|300|--circuit hea --n 100 --layers 16 --amp 0.4 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1
+defer.hea.1e-5.g16|4|4|cupp|300|--circuit hea --n 100 --layers 16 --amp 0.4 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1
+cupp.hea.1e-6.g1|1|1|ref|300|--circuit hea --n 100 --layers 16 --amp 0.4 --coef 1e-6 --vram-frac 0.9
+cupp.hea.1e-6.g2|1|2|cupp|300|--circuit hea --n 100 --layers 16 --amp 0.4 --coef 1e-6 --vram-frac 0.9
+cupp.hea.1e-6.g4|1|4|cupp|300|--circuit hea --n 100 --layers 16 --amp 0.4 --coef 1e-6 --vram-frac 0.9
+cupp.hea.1e-6.g8|2|4|cupp|300|--circuit hea --n 100 --layers 16 --amp 0.4 --coef 1e-6 --vram-frac 0.9
+cupp.hea.1e-6.g16|4|4|cupp|300|--circuit hea --n 100 --layers 16 --amp 0.4 --coef 1e-6 --vram-frac 0.9
+defer.hea.1e-6.g2|1|2|cupp|300|--circuit hea --n 100 --layers 16 --amp 0.4 --coef 1e-6 --vram-frac 0.9 --cupp-tuned 1
+defer.hea.1e-6.g4|1|4|cupp|300|--circuit hea --n 100 --layers 16 --amp 0.4 --coef 1e-6 --vram-frac 0.9 --cupp-tuned 1
+defer.hea.1e-6.g8|2|4|cupp|300|--circuit hea --n 100 --layers 16 --amp 0.4 --coef 1e-6 --vram-frac 0.9 --cupp-tuned 1
+defer.hea.1e-6.g16|4|4|cupp|300|--circuit hea --n 100 --layers 16 --amp 0.4 --coef 1e-6 --vram-frac 0.9 --cupp-tuned 1
+cupp.hea.1e-7.g1|1|1|ref|300|--circuit hea --n 100 --layers 16 --amp 0.4 --coef 1e-7 --vram-frac 0.9
+cupp.hea.1e-7.g2|1|2|cupp|300|--circuit hea --n 100 --layers 16 --amp 0.4 --coef 1e-7 --vram-frac 0.9
+cupp.hea.1e-7.g4|1|4|cupp|300|--circuit hea --n 100 --layers 16 --amp 0.4 --coef 1e-7 --vram-frac 0.9
+cupp.hea.1e-7.g8|2|4|cupp|300|--circuit hea --n 100 --layers 16 --amp 0.4 --coef 1e-7 --vram-frac 0.9
+cupp.hea.1e-7.g16|4|4|cupp|300|--circuit hea --n 100 --layers 16 --amp 0.4 --coef 1e-7 --vram-frac 0.9
+defer.hea.1e-7.g2|1|2|cupp|300|--circuit hea --n 100 --layers 16 --amp 0.4 --coef 1e-7 --vram-frac 0.9 --cupp-tuned 1
+defer.hea.1e-7.g4|1|4|cupp|300|--circuit hea --n 100 --layers 16 --amp 0.4 --coef 1e-7 --vram-frac 0.9 --cupp-tuned 1
+defer.hea.1e-7.g8|2|4|cupp|300|--circuit hea --n 100 --layers 16 --amp 0.4 --coef 1e-7 --vram-frac 0.9 --cupp-tuned 1
+defer.hea.1e-7.g16|4|4|cupp|300|--circuit hea --n 100 --layers 16 --amp 0.4 --coef 1e-7 --vram-frac 0.9 --cupp-tuned 1
+long.tfimsq.3e-6.g1|1|1|eng|3000|--circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 3e-6 --target 4000000 --trace 1 --vram-frac 0.9
+long.tfimsq.3e-6.g2|1|2|eng|1800|--circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 3e-6 --target 4000000 --trace 1 --vram-frac 0.9
+long.tfimsq.3e-6.g4|1|4|eng|1000|--circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 3e-6 --target 4000000 --trace 1 --vram-frac 0.9
+long.qaoa.1e-6.g1|1|1|eng|900|--circuit qaoa --n 100 --layers 4 --coef 1e-6 --target 4000000 --trace 1 --vram-frac 0.9
+eng.xxz.3e-6.g1|1|1|eng|3000|--circuit xxz --lx 8 --ly 8 --jxy 0.1 --jz 0.15 --steps 6 --coef 3e-6 --target 4000000 --trace 1 --vram-frac 0.9
+eng.xxz.3e-6.g2|1|2|eng|1800|--circuit xxz --lx 8 --ly 8 --jxy 0.1 --jz 0.15 --steps 6 --coef 3e-6 --target 4000000 --trace 1 --vram-frac 0.9
+eng.xxz.3e-6.g4|1|4|eng|1000|--circuit xxz --lx 8 --ly 8 --jxy 0.1 --jz 0.15 --steps 6 --coef 3e-6 --target 4000000 --trace 1 --vram-frac 0.9
+eng.xxz.3e-6.g8|2|4|eng|600|--circuit xxz --lx 8 --ly 8 --jxy 0.1 --jz 0.15 --steps 6 --coef 3e-6 --target 4000000 --trace 1 --vram-frac 0.9
+eng.xxz.3e-6.g16|4|4|eng|400|--circuit xxz --lx 8 --ly 8 --jxy 0.1 --jz 0.15 --steps 6 --coef 3e-6 --target 4000000 --trace 1 --vram-frac 0.9

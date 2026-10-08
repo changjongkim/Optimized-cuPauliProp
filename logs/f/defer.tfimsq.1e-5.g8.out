@@ -1,0 +1,21 @@
+===== cupp nodes=2 gpus=8 args: --circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1
+circuit: TFIM Trotter, square lattice; 121 qubits; 3410 gates -> 3410 operations on the data (3410 branching rotations, 0 Clifford, 0 noise); 0 Clifford gates deferred by the frame
+mode=cupp ranks=8 (one GPU each) coef=1e-05 weight=0 tuned: rank-local application, global deduplication before each truncation
+[rank 4] cuPauliProp distributed mode ran out of memory at operation 1636 of 3410 with 100014255 local terms (status 0)
+[node 4] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 0] cuPauliProp distributed mode ran out of memory at operation 1636 of 3410 with 99996388 local terms (status 0)
+[node 0] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 5] cuPauliProp distributed mode ran out of memory at operation 1636 of 3410 with 100008547 local terms (status 0)
+[node 5] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 1] cuPauliProp distributed mode ran out of memory at operation 1636 of 3410 with 100015641 local terms (status 0)
+[node 1] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 6] cuPauliProp distributed mode ran out of memory at operation 1636 of 3410 with 100040197 local terms (status 0)
+[node 6] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 2] cuPauliProp distributed mode ran out of memory at operation 1636 of 3410 with 100021582 local terms (status 0)
+[node 2] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 7] cuPauliProp distributed mode ran out of memory at operation 1636 of 3410 with 99994791 local terms (status 0)
+[node 7] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 3] cuPauliProp distributed mode ran out of memory at operation 1636 of 3410 with 100032493 local terms (status 0)
+[node 3] FATAL: cuPauliProp distributed capacity (line 991)
+[2026-10-08T09:42:19.585] error: *** STEP 59538706.20 ON nid002377 CANCELLED AT 2026-10-08T09:42:19 DUE TO TASK FAILURE ***
+exit=255

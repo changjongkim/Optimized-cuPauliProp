@@ -1,0 +1,21 @@
+===== cupp nodes=2 gpus=8 args: --circuit qaoa --n 100 --layers 4 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1
+circuit: QAOA MaxCut, random 3-regular graph; 100 qubits; 1100 gates -> 1100 operations on the data (1000 branching rotations, 100 Clifford, 0 noise); 100 Clifford gates deferred by the frame
+mode=cupp ranks=8 (one GPU each) coef=1e-05 weight=0 tuned: rank-local application, global deduplication before each truncation
+[rank 0] cuPauliProp distributed mode ran out of memory at operation 979 of 1100 with 100521061 local terms (status 0)
+[node 0] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 4] cuPauliProp distributed mode ran out of memory at operation 979 of 1100 with 100520700 local terms (status 0)
+[node 4] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 1] cuPauliProp distributed mode ran out of memory at operation 979 of 1100 with 100507284 local terms (status 0)
+[node 1] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 5] cuPauliProp distributed mode ran out of memory at operation 979 of 1100 with 100511400 local terms (status 0)
+[node 5] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 2] cuPauliProp distributed mode ran out of memory at operation 979 of 1100 with 100499006 local terms (status 0)
+[node 2] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 6] cuPauliProp distributed mode ran out of memory at operation 979 of 1100 with 100483470 local terms (status 0)
+[node 6] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 3] cuPauliProp distributed mode ran out of memory at operation 979 of 1100 with 100495864 local terms (status 0)
+[node 3] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 7] cuPauliProp distributed mode ran out of memory at operation 979 of 1100 with 100507808 local terms (status 0)
+[node 7] FATAL: cuPauliProp distributed capacity (line 991)
+[2026-10-08T09:43:43.833] error: *** STEP 59537174.117 ON nid001381 CANCELLED AT 2026-10-08T09:43:43 DUE TO TASK FAILURE ***
+exit=255

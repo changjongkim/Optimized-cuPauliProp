@@ -1,0 +1,9 @@
+===== ref nodes=1 gpus=1 args: --circuit qaoa --n 100 --layers 4 --coef 1e-6 --vram-frac 0.9
+circuit: QAOA MaxCut, random 3-regular graph; 100 qubits; 1100 gates -> 1100 operations on the data (1000 branching rotations, 100 Clifford, 0 noise); 100 Clifford gates deferred by the frame
+mode=ref nodes=1 gpus/node=1 coef=1e-06 weight=0 truncEvery=10 GPU capacity=188801777 terms/buffer bucket target=4000000 gmax=0 window=ann host=pinned chunks
+operation 608: 97555822 terms do not fit the GPU
+[node 0] FATAL: capacity (this mode cannot split) (line 819)
+MPICH ERROR [Rank 0] [job id 59537174.69] [Thu Oct  8 02:25:26 2026] [nid001384] - Abort(1) (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 0
+srun: error: nid001384: task 0: Exited with exit code 1
+srun: Terminating StepId=59537174.69
+exit=1

@@ -1,0 +1,22 @@
+===== cupp nodes=2 gpus=8 args: --circuit ki_lab --weight 0 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1 --cupp-dedup-every 3
+circuit: kicked Ising, Eagle heavy-hex; 127 qubits; 5420 gates -> 2540 operations on the data (2540 branching rotations, 0 Clifford, 0 noise); 2880 Clifford gates deferred by the frame
+mode=cupp ranks=8 (one GPU each) coef=1e-05 weight=0 tuned: rank-local application, global deduplication before each truncation
+tuned: additional global deduplication every 3 operations
+[rank 0] cuPauliProp distributed mode ran out of memory at operation 831 of 2540 with 103732193 local terms (status 0)
+[node 0] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 4] cuPauliProp distributed mode ran out of memory at operation 831 of 2540 with 103721989 local terms (status 0)
+[node 4] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 1] cuPauliProp distributed mode ran out of memory at operation 831 of 2540 with 103729164 local terms (status 0)
+[node 1] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 5] cuPauliProp distributed mode ran out of memory at operation 831 of 2540 with 103734116 local terms (status 0)
+[node 5] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 3] cuPauliProp distributed mode ran out of memory at operation 831 of 2540 with 103725911 local terms (status 0)
+[node 3] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 7] cuPauliProp distributed mode ran out of memory at operation 831 of 2540 with 103738347 local terms (status 0)
+[node 7] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 6] cuPauliProp distributed mode ran out of memory at operation 831 of 2540 with 103742421 local terms (status 0)
+[node 6] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 2] cuPauliProp distributed mode ran out of memory at operation 831 of 2540 with 103725673 local terms (status 0)
+[node 2] FATAL: cuPauliProp distributed capacity (line 991)
+[2026-10-08T09:38:31.930] error: *** STEP 59538706.6 ON nid002377 CANCELLED AT 2026-10-08T09:38:31 DUE TO TASK FAILURE ***
+exit=255

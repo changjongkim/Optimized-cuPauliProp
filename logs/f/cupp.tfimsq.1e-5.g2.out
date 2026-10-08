@@ -1,0 +1,9 @@
+===== cupp nodes=1 gpus=2 args: --circuit tfim_sq --lx 11 --ly 11 --theta 0.2 --phi -0.3 --steps 10 --coef 1e-5 --vram-frac 0.9
+circuit: TFIM Trotter, square lattice; 121 qubits; 3410 gates -> 3410 operations on the data (3410 branching rotations, 0 Clifford, 0 noise); 0 Clifford gates deferred by the frame
+mode=cupp ranks=2 (one GPU each) coef=1e-05 weight=0 default: global deduplication in every operation
+[rank 0] cuPauliProp distributed mode ran out of memory at operation 1306 of 3410 with 101704453 local terms (status 8)
+[node 0] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 1] cuPauliProp distributed mode ran out of memory at operation 1306 of 3410 with 101716455 local terms (status 8)
+[node 1] FATAL: cuPauliProp distributed capacity (line 991)
+[2026-10-08T09:20:31.361] error: *** STEP 59537380.65 ON nid002377 CANCELLED AT 2026-10-08T09:20:31 DUE TO TASK FAILURE ***
+exit=255

@@ -1,0 +1,20 @@
+===== cupp nodes=2 gpus=8 args: --circuit hea --n 100 --layers 16 --amp 0.4 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1
+circuit: hardware-efficient ansatz, line; 100 qubits; 4784 gates -> 3200 operations on the data (3200 branching rotations, 0 Clifford, 0 noise); 1584 Clifford gates deferred by the frame
+mode=cupp ranks=8 (one GPU each) coef=1e-05 weight=0 tuned: rank-local application, global deduplication before each truncation
+[rank 4] cuPauliProp distributed mode ran out of memory at operation 2757 of 3200 with 97877044 local terms (status 0)
+[node 4] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 0] cuPauliProp distributed mode ran out of memory at operation 2757 of 3200 with 97894485 local terms (status 0)
+[node 0] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 5] cuPauliProp distributed mode ran out of memory at operation 2757 of 3200 with 97825468 local terms (status 0)
+[node 5] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 1] cuPauliProp distributed mode ran out of memory at operation 2757 of 3200 with 97947410 local terms (status 0)
+[node 1] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 6] cuPauliProp distributed mode ran out of memory at operation 2757 of 3200 with 97895827 local terms (status 0)
+[node 6] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 2] cuPauliProp distributed mode ran out of memory at operation 2757 of 3200 with 97973362 local terms (status 0)
+[node 2] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 7] cuPauliProp distributed mode ran out of memory at operation 2757 of 3200 with 97917001 local terms (status 0)
+[node 7] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 3] cuPauliProp distributed mode ran out of memory at operation 2757 of 3200 with 97901651 local terms (status 0)
+[node 3] FATAL: cuPauliProp distributed capacity (line 991)
+exit=255

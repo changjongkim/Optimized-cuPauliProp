@@ -1,0 +1,18 @@
+===== engine nodes=4 gpus=16 args: --circuit xxz --lx 8 --ly 8 --jxy 0.1 --jz 0.15 --steps 6 --coef 1e-6 --target 4000000 --trace 1 --vram-frac 0.9 --gpus 4
+circuit: XXZ Trotter, square lattice; 64 qubits; 2048 gates -> 2048 operations on the data (2016 branching rotations, 32 Clifford, 0 noise); 32 Clifford gates deferred by the frame
+mode=engine nodes=4 gpus/node=4 coef=1e-06 weight=0 truncEvery=10 GPU capacity=314669629 terms/buffer bucket target=4000000 gmax=8 window=ann host=pinned chunks
+trace window=0 ops=0..88 branching_rotations=88 generator_rank=64 valid_rows=64 rows=0 sectors=1 largest_sector_in=1 terms_in=1 terms_out=13 next_rows=0 splits_so_far=0 sector_runs_so_far=1 run=0.050 s
+trace window=1 ops=88..178 branching_rotations=90 generator_rank=64 valid_rows=64 rows=0 sectors=1 largest_sector_in=13 terms_in=13 terms_out=364 next_rows=0 splits_so_far=0 sector_runs_so_far=2 run=0.005 s
+trace window=2 ops=178..268 branching_rotations=90 generator_rank=64 valid_rows=64 rows=0 sectors=1 largest_sector_in=364 terms_in=364 terms_out=8021083 next_rows=0 splits_so_far=0 sector_runs_so_far=3 run=0.212 s
+trace window=3 ops=268..358 branching_rotations=90 generator_rank=64 valid_rows=64 rows=0 sectors=1 largest_sector_in=8021083 terms_in=8021083 terms_out=96909166 next_rows=5 splits_so_far=3 sector_runs_so_far=10 run=3.746 s
+trace window=4 ops=358..448 branching_rotations=90 generator_rank=64 valid_rows=64 rows=5 sectors=32 largest_sector_in=3045700 terms_in=96909166 terms_out=673085002 next_rows=8 splits_so_far=35 sector_runs_so_far=106 run=14.068 s
+trace window=5 ops=448..538 branching_rotations=90 generator_rank=64 valid_rows=64 rows=8 sectors=256 largest_sector_in=2636455 terms_in=673085002 terms_out=1248565378 next_rows=8 splits_so_far=35 sector_runs_so_far=362 run=2.968 s
+srun: forcing job termination
+srun: got SIGCONT
+[2026-10-08T10:21:09.167] error: *** STEP 59537174.165 ON nid001381 CANCELLED AT 2026-10-08T10:21:09 DUE to SIGNAL Killed ***
+srun: error: nid001384: task 1: Killed
+srun: Terminating StepId=59537174.165
+srun: error: nid001381: task 0: Killed
+srun: error: nid003072: task 3: Killed
+srun: error: nid003069: task 2: Killed
+exit=124

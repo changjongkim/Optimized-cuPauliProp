@@ -1,0 +1,24 @@
+===== engine nodes=1 gpus=1 args: --circuit xxz --lx 8 --ly 8 --jxy 0.1 --jz 0.15 --steps 6 --coef 3e-6 --target 4000000 --trace 1 --vram-frac 0.9 --gpus 1
+circuit: XXZ Trotter, square lattice; 64 qubits; 2048 gates -> 2048 operations on the data (2016 branching rotations, 32 Clifford, 0 noise); 32 Clifford gates deferred by the frame
+mode=engine nodes=1 gpus/node=1 coef=3e-06 weight=0 truncEvery=10 GPU capacity=314669629 terms/buffer bucket target=4000000 gmax=8 window=ann host=pinned chunks
+trace window=0 ops=0..88 branching_rotations=88 generator_rank=64 valid_rows=64 rows=0 sectors=1 largest_sector_in=1 terms_in=1 terms_out=13 next_rows=0 splits_so_far=0 sector_runs_so_far=1 run=0.047 s
+trace window=1 ops=88..178 branching_rotations=90 generator_rank=64 valid_rows=64 rows=0 sectors=1 largest_sector_in=13 terms_in=13 terms_out=364 next_rows=0 splits_so_far=0 sector_runs_so_far=2 run=0.004 s
+trace window=2 ops=178..268 branching_rotations=90 generator_rank=64 valid_rows=64 rows=0 sectors=1 largest_sector_in=364 terms_in=364 terms_out=3283181 next_rows=0 splits_so_far=0 sector_runs_so_far=3 run=0.090 s
+trace window=3 ops=268..358 branching_rotations=90 generator_rank=64 valid_rows=64 rows=0 sectors=1 largest_sector_in=3283181 terms_in=3283181 terms_out=24422666 next_rows=3 splits_so_far=0 sector_runs_so_far=4 run=1.091 s
+trace window=4 ops=358..448 branching_rotations=90 generator_rank=64 valid_rows=64 rows=3 sectors=8 largest_sector_in=3053871 terms_in=24422666 terms_out=142989747 next_rows=6 splits_so_far=0 sector_runs_so_far=12 run=8.034 s
+trace window=5 ops=448..538 branching_rotations=90 generator_rank=64 valid_rows=64 rows=6 sectors=64 largest_sector_in=2238120 terms_in=142989747 terms_out=236414292 next_rows=8 splits_so_far=0 sector_runs_so_far=76 run=10.068 s
+trace window=6 ops=538..628 branching_rotations=90 generator_rank=64 valid_rows=64 rows=8 sectors=256 largest_sector_in=1907115 terms_in=236414292 terms_out=863202113 next_rows=7 splits_so_far=6 sector_runs_so_far=359 run=180.805 s
+trace window=7 ops=628..718 branching_rotations=90 generator_rank=64 valid_rows=64 rows=7 sectors=128 largest_sector_in=6749144 terms_in=863202113 terms_out=1230959029 next_rows=8 splits_so_far=6 sector_runs_so_far=487 run=78.227 s
+trace window=8 ops=718..808 branching_rotations=90 generator_rank=64 valid_rows=64 rows=8 sectors=256 largest_sector_in=6022742 terms_in=1230959029 terms_out=2115451690 next_rows=8 splits_so_far=6 sector_runs_so_far=743 run=169.215 s
+trace window=9 ops=808..898 branching_rotations=90 generator_rank=64 valid_rows=64 rows=8 sectors=256 largest_sector_in=8426198 terms_in=2115451690 terms_out=2437659345 next_rows=8 splits_so_far=6 sector_runs_so_far=999 run=181.454 s
+trace window=10 ops=898..988 branching_rotations=90 generator_rank=64 valid_rows=64 rows=8 sectors=256 largest_sector_in=11221802 terms_in=2437659345 terms_out=3400564255 next_rows=8 splits_so_far=205 sector_runs_so_far=1653 run=566.645 s
+trace window=11 ops=988..1078 branching_rotations=90 generator_rank=64 valid_rows=64 rows=8 sectors=256 largest_sector_in=13451959 terms_in=3400564255 terms_out=3059134245 next_rows=8 splits_so_far=461 sector_runs_so_far=2421 run=441.370 s
+trace window=12 ops=1078..1168 branching_rotations=90 generator_rank=64 valid_rows=64 rows=8 sectors=256 largest_sector_in=12574345 terms_in=3059134245 terms_out=3041099505 next_rows=8 splits_so_far=461 sector_runs_so_far=2677 run=239.536 s
+trace window=13 ops=1168..1258 branching_rotations=90 generator_rank=64 valid_rows=64 rows=8 sectors=256 largest_sector_in=16160121 terms_in=3041099505 terms_out=2402640611 next_rows=8 splits_so_far=725 sector_runs_so_far=3461 run=553.134 s
+trace window=14 ops=1258..1348 branching_rotations=90 generator_rank=64 valid_rows=64 rows=8 sectors=256 largest_sector_in=9926001 terms_in=2402640611 terms_out=2057261312 next_rows=8 splits_so_far=981 sector_runs_so_far=4229 run=395.808 s
+srun: forcing job termination
+srun: got SIGCONT
+[2026-10-08T11:17:20.077] error: *** STEP 59537174.168 ON nid001384 CANCELLED AT 2026-10-08T11:17:20 DUE to SIGNAL Killed ***
+srun: error: nid001384: task 0: Killed
+srun: Terminating StepId=59537174.168
+exit=124

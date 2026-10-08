@@ -1,0 +1,9 @@
+===== cupp nodes=1 gpus=2 args: --circuit hea --n 100 --layers 16 --amp 0.4 --coef 1e-5 --vram-frac 0.9
+circuit: hardware-efficient ansatz, line; 100 qubits; 4784 gates -> 3200 operations on the data (3200 branching rotations, 0 Clifford, 0 noise); 1584 Clifford gates deferred by the frame
+mode=cupp ranks=2 (one GPU each) coef=1e-05 weight=0 default: global deduplication in every operation
+[rank 0] cuPauliProp distributed mode ran out of memory at operation 3157 of 3200 with 100985780 local terms (status 8)
+[node 0] FATAL: cuPauliProp distributed capacity (line 991)
+[rank 1] cuPauliProp distributed mode ran out of memory at operation 3157 of 3200 with 100987924 local terms (status 8)
+[node 1] FATAL: cuPauliProp distributed capacity (line 991)
+[2026-10-08T09:27:32.031] error: *** STEP 59537174.76 ON nid003072 CANCELLED AT 2026-10-08T09:27:32 DUE TO TASK FAILURE ***
+exit=255

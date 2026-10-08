@@ -1,0 +1,524 @@
+10-08T01:54:56 drive job=59537174 hosts=nid001381 nid001384 nid003069 nid003072
+10-08T01:55:01 job=59537174 hosts=nid001381 id=eng.ki.1e-3.g1 seconds=5 exit=0 wall=0.464
+10-08T01:55:02 job=59537174 hosts=nid001384 id=eng.ki.1e-3.g4 seconds=5 exit=0 wall=0.486
+10-08T01:55:02 job=59537174 hosts=nid003069 id=eng.ki.3e-4.g1 seconds=5 exit=0 wall=0.836
+10-08T01:55:02 job=59537174 hosts=nid003072 id=eng.ki.1e-3.g2 seconds=5 exit=0 wall=0.504
+10-08T01:55:05 job=59537174 hosts=nid001381 id=eng.ki.3e-4.g2 seconds=4 exit=0 wall=0.521
+10-08T01:55:05 job=59537174 hosts=nid001384 id=eng.ki.3e-4.g4 seconds=3 exit=0 wall=0.499
+10-08T01:55:08 job=59537174 hosts=nid003069 id=eng.ki.1e-4.g1 seconds=6 exit=0 wall=2.431
+10-08T01:55:08 job=59537174 hosts=nid003072 id=eng.ki.1e-4.g2 seconds=6 exit=0 wall=1.944
+10-08T01:55:11 job=59537174 hosts=nid001381 id=eng.ki.1e-4.g4 seconds=6 exit=0 wall=1.295
+10-08T01:55:25 job=59537174 hosts=nid003072 id=eng.ki.3e-5.g2 seconds=16 exit=0 wall=10.461
+10-08T01:55:27 job=59537174 hosts=nid001384 id=eng.ki.3e-5.g1 seconds=22 exit=0 wall=18.760
+10-08T01:55:28 job=59537174 hosts=nid003069 id=eng.ki.3e-5.g4 seconds=15 exit=0 wall=6.241
+10-08T01:56:30 job=59537174 hosts=nid003069 id=eng.ki.1e-5.g4 seconds=61 exit=0 wall=51.969
+10-08T01:57:06 job=59537174 hosts=nid003072 id=eng.ki.1e-5.g2 seconds=100 exit=0 wall=92.597
+10-08T01:58:15 job=59537174 hosts=nid001381 id=eng.ki.1e-5.g1 seconds=178 exit=0 wall=170.616
+10-08T01:59:01 job=59537174 hosts=nid001381 id=weak.ki.2e-5.g1 seconds=45 exit=0 wall=41.670
+10-08T01:59:54 job=59537174 hosts=nid001381 id=weak.ki.1.4e-5.g2 seconds=52 exit=0 wall=47.064
+10-08T01:59:57 job=59537174 hosts=nid001381 id=eng.tfim.1e-3.g1 seconds=3 exit=0 wall=0.405
+10-08T02:00:01 job=59537174 hosts=nid001381 id=eng.tfim.1e-3.g2 seconds=4 exit=0 wall=0.432
+10-08T02:00:04 job=59537174 hosts=nid001381 id=eng.tfim.1e-3.g4 seconds=3 exit=0 wall=0.405
+10-08T02:00:09 job=59537174 hosts=nid001381 id=eng.tfim.3e-4.g1 seconds=3 exit=0 wall=0.769
+10-08T02:00:12 job=59537174 hosts=nid001381 id=eng.tfim.3e-4.g2 seconds=3 exit=0 wall=0.761
+10-08T02:00:16 job=59537174 hosts=nid001381 id=eng.tfim.3e-4.g4 seconds=4 exit=0 wall=0.751
+10-08T02:00:26 job=59537174 hosts=nid001381 id=eng.tfim.1e-4.g1 seconds=9 exit=0 wall=2.862
+10-08T02:00:35 job=59537174 hosts=nid001381 id=eng.tfim.1e-4.g2 seconds=7 exit=0 wall=2.243
+10-08T02:00:41 job=59537174 hosts=nid001381 id=eng.tfim.1e-4.g4 seconds=6 exit=0 wall=1.833
+10-08T02:01:09 job=59537174 hosts=nid001381 id=eng.tfim.3e-5.g1 seconds=27 exit=0 wall=22.292
+10-08T02:01:27 job=59537174 hosts=nid001381 id=eng.tfim.3e-5.g2 seconds=16 exit=0 wall=12.175
+10-08T02:01:41 job=59537174 hosts=nid001381 id=eng.tfim.3e-5.g4 seconds=13 exit=0 wall=7.293
+10-08T02:04:00 drive job=59537381 hosts=nid001073 nid002684 nid002685 nid002688
+10-08T02:04:00 drive job=59537380 hosts=nid001044 nid002376 nid002377 nid002380
+10-08T02:04:54 job=59537380 hosts=nid002377 id=eng.noise.1e-3.g1 seconds=5 exit=0 wall=0.846
+10-08T02:04:57 job=59537380 hosts=nid002377 id=eng.noise.1e-3.g2 seconds=3 exit=0 wall=0.592
+10-08T02:04:58 job=59537174 hosts=nid001381 id=eng.tfim.1e-5.g1 seconds=197 exit=0 wall=192.030
+10-08T02:05:04 job=59537380 hosts=nid002377 id=eng.noise.1e-3.g4 seconds=4 exit=0 wall=0.586
+10-08T02:05:08 job=59537380 hosts=nid002377 id=eng.noise.3e-4.g1 seconds=4 exit=0 wall=1.032
+10-08T02:05:08 job=59537381 hosts=nid002688 id=eng.tfim.1e-5.g4 seconds=61 exit=0 wall=53.513
+10-08T02:05:13 job=59537380 hosts=nid002376 id=eng.noise.3e-4.g2 seconds=6 exit=0 wall=1.208
+10-08T02:05:13 job=59537380 hosts=nid002377 id=eng.noise.3e-4.g4 seconds=4 exit=0 wall=0.966
+10-08T02:05:19 job=59537380 hosts=nid002376 id=eng.noise.1e-4.g1 seconds=6 exit=0 wall=4.377
+10-08T02:05:22 job=59537174 hosts=nid003072 id=eng.ki.3e-6.g4 seconds=494 exit=0 wall=473.398
+10-08T02:05:22 job=59537380 hosts=nid002377 id=eng.noise.1e-4.g2 seconds=7 exit=0 wall=3.615
+10-08T02:05:27 job=59537380 hosts=nid002376 id=eng.noise.1e-4.g4 seconds=6 exit=0 wall=3.447
+10-08T02:05:32 job=59537381 hosts=nid001073 id=weak.tfim.2e-5.g1 seconds=53 exit=0 wall=48.122
+10-08T02:05:44 job=59537380 hosts=nid001044 id=weak.tfim.1.4e-5.g2 seconds=57 exit=0 wall=51.725
+10-08T02:05:49 job=59537381 hosts=nid001073 id=eng.noise.3e-5.g2 seconds=14 exit=0 wall=10.955
+10-08T02:05:50 job=59537380 hosts=nid002377 id=eng.noise.3e-5.g1 seconds=21 exit=0 wall=17.796
+10-08T02:05:51 job=59537381 hosts=nid002684 id=eng.tfim.1e-5.g2 seconds=106 exit=0 wall=99.805
+10-08T02:06:00 job=59537174 hosts=nid003072 id=eng.noise.3e-5.g4 seconds=20 exit=0 wall=7.833
+10-08T02:06:37 job=59537381 hosts=nid001073 id=eng.noise.1e-5.g4 seconds=39 exit=0 wall=34.923
+10-08T02:07:06 job=59537380 hosts=nid002377 id=eng.noise.1e-5.g2 seconds=72 exit=0 wall=66.996
+10-08T02:07:06 job=59537381 hosts=nid002684 id=weak.noise.2e-5.g1 seconds=38 exit=0 wall=35.088
+10-08T02:07:09 job=59537380 hosts=nid002377 id=cupp.ki.1e-3.g1 seconds=3 exit=0 wall=0.240
+10-08T02:07:19 job=59537381 hosts=nid001073 id=weak.noise.1.4e-5.g2 seconds=39 exit=0 wall=35.518
+10-08T02:07:23 job=59537381 hosts=nid002684 id=cupp.ki.1e-3.g2 seconds=17 exit=0 wall=13.532
+10-08T02:07:27 job=59537381 hosts=nid001073 id=defer.ki.1e-3.g2 seconds=6 exit=0 wall=2.783
+10-08T02:07:29 job=59537380 hosts=nid002377 id=cupp.ki.1e-3.g4 seconds=20 exit=0 wall=16.030
+10-08T02:07:30 job=59537381 hosts=nid001073 id=cupp.ki.3e-4.g1 seconds=3 exit=0 wall=0.457
+10-08T02:07:33 job=59537381 hosts=nid002684 id=defer.ki.1e-3.g4 seconds=8 exit=0 wall=4.649
+10-08T02:07:39 job=59537381 hosts=nid002684 id=defer.ki.3e-4.g2 seconds=6 exit=0 wall=2.831
+10-08T02:07:47 job=59537381 hosts=nid002684 id=defer.ki.3e-4.g4 seconds=8 exit=0 wall=4.718
+10-08T02:07:47 job=59537381 hosts=nid001073 id=cupp.ki.3e-4.g2 seconds=16 exit=0 wall=13.713
+10-08T02:07:50 job=59537381 hosts=nid002685 id=eng.tfim.5e-6.g4 seconds=210 exit=0 wall=196.138
+10-08T02:07:51 job=59537381 hosts=nid002684 id=cupp.ki.1e-4.g1 seconds=4 exit=0 wall=1.835
+10-08T02:07:51 job=59537380 hosts=nid002377 id=cupp.ki.3e-4.g4 seconds=20 exit=0 wall=16.093
+10-08T02:07:53 job=59537380 hosts=nid002376 id=eng.noise.1e-5.g1 seconds=130 exit=0 wall=126.218
+10-08T02:07:58 job=59537381 hosts=nid002684 id=defer.ki.1e-4.g2 seconds=6 exit=0 wall=3.773
+10-08T02:08:00 job=59537380 hosts=nid002376 id=cupp.ki.3e-5.g1 seconds=5 exit=1 
+10-08T02:08:01 job=59537381 hosts=nid002685 id=defer.ki.1e-4.g4 seconds=9 exit=0 wall=5.195
+10-08T02:08:05 job=59537381 hosts=nid001073 id=cupp.ki.1e-4.g2 seconds=18 exit=0 wall=15.000
+10-08T02:08:08 job=59537380 hosts=nid002376 id=defer.ki.3e-5.g2 seconds=6 exit=255 
+10-08T02:08:10 job=59537381 hosts=nid002684 id=cupp.ki.3e-5.g2 seconds=11 exit=255 
+10-08T02:08:12 job=59537380 hosts=nid002377 id=cupp.ki.1e-4.g4 seconds=20 exit=0 wall=17.180
+10-08T02:08:20 job=59537380 hosts=nid002376 id=cupp.ki.1e-5.g1 seconds=10 exit=1 
+10-08T02:08:22 job=59537381 hosts=nid001073 id=defer.ki.3e-5.g4 seconds=14 exit=0 wall=10.777
+10-08T02:08:23 job=59537381 hosts=nid002684 id=cupp.ki.1e-5.g2 seconds=12 exit=255 
+10-08T02:08:24 job=59537380 hosts=nid002377 id=cupp.ki.1e-5.g4 seconds=11 exit=255 
+10-08T02:08:28 job=59537380 hosts=nid002376 id=defer.ki.1e-5.g2 seconds=5 exit=255 
+10-08T02:08:28 job=59537381 hosts=nid002685 id=cupp.ki.3e-5.g4 seconds=26 exit=0 wall=23.250
+10-08T02:08:28 job=59537380 hosts=nid002377 id=cupp.ki.3e-6.g1 seconds=3 exit=1 
+10-08T02:08:30 job=59537381 hosts=nid001073 id=defer.ki.1e-5.g4 seconds=6 exit=255 
+10-08T02:08:30 job=59537174 hosts=nid003072 id=eng.noise.5e-6.g4 seconds=133 exit=0 wall=122.278
+10-08T02:08:33 job=59537381 hosts=nid002684 id=cupp.ki.3e-6.g2 seconds=8 exit=255 
+10-08T02:08:36 job=59537381 hosts=nid001073 id=defer.ki.3e-6.g2 seconds=4 exit=255 
+10-08T02:08:40 job=59537380 hosts=nid002376 id=cupp.ki.3e-6.g4 seconds=11 exit=255 
+10-08T02:08:44 job=59537381 hosts=nid002684 id=defer.ki.3e-6.g4 seconds=7 exit=255 
+10-08T02:08:51 job=59537174 hosts=nid003072 id=defer3.ki.3e-5.g2 seconds=12 exit=255 
+10-08T02:08:53 job=59537381 hosts=nid002684 id=defer2.ki.3e-5.g2 seconds=8 exit=255 
+10-08T02:09:11 job=59537380 hosts=nid002376 id=defer3.ki.3e-5.g4 seconds=23 exit=0 wall=18.738
+10-08T02:09:13 job=59537381 hosts=nid002685 id=defer2.ki.1e-5.g2 seconds=8 exit=255 
+10-08T02:09:16 job=59537174 hosts=nid003072 id=defer3.ki.1e-5.g2 seconds=15 exit=255 
+10-08T02:09:18 job=59537381 hosts=nid001073 id=defer2.ki.3e-5.g4 seconds=24 exit=0 wall=20.585
+10-08T02:09:26 job=59537380 hosts=nid002377 id=defer3.ki.1e-5.g4 seconds=14 exit=255 
+10-08T02:09:27 job=59537174 hosts=nid003072 id=cupp.tfim.1e-3.g1 seconds=6 exit=0 wall=0.488
+10-08T02:09:30 job=59537381 hosts=nid002685 id=defer2.ki.1e-5.g4 seconds=14 exit=255 
+10-08T02:09:47 job=59537380 hosts=nid002377 id=defer.tfim.1e-3.g2 seconds=9 exit=0 wall=5.125
+10-08T02:09:50 job=59537381 hosts=nid002685 id=defer.tfim.1e-3.g4 seconds=12 exit=0 wall=7.245
+10-08T02:09:50 job=59537380 hosts=nid002377 id=cupp.tfim.3e-4.g1 seconds=3 exit=0 wall=0.612
+10-08T02:10:05 job=59537380 hosts=nid002377 id=defer.tfim.3e-4.g2 seconds=9 exit=0 wall=5.394
+10-08T02:10:05 job=59537380 hosts=nid001044 id=eng.noise.5e-6.g2 seconds=237 exit=0 wall=230.864
+10-08T02:10:07 job=59537380 hosts=nid002376 id=cupp.tfim.1e-3.g4 seconds=35 exit=0 wall=31.481
+10-08T02:10:12 job=59537380 hosts=nid002377 id=cupp.tfim.1e-4.g1 seconds=4 exit=0 wall=2.084
+10-08T02:10:16 job=59537381 hosts=nid002684 id=defer.tfim.3e-4.g4 seconds=11 exit=0 wall=7.296
+10-08T02:10:22 job=59537381 hosts=nid001073 id=cupp.tfim.3e-4.g2 seconds=32 exit=0 wall=28.120
+10-08T02:10:22 job=59537174 hosts=nid003072 id=cupp.tfim.1e-3.g2 seconds=54 exit=0 wall=45.615
+10-08T02:10:30 job=59537380 hosts=nid001044 id=defer.tfim.1e-4.g2 seconds=10 exit=0 wall=6.390
+10-08T02:10:30 job=59537381 hosts=nid002685 id=cupp.tfim.3e-4.g4 seconds=35 exit=0 wall=31.878
+10-08T02:10:36 job=59537380 hosts=nid002380 id=eng.tfim.5e-6.g2 seconds=382 exit=0 wall=368.360
+10-08T02:10:38 job=59537381 hosts=nid001073 id=defer.tfim.1e-4.g4 seconds=12 exit=0 wall=7.918
+10-08T02:10:45 job=59537380 hosts=nid002377 id=cupp.tfim.1e-4.g2 seconds=32 exit=0 wall=29.728
+10-08T02:10:55 job=59537381 hosts=nid002684 id=cupp.tfim.1e-4.g4 seconds=37 exit=0 wall=33.007
+10-08T02:10:56 job=59537174 hosts=nid003072 id=cupp.tfim.3e-5.g1 seconds=18 exit=1 
+10-08T02:11:07 job=59537380 hosts=nid001044 id=cupp.tfim.3e-5.g2 seconds=22 exit=255 
+10-08T02:11:10 job=59537381 hosts=nid001073 id=defer.tfim.3e-5.g2 seconds=7 exit=255 
+10-08T02:11:15 job=59537381 hosts=nid002684 id=cupp.tfim.1e-5.g1 seconds=6 exit=1 
+10-08T02:11:28 job=59537174 hosts=nid003072 id=defer.tfim.3e-5.g4 seconds=22 exit=0 wall=14.258
+10-08T02:11:32 job=59537381 hosts=nid001073 id=cupp.tfim.1e-5.g2 seconds=17 exit=255 
+10-08T02:11:32 job=59537380 hosts=nid002376 id=cupp.tfim.3e-5.g4 seconds=43 exit=0 wall=39.829
+10-08T02:11:34 job=59537380 hosts=nid002380 id=defer.tfim.1e-5.g2 seconds=8 exit=255 
+10-08T02:11:45 job=59537381 hosts=nid002684 id=cupp.tfim.1e-5.g4 seconds=22 exit=255 
+10-08T02:11:48 job=59537380 hosts=nid002377 id=defer.tfim.1e-5.g4 seconds=9 exit=255 
+10-08T02:11:54 job=59537380 hosts=nid002380 id=cupp.tfim.5e-6.g1 seconds=7 exit=1 
+10-08T02:11:59 job=59537174 hosts=nid003069 id=eng.ki.3e-6.g2 seconds=928 exit=0 wall=911.433
+10-08T02:12:03 job=59537380 hosts=nid002380 id=defer.tfim.5e-6.g2 seconds=7 exit=255 
+10-08T02:12:10 job=59537174 hosts=nid003072 id=cupp.tfim.5e-6.g2 seconds=20 exit=255 
+10-08T02:12:11 job=59537380 hosts=nid001044 id=cupp.tfim.5e-6.g4 seconds=19 exit=255 
+10-08T02:12:14 job=59537380 hosts=nid002377 id=defer.tfim.5e-6.g4 seconds=8 exit=255 
+10-08T02:12:30 job=59537380 hosts=nid001044 id=defer2.tfim.3e-5.g2 seconds=15 exit=255 
+10-08T02:12:52 job=59537174 hosts=nid003069 id=defer3.tfim.3e-5.g2 seconds=43 exit=0 wall=38.025
+10-08T02:12:58 job=59537380 hosts=nid002376 id=defer3.tfim.1e-5.g2 seconds=12 exit=255 
+10-08T02:13:02 job=59537174 hosts=nid003072 id=defer3.tfim.3e-5.g4 seconds=40 exit=0 wall=31.727
+10-08T02:13:07 job=59537380 hosts=nid002377 id=defer2.tfim.1e-5.g2 seconds=15 exit=255 
+10-08T02:13:10 job=59537381 hosts=nid001073 id=defer2.tfim.3e-5.g4 seconds=33 exit=0 wall=29.283
+10-08T02:13:15 job=59537381 hosts=nid002685 id=defer3.tfim.1e-5.g4 seconds=16 exit=255 
+10-08T02:13:22 job=59537381 hosts=nid002685 id=cupp.noise.1e-3.g1 seconds=4 exit=0 wall=0.588
+10-08T02:13:25 job=59537380 hosts=nid002377 id=defer2.tfim.1e-5.g4 seconds=14 exit=255 
+10-08T02:13:41 job=59537381 hosts=nid002688 id=eng.noise.5e-6.g1 seconds=458 exit=0 wall=451.658
+10-08T02:13:42 job=59537380 hosts=nid001044 id=defer.noise.1e-3.g2 seconds=8 exit=0 wall=5.303
+10-08T02:13:49 job=59537381 hosts=nid001073 id=defer.noise.1e-3.g4 seconds=11 exit=0 wall=7.104
+10-08T02:13:52 job=59537381 hosts=nid001073 id=cupp.noise.3e-4.g1 seconds=3 exit=0 wall=0.788
+10-08T02:13:56 job=59537381 hosts=nid002685 id=cupp.noise.1e-3.g2 seconds=33 exit=0 wall=29.859
+10-08T02:14:12 job=59537380 hosts=nid002380 id=defer.noise.3e-4.g2 seconds=8 exit=0 wall=5.354
+10-08T02:14:23 job=59537381 hosts=nid002688 id=cupp.noise.1e-4.g1 seconds=5 exit=0 wall=2.151
+10-08T02:14:24 job=59537381 hosts=nid001073 id=cupp.noise.3e-4.g2 seconds=32 exit=0 wall=29.662
+10-08T02:14:28 job=59537174 hosts=nid003069 id=defer.noise.3e-4.g4 seconds=16 exit=0 wall=7.903
+10-08T02:14:38 job=59537381 hosts=nid002685 id=cupp.noise.3e-4.g4 seconds=37 exit=0 wall=33.393
+10-08T02:14:40 job=59537174 hosts=nid003072 id=cupp.noise.1e-3.g4 seconds=72 exit=0 wall=39.073
+10-08T02:14:52 job=59537380 hosts=nid001044 id=defer.noise.1e-4.g2 seconds=9 exit=0 wall=5.949
+10-08T02:14:58 job=59537381 hosts=nid001073 id=defer.noise.1e-4.g4 seconds=11 exit=0 wall=7.573
+10-08T02:14:59 job=59537380 hosts=nid002376 id=cupp.noise.1e-4.g2 seconds=35 exit=0 wall=31.699
+10-08T02:15:02 job=59537381 hosts=nid002685 id=cupp.noise.3e-5.g1 seconds=9 exit=1 
+10-08T02:15:21 job=59537174 hosts=nid003069 id=cupp.noise.1e-4.g4 seconds=50 exit=0 wall=40.678
+10-08T02:15:28 job=59537380 hosts=nid001044 id=cupp.noise.1e-5.g1 seconds=3 exit=1 
+10-08T02:15:32 job=59537381 hosts=nid002685 id=defer.noise.3e-5.g2 seconds=16 exit=0 wall=12.361
+10-08T02:15:36 job=59537381 hosts=nid001073 id=defer.noise.3e-5.g4 seconds=15 exit=0 wall=10.845
+10-08T02:15:52 job=59537174 hosts=nid003069 id=cupp.noise.1e-5.g2 seconds=22 exit=255 
+10-08T02:15:52 job=59537174 hosts=nid003072 id=cupp.noise.3e-5.g2 seconds=56 exit=0 wall=49.490
+10-08T02:15:52 job=59537381 hosts=nid002688 id=cupp.noise.3e-5.g4 seconds=43 exit=0 wall=39.674
+10-08T02:15:58 job=59537380 hosts=nid002376 id=defer.noise.1e-5.g2 seconds=7 exit=255 
+10-08T02:16:05 job=59537381 hosts=nid002685 id=cupp.noise.1e-5.g4 seconds=21 exit=255 
+10-08T02:16:12 job=59537381 hosts=nid001073 id=defer.noise.1e-5.g4 seconds=16 exit=255 
+10-08T02:16:14 job=59537380 hosts=nid002376 id=cupp.noise.5e-6.g1 seconds=11 exit=1 
+10-08T02:16:25 job=59537381 hosts=nid002684 id=cupp.noise.5e-6.g2 seconds=13 exit=255 
+10-08T02:16:30 job=59537380 hosts=nid001044 id=defer.noise.5e-6.g2 seconds=9 exit=255 
+10-08T02:16:43 job=59537381 hosts=nid002688 id=cupp.noise.5e-6.g4 seconds=26 exit=255 
+10-08T02:16:52 job=59537174 hosts=nid003072 id=defer.noise.5e-6.g4 seconds=22 exit=255 
+10-08T02:17:04 job=59537381 hosts=nid001073 id=defer3.noise.3e-5.g2 seconds=30 exit=0 wall=27.449
+10-08T02:17:17 job=59537381 hosts=nid002688 id=defer3.noise.1e-5.g2 seconds=11 exit=255 
+10-08T02:17:18 job=59537174 hosts=nid001381 id=eng.tfim.5e-6.g1 seconds=736 exit=0 wall=720.645
+10-08T02:17:18 job=59537381 hosts=nid002684 id=defer3.noise.3e-5.g4 seconds=27 exit=0 wall=22.976
+10-08T02:17:24 job=59537380 hosts=nid001044 id=defer2.noise.3e-5.g2 seconds=37 exit=0 wall=33.333
+10-08T02:17:35 job=59537381 hosts=nid002688 id=defer3.noise.1e-5.g4 seconds=14 exit=255 
+10-08T02:17:35 job=59537380 hosts=nid002376 id=defer2.noise.3e-5.g4 seconds=31 exit=0 wall=27.428
+10-08T02:17:41 job=59537174 hosts=nid003069 id=defer2.noise.1e-5.g2 seconds=24 exit=255 
+10-08T02:17:46 job=59537380 hosts=nid002376 id=orig.ki.1e-4.g1 seconds=6 exit=0 wall=3.296
+10-08T02:17:53 job=59537381 hosts=nid002688 id=defer2.noise.1e-5.g4 seconds=16 exit=255 
+10-08T02:18:05 job=59537381 hosts=nid002688 id=orig.ki.1e-5.g1 seconds=4 exit=1 
+10-08T02:18:15 job=59537381 hosts=nid002688 id=orig.noise.1e-4.g1 seconds=5 exit=0 wall=2.040
+10-08T02:18:21 job=59537380 hosts=nid002377 id=orig.ki.1e-4.g2 seconds=35 exit=0 wall=31.571
+10-08T02:18:25 job=59537380 hosts=nid002376 id=orig.ki.1e-4.g4 seconds=37 exit=0 wall=34.241
+10-08T02:18:29 job=59537174 hosts=nid003072 id=orig.ki.1e-5.g2 seconds=26 exit=255 
+10-08T02:18:32 job=59537174 hosts=nid001381 id=orig.ki.1e-5.g4 seconds=25 exit=255 
+10-08T02:18:45 job=59537381 hosts=nid002688 id=orig.noise.1e-5.g1 seconds=4 exit=1 
+10-08T02:19:02 job=59537381 hosts=nid002688 id=orig.noise.1e-5.g2 seconds=17 exit=255 
+10-08T02:19:04 job=59537380 hosts=nid002376 id=eng.tfimsq.1e-4.g1 seconds=6 exit=0 wall=2.241
+10-08T02:19:04 job=59537381 hosts=nid001073 id=eng.tfimsq.1e-4.g2 seconds=4 exit=0 wall=1.693
+10-08T02:19:10 job=59537380 hosts=nid002376 id=eng.tfimsq.1e-4.g4 seconds=5 exit=0 wall=1.316
+10-08T02:19:10 job=59537174 hosts=nid001381 id=orig.noise.1e-4.g2 seconds=38 exit=0 wall=32.039
+10-08T02:19:14 job=59537381 hosts=nid002685 id=orig.noise.1e-5.g4 seconds=20 exit=255 
+10-08T02:19:26 job=59537174 hosts=nid003072 id=orig.noise.1e-4.g4 seconds=49 exit=0 wall=40.583
+10-08T02:19:48 job=59537381 hosts=nid001073 id=cupp.tfimsq.1e-4.g1 seconds=5 exit=0 wall=1.731
+10-08T02:20:13 job=59537381 hosts=nid001073 id=cupp.tfimsq.1e-4.g2 seconds=22 exit=0 wall=19.140
+10-08T02:20:19 job=59537380 hosts=nid002377 id=defer.tfimsq.1e-4.g2 seconds=8 exit=0 wall=4.386
+10-08T02:20:21 job=59537174 hosts=nid001381 id=eng.tfimsq.1e-5.g4 seconds=60 exit=0 wall=49.064
+10-08T02:20:21 job=59537381 hosts=nid001073 id=cupp.tfimsq.1e-5.g1 seconds=4 exit=1 
+10-08T02:20:25 job=59537381 hosts=nid002684 id=cupp.tfimsq.1e-4.g4 seconds=26 exit=0 wall=21.984
+10-08T02:20:25 job=59537380 hosts=nid001044 id=defer.tfimsq.1e-4.g4 seconds=9 exit=0 wall=5.809
+10-08T02:20:32 job=59537380 hosts=nid002377 id=cupp.tfimsq.1e-5.g2 seconds=12 exit=255 
+10-08T02:20:38 job=59537380 hosts=nid002377 id=defer.tfimsq.1e-5.g2 seconds=5 exit=255 
+10-08T02:20:47 job=59537380 hosts=nid002376 id=eng.tfimsq.1e-5.g2 seconds=94 exit=0 wall=88.697
+10-08T02:20:51 job=59537380 hosts=nid002380 id=cupp.tfimsq.3e-6.g1 seconds=10 exit=1 
+10-08T02:20:56 job=59537174 hosts=nid001381 id=cupp.tfimsq.1e-5.g4 seconds=28 exit=255 
+10-08T02:20:59 job=59537380 hosts=nid002377 id=defer.tfimsq.1e-5.g4 seconds=20 exit=255 
+10-08T02:21:02 job=59537381 hosts=nid001073 id=cupp.tfimsq.3e-6.g2 seconds=15 exit=255 
+10-08T02:21:10 job=59537380 hosts=nid002380 id=cupp.tfimsq.3e-6.g4 seconds=15 exit=255 
+10-08T02:21:10 job=59537174 hosts=nid001381 id=defer.tfimsq.3e-6.g2 seconds=9 exit=255 
+10-08T02:21:17 job=59537381 hosts=nid001073 id=defer.tfimsq.3e-6.g4 seconds=10 exit=255 
+10-08T02:21:19 job=59537380 hosts=nid002376 id=eng.xxz.1e-4.g1 seconds=6 exit=0 wall=3.330
+10-08T02:21:21 job=59537380 hosts=nid002377 id=eng.xxz.1e-4.g2 seconds=6 exit=0 wall=2.051
+10-08T02:21:28 job=59537380 hosts=nid002377 id=eng.xxz.1e-4.g4 seconds=5 exit=0 wall=1.504
+10-08T02:22:03 job=59537381 hosts=nid002688 id=eng.tfimsq.1e-5.g1 seconds=176 exit=0 wall=170.385
+10-08T02:22:06 job=59537380 hosts=nid001044 id=cupp.xxz.1e-4.g1 seconds=7 exit=0 wall=2.848
+10-08T02:22:24 job=59537380 hosts=nid001044 id=cupp.xxz.1e-4.g2 seconds=16 exit=0 wall=13.138
+10-08T02:22:30 job=59537381 hosts=nid002688 id=cupp.xxz.1e-4.g4 seconds=19 exit=0 wall=14.652
+10-08T02:22:31 job=59537380 hosts=nid001044 id=defer.xxz.1e-4.g2 seconds=7 exit=0 wall=4.285
+10-08T02:22:36 job=59537380 hosts=nid001044 id=cupp.xxz.1e-5.g1 seconds=5 exit=1 
+10-08T02:22:38 job=59537381 hosts=nid002688 id=defer.xxz.1e-4.g4 seconds=8 exit=0 wall=5.060
+10-08T02:22:45 job=59537380 hosts=nid001044 id=cupp.xxz.1e-5.g2 seconds=9 exit=255 
+10-08T02:22:51 job=59537381 hosts=nid002688 id=cupp.xxz.1e-5.g4 seconds=12 exit=255 
+10-08T02:22:52 job=59537380 hosts=nid002376 id=eng.xxz.1e-5.g4 seconds=77 exit=0 wall=70.906
+10-08T02:22:54 job=59537380 hosts=nid001044 id=defer.xxz.1e-5.g2 seconds=7 exit=255 
+10-08T02:22:56 job=59537380 hosts=nid002376 id=cupp.xxz.1e-6.g1 seconds=3 exit=1 
+10-08T02:23:04 job=59537381 hosts=nid002688 id=defer.xxz.1e-5.g4 seconds=11 exit=255 
+10-08T02:23:06 job=59537380 hosts=nid001044 id=cupp.xxz.1e-6.g2 seconds=9 exit=255 
+10-08T02:23:12 job=59537381 hosts=nid002688 id=defer.xxz.1e-6.g2 seconds=5 exit=255 
+10-08T02:23:12 job=59537380 hosts=nid002376 id=cupp.xxz.1e-6.g4 seconds=15 exit=255 
+10-08T02:23:18 job=59537380 hosts=nid001044 id=defer.xxz.1e-6.g4 seconds=9 exit=255 
+10-08T02:23:18 job=59537380 hosts=nid002376 id=eng.qaoa.1e-4.g2 seconds=6 exit=0 wall=2.670
+10-08T02:23:20 job=59537381 hosts=nid002688 id=eng.qaoa.1e-4.g1 seconds=8 exit=0 wall=4.695
+10-08T02:23:23 job=59537380 hosts=nid002376 id=eng.qaoa.1e-4.g4 seconds=5 exit=0 wall=1.794
+10-08T02:23:45 job=59537380 hosts=nid002376 id=eng.qaoa.1e-5.g4 seconds=21 exit=0 wall=16.970
+10-08T02:23:51 job=59537380 hosts=nid002377 id=eng.xxz.1e-5.g2 seconds=140 exit=0 wall=134.868
+10-08T02:23:54 job=59537380 hosts=nid001044 id=eng.qaoa.1e-5.g2 seconds=33 exit=0 wall=28.415
+10-08T02:24:17 job=59537381 hosts=nid002688 id=eng.qaoa.1e-5.g1 seconds=56 exit=0 wall=51.905
+10-08T02:24:25 job=59537381 hosts=nid002688 id=cupp.qaoa.1e-4.g1 seconds=7 exit=0 wall=3.281
+10-08T02:24:38 job=59537381 hosts=nid002688 id=cupp.qaoa.1e-4.g2 seconds=11 exit=0 wall=8.101
+10-08T02:24:52 job=59537381 hosts=nid002688 id=cupp.qaoa.1e-4.g4 seconds=13 exit=0 wall=8.988
+10-08T02:25:00 job=59537381 hosts=nid002688 id=defer.qaoa.1e-4.g2 seconds=7 exit=0 wall=3.103
+10-08T02:25:00 job=59537174 hosts=nid003069 id=eng.tfimsq.3e-6.g2 seconds=326 exit=124 
+10-08T02:25:03 job=59537174 hosts=nid001384 id=eng.ki.3e-6.g1 seconds=1773 exit=0 wall=1752.965
+10-08T02:25:07 job=59537381 hosts=nid002688 id=defer.qaoa.1e-4.g4 seconds=7 exit=0 wall=4.030
+10-08T02:25:12 job=59537174 hosts=nid003069 id=cupp.qaoa.1e-5.g1 seconds=10 exit=1 
+10-08T02:25:16 job=59537381 hosts=nid002685 id=eng.tfimsq.3e-6.g4 seconds=334 exit=124 
+10-08T02:25:20 job=59537174 hosts=nid001384 id=cupp.qaoa.1e-5.g2 seconds=15 exit=255 
+10-08T02:25:24 job=59537174 hosts=nid003069 id=defer.qaoa.1e-5.g2 seconds=11 exit=255 
+10-08T02:25:25 job=59537381 hosts=nid002688 id=cupp.qaoa.1e-5.g4 seconds=17 exit=255 
+10-08T02:25:28 job=59537174 hosts=nid001384 id=cupp.qaoa.1e-6.g1 seconds=7 exit=1 
+10-08T02:25:30 job=59537381 hosts=nid002685 id=defer.qaoa.1e-5.g4 seconds=12 exit=255 
+10-08T02:25:34 job=59537174 hosts=nid003069 id=cupp.qaoa.1e-6.g2 seconds=10 exit=255 
+10-08T02:25:35 job=59537174 hosts=nid001384 id=defer.qaoa.1e-6.g2 seconds=5 exit=255 
+10-08T02:25:36 job=59537381 hosts=nid002688 id=cupp.qaoa.1e-6.g4 seconds=11 exit=255 
+10-08T02:25:37 job=59537381 hosts=nid002685 id=defer.qaoa.1e-6.g4 seconds=7 exit=255 
+10-08T02:25:50 job=59537381 hosts=nid002685 id=eng.hea.1e-5.g2 seconds=11 exit=0 wall=8.263
+10-08T02:25:51 job=59537381 hosts=nid002688 id=eng.hea.1e-5.g4 seconds=10 exit=0 wall=5.210
+10-08T02:25:53 job=59537381 hosts=nid001073 id=eng.xxz.1e-5.g1 seconds=268 exit=0 wall=262.615
+10-08T02:26:04 job=59537174 hosts=nid003069 id=eng.hea.1e-5.g1 seconds=30 exit=0 wall=15.093
+10-08T02:26:22 job=59537380 hosts=nid001044 id=eng.qaoa.1e-6.g4 seconds=148 exit=0 wall=134.058
+10-08T02:26:35 job=59537174 hosts=nid003072 id=eng.tfimsq.3e-6.g1 seconds=423 exit=124 
+10-08T02:26:50 job=59537174 hosts=nid003072 id=cupp.hea.1e-5.g1 seconds=12 exit=1 
+10-08T02:27:00 job=59537174 hosts=nid001381 id=eng.xxz.1e-6.g2 seconds=315 exit=124 
+10-08T02:27:14 job=59537380 hosts=nid002380 id=eng.xxz.1e-6.g4 seconds=323 exit=124 
+10-08T02:27:18 job=59537381 hosts=nid002688 id=eng.hea.1e-6.g4 seconds=83 exit=0 wall=71.331
+10-08T02:27:23 job=59537380 hosts=nid002380 id=defer.hea.1e-5.g2 seconds=8 exit=255 
+10-08T02:27:29 job=59537381 hosts=nid002688 id=defer.hea.1e-5.g4 seconds=11 exit=255 
+10-08T02:27:32 job=59537380 hosts=nid002380 id=cupp.hea.1e-6.g1 seconds=9 exit=1 
+10-08T02:27:32 job=59537174 hosts=nid003072 id=cupp.hea.1e-5.g2 seconds=42 exit=255 
+10-08T02:27:32 job=59537174 hosts=nid001381 id=cupp.hea.1e-5.g4 seconds=32 exit=0 wall=28.433
+10-08T02:28:00 job=59537380 hosts=nid002377 id=eng.qaoa.1e-6.g2 seconds=249 exit=0 wall=235.638
+10-08T02:28:01 job=59537174 hosts=nid001381 id=cupp.hea.1e-6.g2 seconds=27 exit=255 
+10-08T02:28:05 job=59537381 hosts=nid002685 id=eng.hea.1e-6.g2 seconds=132 exit=0 wall=121.544
+10-08T02:28:12 job=59537174 hosts=nid001381 id=defer.hea.1e-6.g2 seconds=9 exit=255 
+10-08T02:28:16 job=59537174 hosts=nid003072 id=cupp.hea.1e-6.g4 seconds=42 exit=255 
+10-08T02:28:26 job=59537174 hosts=nid001381 id=defer.hea.1e-6.g4 seconds=14 exit=255 
+10-08T02:28:29 job=59537174 hosts=nid003072 id=cupp.hea.1e-7.g1 seconds=11 exit=1 
+10-08T02:28:31 job=59537381 hosts=nid002684 id=eng.xxz.1e-6.g1 seconds=413 exit=124 
+10-08T02:28:46 job=59537174 hosts=nid001381 id=cupp.hea.1e-7.g2 seconds=18 exit=255 
+10-08T02:28:51 job=59537174 hosts=nid001381 id=defer.hea.1e-7.g2 seconds=5 exit=255 
+10-08T02:29:00 job=59537174 hosts=nid001381 id=defer.hea.1e-7.g4 seconds=8 exit=255 
+10-08T02:29:06 job=59537174 hosts=nid003072 id=cupp.hea.1e-7.g4 seconds=35 exit=255 
+10-08T02:29:38 job=59537174 hosts=nid001384 id=eng.hea.1e-6.g1 seconds=232 exit=0 wall=222.461
+10-08T02:30:38 job=59537380 hosts=nid002376 id=eng.qaoa.1e-6.g1 seconds=413 exit=124 
+10-08T02:31:39 job=59537381 hosts=nid001073 id=eng.hea.1e-7.g2 seconds=330 exit=124 
+10-08T02:32:00 job=59537380 hosts=nid001044 id=eng.hea.1e-7.g4 seconds=337 exit=124 
+10-08T02:33:20 job=59537174 hosts=nid003069 id=eng.hea.1e-7.g1 seconds=431 exit=124 
+10-08T02:33:34 job=59537174 hosts=nid001381,nid001384 id=eng.ki.1e-3.g8 seconds=8 exit=0 wall=0.335
+10-08T02:33:42 job=59537174 hosts=nid003069,nid003072 id=eng.ki.3e-4.g8 seconds=12 exit=0 wall=0.608
+10-08T02:33:46 job=59537174 hosts=nid001381,nid001384 id=eng.ki.1e-4.g8 seconds=9 exit=0 wall=1.260
+10-08T02:33:58 job=59537174 hosts=nid003069,nid003072 id=eng.ki.3e-5.g8 seconds=13 exit=0 wall=4.278
+10-08T02:34:36 job=59537174 hosts=nid001381,nid001384 id=eng.ki.1e-5.g8 seconds=46 exit=0 wall=25.611
+10-08T02:35:34 job=59537174 hosts=nid001381,nid001384 id=weak.ki.7e-6.g8 seconds=56 exit=0 wall=49.190
+10-08T02:35:37 job=59537174 hosts=nid001381,nid001384 id=eng.tfim.1e-3.g8 seconds=3 exit=0 wall=0.530
+10-08T02:35:43 job=59537174 hosts=nid001381,nid001384 id=eng.tfim.3e-4.g8 seconds=5 exit=0 wall=0.937
+10-08T02:35:49 job=59537174 hosts=nid001381,nid001384 id=eng.tfim.1e-4.g8 seconds=5 exit=0 wall=1.826
+10-08T02:35:57 job=59537174 hosts=nid001381,nid001384 id=eng.tfim.3e-5.g8 seconds=8 exit=0 wall=5.100
+10-08T02:36:16 drive job=59538706 hosts=nid001073 nid002376 nid002377 nid002380
+10-08T02:36:16 drive job=59538707 hosts=nid001132 nid002684 nid002685 nid002688
+10-08T02:36:25 job=59538707 hosts=nid001132,nid002684 id=eng.noise.1e-3.g8 seconds=6 exit=0 wall=1.181
+10-08T02:36:26 job=59538707 hosts=nid002685,nid002688 id=eng.noise.3e-4.g8 seconds=7 exit=0 wall=1.696
+10-08T02:36:32 job=59538707 hosts=nid002685,nid002688 id=eng.noise.1e-4.g8 seconds=6 exit=0 wall=2.793
+10-08T02:36:35 job=59538707 hosts=nid001132,nid002684 id=eng.noise.3e-5.g8 seconds=8 exit=0 wall=5.120
+10-08T02:36:39 job=59537174 hosts=nid001381,nid001384 id=eng.tfim.1e-5.g8 seconds=42 exit=0 wall=31.006
+10-08T02:36:55 job=59538707 hosts=nid002685,nid002688 id=eng.noise.1e-5.g8 seconds=23 exit=0 wall=19.839
+10-08T02:37:18 job=59538707 hosts=nid002685,nid002688 id=cupp.ki.1e-3.g8 seconds=22 exit=0 wall=19.027
+10-08T02:37:22 job=59537174 hosts=nid001381,nid001384 id=weak.noise.7e-6.g8 seconds=42 exit=0 wall=35.509
+10-08T02:37:28 job=59538706 hosts=nid002377,nid002380 id=weak.tfim.7e-6.g8 seconds=69 exit=0 wall=59.546
+10-08T02:37:28 job=59538707 hosts=nid002685,nid002688 id=defer.ki.1e-3.g8 seconds=9 exit=0 wall=5.744
+10-08T02:37:38 job=59538706 hosts=nid002377,nid002380 id=defer.ki.3e-4.g8 seconds=10 exit=0 wall=5.712
+10-08T02:37:45 job=59537174 hosts=nid001381,nid001384 id=cupp.ki.3e-4.g8 seconds=23 exit=0 wall=19.653
+10-08T02:37:46 job=59538707 hosts=nid001132,nid002684 id=eng.noise.5e-6.g8 seconds=69 exit=0 wall=63.384
+10-08T02:37:48 job=59538706 hosts=nid002377,nid002380 id=defer.ki.1e-4.g8 seconds=10 exit=0 wall=6.214
+10-08T02:37:52 job=59538707 hosts=nid002685,nid002688 id=cupp.ki.1e-4.g8 seconds=24 exit=0 wall=20.142
+10-08T02:38:03 job=59538707 hosts=nid001132,nid002684 id=defer.ki.3e-5.g8 seconds=15 exit=0 wall=10.594
+10-08T02:38:05 job=59538706 hosts=nid002377,nid002380 id=cupp.ki.1e-5.g8 seconds=17 exit=255 
+10-08T02:38:09 job=59538707 hosts=nid002685,nid002688 id=defer.ki.1e-5.g8 seconds=15 exit=255 
+10-08T02:38:15 job=59537174 hosts=nid001381,nid001384 id=cupp.ki.3e-5.g8 seconds=30 exit=0 wall=24.551
+10-08T02:38:16 job=59538706 hosts=nid002377,nid002380 id=defer.ki.3e-6.g8 seconds=9 exit=255 
+10-08T02:38:19 job=59538707 hosts=nid001132,nid002684 id=cupp.ki.3e-6.g8 seconds=16 exit=255 
+10-08T02:38:26 job=59538706 hosts=nid001073,nid002376 id=eng.tfim.5e-6.g8 seconds=127 exit=0 wall=113.849
+10-08T02:38:32 job=59538706 hosts=nid002377,nid002380 id=defer3.ki.1e-5.g8 seconds=14 exit=255 
+10-08T02:38:32 job=59538707 hosts=nid001132,nid002684 id=defer2.ki.1e-5.g8 seconds=13 exit=255 
+10-08T02:38:35 job=59538707 hosts=nid002685,nid002688 id=defer3.ki.3e-5.g8 seconds=25 exit=0 wall=16.724
+10-08T02:38:37 job=59537174 hosts=nid001381,nid001384 id=defer2.ki.3e-5.g8 seconds=21 exit=0 wall=18.319
+10-08T02:38:43 job=59537174 hosts=nid003069,nid003072 id=eng.ki.3e-6.g8 seconds=275 exit=0 wall=256.074
+10-08T02:38:45 job=59538706 hosts=nid002377,nid002380 id=defer.tfim.1e-3.g8 seconds=13 exit=0 wall=8.843
+10-08T02:38:47 job=59538707 hosts=nid002685,nid002688 id=defer.tfim.3e-4.g8 seconds=12 exit=0 wall=8.836
+10-08T02:39:02 job=59537174 hosts=nid003069,nid003072 id=defer.tfim.1e-4.g8 seconds=19 exit=0 wall=12.074
+10-08T02:39:04 job=59538707 hosts=nid002685,nid002688 id=defer.tfim.3e-5.g8 seconds=16 exit=0 wall=12.778
+10-08T02:39:09 job=59538706 hosts=nid001073,nid002376 id=cupp.tfim.1e-3.g8 seconds=42 exit=0 wall=37.878
+10-08T02:39:13 job=59538707 hosts=nid002685,nid002688 id=defer.tfim.1e-5.g8 seconds=9 exit=255 
+10-08T02:39:17 job=59538707 hosts=nid001132,nid002684 id=cupp.tfim.3e-4.g8 seconds=43 exit=0 wall=38.250
+10-08T02:39:21 job=59537174 hosts=nid001381,nid001384 id=cupp.tfim.1e-4.g8 seconds=43 exit=0 wall=37.622
+10-08T02:39:23 job=59538707 hosts=nid002685,nid002688 id=defer.tfim.5e-6.g8 seconds=9 exit=255 
+10-08T02:39:34 job=59538706 hosts=nid001073,nid002376 id=cupp.tfim.5e-6.g8 seconds=24 exit=255 
+10-08T02:39:34 job=59538706 hosts=nid002377,nid002380 id=cupp.tfim.3e-5.g8 seconds=46 exit=0 wall=42.501
+10-08T02:39:36 job=59537174 hosts=nid003069,nid003072 id=cupp.tfim.1e-5.g8 seconds=34 exit=255 
+10-08T02:39:42 job=59538707 hosts=nid002685,nid002688 id=defer3.tfim.1e-5.g8 seconds=19 exit=255 
+10-08T02:39:45 job=59538707 hosts=nid001132,nid002684 id=defer3.tfim.3e-5.g8 seconds=28 exit=0 wall=24.367
+10-08T02:39:53 job=59537174 hosts=nid001381,nid001384 id=defer2.tfim.3e-5.g8 seconds=31 exit=0 wall=27.586
+10-08T02:39:56 job=59538706 hosts=nid001073,nid002376 id=defer2.tfim.1e-5.g8 seconds=20 exit=255 
+10-08T02:39:56 job=59537174 hosts=nid003069,nid003072 id=defer.noise.1e-3.g8 seconds=18 exit=0 wall=12.398
+10-08T02:39:59 job=59538707 hosts=nid001132,nid002684 id=defer.noise.3e-4.g8 seconds=13 exit=0 wall=9.560
+10-08T02:40:15 job=59537174 hosts=nid003069,nid003072 id=defer.noise.1e-4.g8 seconds=17 exit=0 wall=12.428
+10-08T02:40:17 job=59538707 hosts=nid001132,nid002684 id=defer.noise.3e-5.g8 seconds=17 exit=0 wall=12.016
+10-08T02:40:19 job=59538706 hosts=nid002377,nid002380 id=cupp.noise.1e-3.g8 seconds=43 exit=0 wall=39.141
+10-08T02:40:27 job=59538707 hosts=nid002685,nid002688 id=cupp.noise.3e-4.g8 seconds=44 exit=0 wall=39.463
+10-08T02:40:29 job=59538707 hosts=nid001132,nid002684 id=defer.noise.1e-5.g8 seconds=12 exit=255 
+10-08T02:40:40 job=59537174 hosts=nid001381,nid001384 id=cupp.noise.1e-4.g8 seconds=45 exit=0 wall=40.311
+10-08T02:40:41 job=59538707 hosts=nid002685,nid002688 id=defer.noise.5e-6.g8 seconds=13 exit=255 
+10-08T02:40:42 job=59538706 hosts=nid002377,nid002380 id=cupp.noise.5e-6.g8 seconds=22 exit=255 
+10-08T02:40:53 job=59538706 hosts=nid001073,nid002376 id=cupp.noise.3e-5.g8 seconds=55 exit=0 wall=51.104
+10-08T02:41:00 job=59538707 hosts=nid001132,nid002684 id=defer3.noise.3e-5.g8 seconds=29 exit=0 wall=23.669
+10-08T02:41:13 job=59537174 hosts=nid001381,nid001384 id=defer2.noise.3e-5.g8 seconds=33 exit=0 wall=28.169
+10-08T02:41:22 job=59538707 hosts=nid001132,nid002684 id=orig.ki.1e-5.g8 seconds=22 exit=255 
+10-08T02:41:42 job=59538707 hosts=nid002685,nid002688 id=defer3.noise.1e-5.g8 seconds=60 exit=0 wall=55.595
+10-08T02:41:43 job=59538706 hosts=nid001073,nid002376 id=orig.ki.1e-4.g8 seconds=49 exit=0 wall=46.448
+10-08T02:41:48 job=59537174 hosts=nid003069,nid003072 id=cupp.noise.1e-5.g8 seconds=91 exit=0 wall=87.046
+10-08T02:41:48 job=59538706 hosts=nid001073,nid002376 id=eng.tfimsq.1e-4.g8 seconds=4 exit=0 wall=1.225
+10-08T02:41:49 job=59538706 hosts=nid002377,nid002380 id=defer2.noise.1e-5.g8 seconds=67 exit=0 wall=63.939
+10-08T02:42:01 job=59537174 hosts=nid001381,nid001384 id=orig.noise.1e-4.g8 seconds=45 exit=0 wall=40.018
+10-08T02:42:06 job=59538706 hosts=nid002377,nid002380 id=defer.tfimsq.1e-4.g8 seconds=12 exit=0 wall=7.167
+10-08T02:42:17 job=59538706 hosts=nid001073,nid002376 id=cupp.tfimsq.1e-4.g8 seconds=28 exit=0 wall=24.934
+10-08T02:42:18 job=59538707 hosts=nid002685,nid002688 id=eng.tfimsq.1e-5.g8 seconds=34 exit=0 wall=27.056
+10-08T02:42:19 job=59538706 hosts=nid002377,nid002380 id=defer.tfimsq.1e-5.g8 seconds=12 exit=255 
+10-08T02:42:23 job=59537174 hosts=nid001381,nid001384 id=cupp.tfimsq.1e-5.g8 seconds=22 exit=255 
+10-08T02:42:26 job=59538706 hosts=nid002377,nid002380 id=eng.xxz.1e-4.g8 seconds=5 exit=0 wall=1.362
+10-08T02:42:28 job=59538707 hosts=nid002685,nid002688 id=defer.tfimsq.3e-6.g8 seconds=9 exit=255 
+10-08T02:42:35 job=59538707 hosts=nid001132,nid002684 id=orig.noise.1e-5.g8 seconds=71 exit=0 wall=66.026
+10-08T02:42:36 job=59538706 hosts=nid001073,nid002376 id=cupp.tfimsq.3e-6.g8 seconds=17 exit=255 
+10-08T02:42:45 job=59538707 hosts=nid001132,nid002684 id=defer.xxz.1e-4.g8 seconds=9 exit=0 wall=5.444
+10-08T02:42:49 job=59538707 hosts=nid002685,nid002688 id=cupp.xxz.1e-4.g8 seconds=21 exit=0 wall=17.494
+10-08T02:42:52 job=59538706 hosts=nid001073,nid002376 id=cupp.xxz.1e-5.g8 seconds=16 exit=255 
+10-08T02:42:55 job=59538707 hosts=nid001132,nid002684 id=defer.xxz.1e-5.g8 seconds=10 exit=255 
+10-08T02:43:04 job=59538707 hosts=nid001132,nid002684 id=eng.qaoa.1e-4.g8 seconds=5 exit=0 wall=1.232
+10-08T02:43:07 job=59538706 hosts=nid001073,nid002376 id=defer.xxz.1e-6.g8 seconds=15 exit=255 
+10-08T02:43:07 job=59538707 hosts=nid002685,nid002688 id=cupp.xxz.1e-6.g8 seconds=15 exit=255 
+10-08T02:43:08 job=59537174 hosts=nid001381,nid001384 id=eng.xxz.1e-5.g8 seconds=45 exit=0 wall=39.158
+10-08T02:43:18 job=59538707 hosts=nid001132,nid002684 id=eng.qaoa.1e-5.g8 seconds=14 exit=0 wall=9.580
+10-08T02:43:20 job=59537174 hosts=nid001381,nid001384 id=defer.qaoa.1e-4.g8 seconds=12 exit=0 wall=4.298
+10-08T02:43:24 job=59538706 hosts=nid001073,nid002376 id=cupp.qaoa.1e-4.g8 seconds=16 exit=0 wall=11.047
+10-08T02:43:39 job=59538707 hosts=nid001132,nid002684 id=cupp.qaoa.1e-5.g8 seconds=21 exit=255 
+10-08T02:43:44 job=59537174 hosts=nid001381,nid001384 id=defer.qaoa.1e-5.g8 seconds=23 exit=255 
+10-08T02:43:44 job=59538706 hosts=nid001073,nid002376 id=cupp.qaoa.1e-6.g8 seconds=19 exit=255 
+10-08T02:43:50 job=59538707 hosts=nid001132,nid002684 id=defer.qaoa.1e-6.g8 seconds=10 exit=255 
+10-08T02:43:55 job=59537174 hosts=nid001381,nid001384 id=eng.hea.1e-5.g8 seconds=9 exit=0 wall=3.822
+10-08T02:44:30 job=59537174 hosts=nid001381,nid001384 id=cupp.hea.1e-5.g8 seconds=35 exit=0 wall=32.049
+10-08T02:44:39 job=59538707 hosts=nid002685,nid002688 id=eng.qaoa.1e-6.g8 seconds=91 exit=0 wall=76.547
+10-08T02:44:41 job=59538706 hosts=nid001073,nid002376 id=eng.hea.1e-6.g8 seconds=55 exit=0 wall=44.231
+10-08T02:44:43 job=59537174 hosts=nid001381,nid001384 id=defer.hea.1e-5.g8 seconds=13 exit=255 
+10-08T02:44:54 job=59538706 hosts=nid001073,nid002376 id=defer.hea.1e-6.g8 seconds=12 exit=255 
+10-08T02:45:08 job=59538706 hosts=nid001073,nid002376 id=defer.hea.1e-7.g8 seconds=11 exit=255 
+10-08T02:45:16 job=59538707 hosts=nid002685,nid002688 id=cupp.hea.1e-6.g8 seconds=36 exit=255 
+10-08T02:45:19 job=59537174 hosts=nid001381,nid001384 id=cupp.hea.1e-7.g8 seconds=34 exit=255 
+10-08T02:46:47 job=59537174 hosts=nid003069,nid003072 id=eng.tfimsq.3e-6.g8 seconds=299 exit=0 wall=267.248
+10-08T02:46:56 job=59537174 hosts=nid001381,nid001384,nid003069,nid003072 id=eng.ki.1e-3.g16 seconds=8 exit=0 wall=0.440
+10-08T02:47:00 job=59537174 hosts=nid001381,nid001384,nid003069,nid003072 id=eng.ki.3e-4.g16 seconds=4 exit=0 wall=0.671
+10-08T02:47:10 job=59537174 hosts=nid001381,nid001384,nid003069,nid003072 id=eng.ki.1e-4.g16 seconds=9 exit=0 wall=1.231
+10-08T02:47:19 job=59537174 hosts=nid001381,nid001384,nid003069,nid003072 id=eng.ki.3e-5.g16 seconds=8 exit=0 wall=2.942
+10-08T02:47:42 job=59538706 hosts=nid002377,nid002380 id=eng.xxz.1e-6.g8 seconds=316 exit=124 
+10-08T02:47:43 job=59537174 hosts=nid001381,nid001384,nid003069,nid003072 id=eng.ki.1e-5.g16 seconds=23 exit=0 wall=15.343
+10-08T02:49:27 job=59538707 hosts=nid001132,nid002684 id=eng.hea.1e-7.g8 seconds=333 exit=124 
+10-08T02:50:09 job=59537174 hosts=nid001381,nid001384,nid003069,nid003072 id=eng.ki.3e-6.g16 seconds=146 exit=0 wall=135.036
+10-08T02:50:17 job=59537174 hosts=nid001381,nid001384,nid003069,nid003072 id=eng.tfim.1e-3.g16 seconds=5 exit=0 wall=0.672
+10-08T02:50:27 job=59537174 hosts=nid001381,nid001384,nid003069,nid003072 id=eng.tfim.3e-4.g16 seconds=10 exit=0 wall=1.183
+10-08T02:50:36 job=59537174 hosts=nid001381,nid001384,nid003069,nid003072 id=eng.tfim.1e-4.g16 seconds=9 exit=0 wall=2.219
+10-08T02:50:48 job=59537174 hosts=nid001381,nid001384,nid003069,nid003072 id=eng.tfim.3e-5.g16 seconds=10 exit=0 wall=3.982
+10-08T02:50:58 job=59538707 hosts=nid001132,nid002684,nid002685,nid002688 id=weak.ki.4.8e-6.g16 seconds=90 exit=0 wall=55.456
+10-08T02:51:13 job=59537174 hosts=nid001381,nid001384,nid003069,nid003072 id=eng.tfim.1e-5.g16 seconds=24 exit=0 wall=18.537
+10-08T02:52:09 job=59538707 hosts=nid001132,nid002684,nid002685,nid002688 id=eng.tfim.5e-6.g16 seconds=71 exit=0 wall=62.234
+10-08T02:52:14 job=59538707 hosts=nid001132,nid002684,nid002685,nid002688 id=eng.noise.1e-3.g16 seconds=5 exit=0 wall=0.745
+10-08T02:52:19 job=59538707 hosts=nid001132,nid002684,nid002685,nid002688 id=eng.noise.3e-4.g16 seconds=5 exit=0 wall=1.138
+10-08T02:52:25 job=59538707 hosts=nid001132,nid002684,nid002685,nid002688 id=eng.noise.1e-4.g16 seconds=6 exit=0 wall=2.213
+10-08T02:52:29 job=59537174 hosts=nid001381,nid001384,nid003069,nid003072 id=weak.tfim.4.8e-6.g16 seconds=76 exit=0 wall=68.008
+10-08T02:52:31 job=59538707 hosts=nid001132,nid002684,nid002685,nid002688 id=eng.noise.3e-5.g16 seconds=6 exit=0 wall=3.519
+10-08T02:52:47 job=59537174 hosts=nid001381,nid001384,nid003069,nid003072 id=eng.noise.1e-5.g16 seconds=17 exit=0 wall=11.767
+10-08T02:53:10 job=59538707 hosts=nid001132,nid002684,nid002685,nid002688 id=eng.noise.5e-6.g16 seconds=39 exit=0 wall=33.822
+10-08T02:53:29 job=59537174 hosts=nid001381,nid001384,nid003069,nid003072 id=weak.noise.4.8e-6.g16 seconds=42 exit=0 wall=36.491
+10-08T02:53:36 job=59538706 hosts=nid001073,nid002376 id=eng.xxz.3e-6.g8 seconds=508 exit=0 wall=486.632
+10-08T02:53:36 job=59538707 hosts=nid001132,nid002684,nid002685,nid002688 id=cupp.ki.1e-3.g16 seconds=26 exit=0 wall=22.496
+10-08T02:53:44 job=59537174 hosts=nid001381,nid001384,nid003069,nid003072 id=defer.ki.1e-3.g16 seconds=14 exit=0 wall=6.979
+10-08T02:53:48 job=59538706 hosts=nid001073,nid002376,nid002377,nid002380 id=defer.ki.3e-4.g16 seconds=11 exit=0 wall=6.435
+10-08T02:54:00 job=59538706 hosts=nid001073,nid002376,nid002377,nid002380 id=defer.ki.1e-4.g16 seconds=11 exit=0 wall=6.543
+10-08T02:54:05 job=59538707 hosts=nid001132,nid002684,nid002685,nid002688 id=cupp.ki.3e-4.g16 seconds=28 exit=0 wall=23.774
+10-08T02:54:20 job=59537174 hosts=nid001381,nid001384,nid003069,nid003072 id=cupp.ki.1e-4.g16 seconds=36 exit=0 wall=28.251
+10-08T02:54:21 job=59538707 hosts=nid001132,nid002684,nid002685,nid002688 id=defer.ki.3e-5.g16 seconds=14 exit=0 wall=9.656
+10-08T02:54:30 job=59538707 hosts=nid001132,nid002684,nid002685,nid002688 id=defer.ki.1e-5.g16 seconds=8 exit=255 
+10-08T02:54:32 job=59538706 hosts=nid001073,nid002376,nid002377,nid002380 id=cupp.ki.3e-5.g16 seconds=31 exit=0 wall=27.162
+10-08T02:54:42 job=59538706 hosts=nid001073,nid002376,nid002377,nid002380 id=defer.ki.3e-6.g16 seconds=10 exit=255 
+10-08T02:54:49 job=59538707 hosts=nid001132,nid002684,nid002685,nid002688 id=cupp.ki.3e-6.g16 seconds=19 exit=255 
+10-08T02:55:03 job=59538706 hosts=nid001073,nid002376,nid002377,nid002380 id=defer3.ki.3e-5.g16 seconds=21 exit=0 wall=17.283
+10-08T02:55:12 job=59538707 hosts=nid001132,nid002684,nid002685,nid002688 id=defer2.ki.3e-5.g16 seconds=23 exit=0 wall=18.068
+10-08T02:55:19 job=59537174 hosts=nid001381,nid001384,nid003069,nid003072 id=cupp.ki.1e-5.g16 seconds=58 exit=0 wall=54.253
+10-08T02:55:29 job=59538707 hosts=nid001132,nid002684,nid002685,nid002688 id=defer2.ki.1e-5.g16 seconds=17 exit=255 
+10-08T02:55:46 job=59538707 hosts=nid001132,nid002684,nid002685,nid002688 id=defer.tfim.1e-3.g16 seconds=15 exit=0 wall=10.929
+10-08T02:55:58 job=59538706 hosts=nid001073,nid002376,nid002377,nid002380 id=defer3.ki.1e-5.g16 seconds=53 exit=0 wall=48.789
+10-08T02:56:12 job=59538706 hosts=nid001073,nid002376,nid002377,nid002380 id=defer.tfim.3e-4.g16 seconds=13 exit=0 wall=9.828
+10-08T02:56:31 job=59537174 hosts=nid001381,nid001384,nid003069,nid003072 id=cupp.tfim.1e-3.g16 seconds=71 exit=0 wall=64.752
+10-08T02:56:36 job=59538707 hosts=nid001132,nid002684,nid002685,nid002688 id=cupp.tfim.3e-4.g16 seconds=48 exit=0 wall=43.016
+10-08T02:56:53 job=59537174 hosts=nid001381,nid001384,nid003069,nid003072 id=defer.tfim.1e-4.g16 seconds=22 exit=0 wall=12.818
+10-08T02:57:02 job=59538706 hosts=nid001073,nid002376,nid002377,nid002380 id=cupp.tfim.1e-4.g16 seconds=50 exit=0 wall=46.843
+10-08T02:57:14 job=59537174 hosts=nid001381,nid001384,nid003069,nid003072 id=defer.tfim.3e-5.g16 seconds=20 exit=0 wall=14.339
+10-08T02:57:29 job=59538707 hosts=nid001132,nid002684,nid002685,nid002688 id=cupp.tfim.3e-5.g16 seconds=52 exit=0 wall=48.619
+10-08T02:57:32 job=59537174 hosts=nid001381,nid001384,nid003069,nid003072 id=defer.tfim.1e-5.g16 seconds=18 exit=255 
+10-08T02:57:47 job=59537174 hosts=nid001381,nid001384,nid003069,nid003072 id=defer.tfim.5e-6.g16 seconds=15 exit=255 
+10-08T02:58:03 job=59538707 hosts=nid001132,nid002684,nid002685,nid002688 id=cupp.tfim.5e-6.g16 seconds=31 exit=255 
+10-08T02:58:18 job=59538706 hosts=nid001073,nid002376,nid002377,nid002380 id=cupp.tfim.1e-5.g16 seconds=75 exit=0 wall=71.298
+10-08T02:58:19 job=59537174 hosts=nid001381,nid001384,nid003069,nid003072 id=defer3.tfim.3e-5.g16 seconds=32 exit=0 wall=28.334
+10-08T02:58:35 job=59538707 hosts=nid001132,nid002684,nid002685,nid002688 id=defer2.tfim.3e-5.g16 seconds=32 exit=0 wall=27.910
+10-08T02:59:19 job=59538706 hosts=nid001073,nid002376,nid002377,nid002380 id=defer3.tfim.1e-5.g16 seconds=61 exit=0 wall=56.891
+10-08T02:59:27 job=59538707 hosts=nid001132,nid002684,nid002685,nid002688 id=cupp.noise.1e-3.g16 seconds=51 exit=0 wall=47.313
+10-08T02:59:33 job=59538706 hosts=nid001073,nid002376,nid002377,nid002380 id=defer.noise.1e-3.g16 seconds=14 exit=0 wall=9.794
+10-08T02:59:34 job=59537174 hosts=nid001381,nid001384,nid003069,nid003072 id=defer2.tfim.1e-5.g16 seconds=75 exit=0 wall=70.120
+10-08T02:59:47 job=59538706 hosts=nid001073,nid002376,nid002377,nid002380 id=defer.noise.3e-4.g16 seconds=14 exit=0 wall=10.911
+10-08T03:00:09 drive job=59538706 finished; done=448 of 509
+10-08T03:00:18 job=59538707 hosts=nid001132,nid002684,nid002685,nid002688 id=cupp.noise.3e-4.g16 seconds=51 exit=0 wall=47.087
+10-08T03:00:46 job=59537174 hosts=nid001381,nid001384,nid003069,nid003072 id=cupp.noise.1e-4.g16 seconds=72 exit=0 wall=67.990
+10-08T03:01:05 drive job=59538707 finished; done=450 of 509
+10-08T03:01:09 job=59537174 hosts=nid001381,nid001384,nid003069,nid003072 id=defer.noise.1e-4.g16 seconds=22 exit=0 wall=10.465
+10-08T03:02:25 job=59537174 hosts=nid001381,nid001384,nid003069,nid003072 id=cupp.noise.3e-5.g16 seconds=76 exit=0 wall=71.585
+10-08T03:02:45 job=59537174 hosts=nid001381,nid001384,nid003069,nid003072 id=defer.noise.3e-5.g16 seconds=19 exit=0 wall=12.277
+10-08T03:04:14 job=59537174 hosts=nid001381,nid001384,nid003069,nid003072 id=cupp.noise.1e-5.g16 seconds=88 exit=0 wall=82.487
+10-08T03:04:42 job=59537174 hosts=nid001381,nid001384,nid003069,nid003072 id=defer.noise.1e-5.g16 seconds=28 exit=0 wall=23.726
+10-08T03:05:22 job=59537174 hosts=nid001381,nid001384,nid003069,nid003072 id=cupp.noise.5e-6.g16 seconds=40 exit=255 
+10-08T03:05:39 job=59537174 hosts=nid001381,nid001384,nid003069,nid003072 id=defer.noise.5e-6.g16 seconds=15 exit=255 
+10-08T03:06:13 job=59537174 hosts=nid001381,nid001384,nid003069,nid003072 id=defer3.noise.3e-5.g16 seconds=34 exit=0 wall=29.427
+10-08T03:06:55 job=59537174 hosts=nid001381,nid001384,nid003069,nid003072 id=defer2.noise.3e-5.g16 seconds=41 exit=0 wall=36.651
+10-08T03:07:45 job=59537174 hosts=nid001381,nid001384,nid003069,nid003072 id=defer3.noise.1e-5.g16 seconds=50 exit=0 wall=45.999
+10-08T03:08:44 job=59537174 hosts=nid001381,nid001384,nid003069,nid003072 id=defer2.noise.1e-5.g16 seconds=59 exit=0 wall=54.335
+10-08T03:09:49 drive job=59539844 hosts=nid001029 nid001189 nid002644 nid003413
+10-08T03:09:50 job=59537174 hosts=nid001381,nid001384,nid003069,nid003072 id=orig.ki.1e-4.g16 seconds=65 exit=0 wall=59.682
+10-08T03:11:27 drive job=59539846 hosts=nid001621 nid001857 nid003269 nid003520
+10-08T03:11:44 job=59537174 hosts=nid001381,nid001384,nid003069,nid003072 id=orig.ki.1e-5.g16 seconds=113 exit=0 wall=102.913
+10-08T03:12:22 job=59539846 hosts=nid001621,nid001857,nid003269,nid003520 id=orig.noise.1e-4.g16 seconds=52 exit=0 wall=45.774
+10-08T03:12:26 job=59539846 hosts=nid001621,nid001857,nid003269,nid003520 id=eng.tfimsq.1e-4.g16 seconds=4 exit=0 wall=1.498
+10-08T03:12:46 job=59539846 hosts=nid001621,nid001857,nid003269,nid003520 id=eng.tfimsq.1e-5.g16 seconds=20 exit=0 wall=15.126
+10-08T03:13:12 job=59537174 hosts=nid001381,nid001384,nid003069,nid003072 id=orig.noise.1e-5.g16 seconds=86 exit=0 wall=80.603
+10-08T03:14:03 job=59537174 hosts=nid001381,nid001384,nid003069,nid003072 id=cupp.tfimsq.1e-4.g16 seconds=51 exit=0 wall=42.417
+10-08T03:14:23 job=59537174 hosts=nid001381,nid001384,nid003069,nid003072 id=defer.tfimsq.1e-4.g16 seconds=18 exit=0 wall=8.191
+10-08T03:15:27 job=59539846 hosts=nid001621,nid001857,nid003269,nid003520 id=eng.tfimsq.3e-6.g16 seconds=161 exit=0 wall=142.900
+10-08T03:15:32 job=59537174 hosts=nid001381,nid001384,nid003069,nid003072 id=cupp.tfimsq.1e-5.g16 seconds=68 exit=0 wall=64.091
+10-08T03:15:40 job=59539846 hosts=nid001621,nid001857,nid003269,nid003520 id=defer.tfimsq.1e-5.g16 seconds=12 exit=255 
+10-08T03:15:50 job=59539846 hosts=nid001621,nid001857,nid003269,nid003520 id=defer.tfimsq.3e-6.g16 seconds=10 exit=255 
+10-08T03:15:57 job=59539846 hosts=nid001621,nid001857,nid003269,nid003520 id=eng.xxz.1e-4.g16 seconds=5 exit=0 wall=1.291
+10-08T03:16:01 job=59537174 hosts=nid001381,nid001384,nid003069,nid003072 id=cupp.tfimsq.3e-6.g16 seconds=28 exit=255 
+10-08T03:16:24 job=59539846 hosts=nid001621,nid001857,nid003269,nid003520 id=eng.xxz.1e-5.g16 seconds=27 exit=0 wall=21.868
+10-08T03:16:48 job=59539846 hosts=nid001621,nid001857,nid003269,nid003520 id=cupp.xxz.1e-4.g16 seconds=24 exit=0 wall=20.376
+10-08T03:17:01 job=59539846 hosts=nid001621,nid001857,nid003269,nid003520 id=defer.xxz.1e-4.g16 seconds=11 exit=0 wall=6.314
+10-08T03:17:29 job=59539846 hosts=nid001621,nid001857,nid003269,nid003520 id=cupp.xxz.1e-5.g16 seconds=28 exit=255 
+10-08T03:17:42 job=59539844 hosts=nid001189 id=long.qaoa.1e-6.g1 seconds=468 exit=0 wall=453.878
+10-08T03:17:46 job=59539846 hosts=nid001621,nid001857,nid003269,nid003520 id=defer.xxz.1e-5.g16 seconds=15 exit=255 
+10-08T03:17:59 job=59539844 hosts=nid003413 id=long.tfimsq.3e-6.g4 seconds=485 exit=0 wall=453.844
+10-08T03:18:04 job=59539846 hosts=nid001621,nid001857,nid003269,nid003520 id=cupp.xxz.1e-6.g16 seconds=16 exit=255 
+10-08T03:18:16 job=59539846 hosts=nid001621,nid001857,nid003269,nid003520 id=defer.xxz.1e-6.g16 seconds=11 exit=255 
+10-08T03:18:22 job=59539846 hosts=nid001621,nid001857,nid003269,nid003520 id=eng.qaoa.1e-4.g16 seconds=4 exit=0 wall=1.020
+10-08T03:18:36 job=59539846 hosts=nid001621,nid001857,nid003269,nid003520 id=eng.qaoa.1e-5.g16 seconds=12 exit=0 wall=6.440
+10-08T03:19:27 job=59539846 hosts=nid001621,nid001857,nid003269,nid003520 id=eng.qaoa.1e-6.g16 seconds=51 exit=0 wall=41.915
+10-08T03:19:46 job=59539846 hosts=nid001621,nid001857,nid003269,nid003520 id=cupp.qaoa.1e-4.g16 seconds=17 exit=0 wall=12.582
+10-08T03:19:54 job=59539846 hosts=nid001621,nid001857,nid003269,nid003520 id=defer.qaoa.1e-4.g16 seconds=8 exit=0 wall=4.712
+10-08T03:20:15 job=59539846 hosts=nid001621,nid001857,nid003269,nid003520 id=cupp.qaoa.1e-5.g16 seconds=20 exit=0 wall=17.287
+10-08T03:20:28 job=59539846 hosts=nid001621,nid001857,nid003269,nid003520 id=defer.qaoa.1e-5.g16 seconds=13 exit=0 wall=9.183
+10-08T03:20:47 job=59539846 hosts=nid001621,nid001857,nid003269,nid003520 id=cupp.qaoa.1e-6.g16 seconds=19 exit=255 
+10-08T03:21:00 job=59539846 hosts=nid001621,nid001857,nid003269,nid003520 id=defer.qaoa.1e-6.g16 seconds=12 exit=255 
+10-08T03:21:09 job=59539846 hosts=nid001621,nid001857,nid003269,nid003520 id=eng.hea.1e-5.g16 seconds=7 exit=0 wall=2.806
+10-08T03:21:25 job=59537174 hosts=nid001381,nid001384,nid003069,nid003072 id=eng.xxz.1e-6.g16 seconds=322 exit=124 
+10-08T03:21:44 job=59539846 hosts=nid001621,nid001857,nid003269,nid003520 id=eng.hea.1e-6.g16 seconds=33 exit=0 wall=25.286
+10-08T03:22:25 job=59539846 hosts=nid001621,nid001857,nid003269,nid003520 id=cupp.hea.1e-5.g16 seconds=41 exit=0 wall=36.049
+10-08T03:22:43 job=59539846 hosts=nid001621,nid001857,nid003269,nid003520 id=defer.hea.1e-5.g16 seconds=17 exit=0 wall=12.240
+10-08T03:23:35 job=59539846 hosts=nid001621,nid001857,nid003269,nid003520 id=cupp.hea.1e-6.g16 seconds=51 exit=255 
+10-08T03:23:40 job=59539846 hosts=nid001621,nid001857,nid003269,nid003520 id=defer.hea.1e-6.g16 seconds=5 exit=255 
+10-08T03:24:20 job=59539846 hosts=nid001621,nid001857,nid003269,nid003520 id=cupp.hea.1e-7.g16 seconds=40 exit=255 
+10-08T03:24:34 job=59539846 hosts=nid001621,nid001857,nid003269,nid003520 id=defer.hea.1e-7.g16 seconds=12 exit=255 
+10-08T03:25:07 job=59539844 hosts=nid002644 id=eng.xxz.3e-6.g4 seconds=912 exit=0 wall=884.192
+10-08T03:25:07 drive job=59539844 finished; done=503 of 509
+10-08T03:27:04 job=59537174 hosts=nid001381,nid001384,nid003069,nid003072 id=eng.hea.1e-7.g16 seconds=337 exit=124 
+10-08T03:27:04 drive job=59537174 finished; done=504 of 509
+10-08T03:27:18 drive job=59537174 hosts=nid001381 nid001384 nid003069 nid003072
+10-08T03:29:22 job=59539846 hosts=nid001621,nid001857,nid003269,nid003520 id=eng.xxz.3e-6.g16 seconds=287 exit=0 wall=272.320
+10-08T03:29:22 drive job=59539846 finished; done=505 of 509
+10-08T03:42:25 job=59537174 hosts=nid003072 id=long.tfimsq.3e-6.g2 seconds=906 exit=0 wall=871.733
+10-08T03:55:32 job=59537174 hosts=nid001381 id=long.tfimsq.3e-6.g1 seconds=1693 exit=0 wall=1659.097
+10-08T03:56:37 job=59537174 hosts=nid003069 id=eng.xxz.3e-6.g2 seconds=1757 exit=0 wall=1727.803
+10-08T04:17:43 job=59537174 hosts=nid001384 id=eng.xxz.3e-6.g1 seconds=3023 exit=124 
+10-08T04:17:44 drive job=59537174 finished; done=509 of 509
+10-08T04:17:46 external job=59537174 hosts=nid001381 nid001384 nid003069 nid003072

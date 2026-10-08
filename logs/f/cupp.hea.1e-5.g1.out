@@ -1,0 +1,9 @@
+===== ref nodes=1 gpus=1 args: --circuit hea --n 100 --layers 16 --amp 0.4 --coef 1e-5 --vram-frac 0.9
+circuit: hardware-efficient ansatz, line; 100 qubits; 4784 gates -> 3200 operations on the data (3200 branching rotations, 0 Clifford, 0 noise); 1584 Clifford gates deferred by the frame
+mode=ref nodes=1 gpus/node=1 coef=1e-05 weight=0 truncEvery=10 GPU capacity=188801777 terms/buffer bucket target=4000000 gmax=0 window=ann host=pinned chunks
+operation 2756: 98526203 terms do not fit the GPU
+[node 0] FATAL: capacity (this mode cannot split) (line 819)
+MPICH ERROR [Rank 0] [job id 59537174.75] [Thu Oct  8 02:26:46 2026] [nid003072] - Abort(1) (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 0
+srun: error: nid003072: task 0: Exited with exit code 1
+srun: Terminating StepId=59537174.75
+exit=1

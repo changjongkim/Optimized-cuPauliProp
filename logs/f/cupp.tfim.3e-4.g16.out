@@ -1,0 +1,7 @@
+===== cupp nodes=4 gpus=16 args: --circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 3e-4 --vram-frac 0.9
+circuit: TFIM Trotter, Eagle heavy-hex; 127 qubits; 5420 gates -> 5420 operations on the data (5420 branching rotations, 0 Clifford, 0 noise); 0 Clifford gates deferred by the frame
+mode=cupp ranks=16 (one GPU each) coef=0.0003 weight=0 default: global deduplication in every operation
+expectation=0.247491129588
+largest_local_expansion=176852 terms
+wall=43.016 s
+exit=0
