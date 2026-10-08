@@ -1353,7 +1353,7 @@ int main(int argc, char** argv) {
       pilotGrowth = -1;
       std::vector<uint64_t> sample;
       if (gWanted > 0) {
-        const long stride = std::max<long>(1, NinLocal / std::max<long>(1, o.sample));   // the sample comes from this node
+        const long stride = std::max<long>(1, Nin / std::max<long>(1, o.sample));   // o.sample terms over all nodes: every node sends its share
         for (auto& b : pool)
           for (auto& k : b.ch)
             for (long i = 0; i < k.n; i += stride) sample.insert(sample.end(), k.xz + (size_t)i * words, k.xz + (size_t)(i + 1) * words);
