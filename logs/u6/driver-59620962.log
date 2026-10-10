@@ -1,0 +1,20 @@
+22:00:31 pp_engine_u6 ki.1e-5.g16 exit=0 wall=12.760 expectation=0.228607441423
+22:00:54 pp_engine_u6 hea.1e-6.g16 exit=0 wall=18.463 expectation=-0.1651345923
+22:01:29 pp_engine_u6 noise.5e-6.g16 exit=0 wall=30.199 expectation=0.187171541035
+22:02:08 pp_engine_u6 qaoa.1e-6.g16 exit=0 wall=31.885 expectation=82.3256865097
+22:03:08 pp_engine_u6 tfim.5e-6.g16 exit=0 wall=53.451 expectation=0.484256348881
+22:05:16 pp_engine_u6 ki.3e-6.g16 exit=0 wall=120.007 expectation=0.289217470624
+done after 306s
+22:05:24 pp_engine_u6 ki.1e-4.g1 exit=0 wall=1.718 expectation=0.153108187591 one GPU: the operator stayed on the GPU after 19 of 20 windows
+22:05:35 pp_engine_u6 tfim.1e-4.g1 exit=0 wall=1.920 expectation=0.324547666766 one GPU: the operator stayed on the GPU after 44 of 45 windows
+22:05:41 pp_engine_u6 noise.1e-4.g1 exit=0 wall=1.947 expectation=0.156114065827 one GPU: the operator stayed on the GPU after 19 of 20 windows
+22:06:05 pp_engine_u6 ki.3e-5.g1 exit=0 wall=18.305 expectation=0.174003538182 one GPU: the operator stayed on the GPU after 5 of 20 windows
+22:06:31 pp_engine_u6 tfim.3e-5.g1 exit=0 wall=21.108 expectation=0.377938535022 one GPU: the operator stayed on the GPU after 21 of 45 windows
+22:06:51 pp_engine_u6 noise.3e-5.g1 exit=0 wall=16.068 expectation=0.154419952246 one GPU: the operator stayed on the GPU after 12 of 20 windows
+22:06:55 pp_engine_u6 tfimsq.1e-4.g1 exit=0 wall=1.617 expectation=0.798821812544 one GPU: the operator stayed on the GPU after 23 of 24 windows
+22:07:01 pp_engine_u6 xxz.1e-4.g1 exit=0 wall=2.666 expectation=0.00558248729487 one GPU: the operator stayed on the GPU after 22 of 23 windows
+22:07:08 pp_engine_u6 qaoa.1e-4.g1 exit=0 wall=4.262 expectation=81.8841164502 one GPU: the operator stayed on the GPU after 5 of 8 windows
+22:07:25 pp_engine_u6 hea.1e-5.g1 exit=0 wall=13.418 expectation=-0.165478238238 one GPU: the operator stayed on the GPU after 20 of 34 windows
+one GPU done after 435s
+22:10:16 pp_engine_u6 ki.1e-5.g1 exit=0 wall=166.878 expectation=0.228607441423 one GPU: the operator stayed on the GPU after 5 of 20 windows
+all done after 606s

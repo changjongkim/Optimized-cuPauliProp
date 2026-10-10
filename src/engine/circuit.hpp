@@ -429,7 +429,13 @@ inline std::vector<Op> compileForEngine(const Problem& P, bool useFrame, int* de
       if (!conjugate(o, probe, L)) { fprintf(stderr, "Clifford gate kind %d is not supported in the frame\n", (int)o.cliff); std::exit(1); }
       frame.push_back(&o);
       deferred++;
-      if (o.trunc && !out.empty()) out.back().trunc = true;   // coefficient truncation does not depend on the frame
+      if (o.trunc) {
+        // Coefficient truncation does not depend on the frame: the cut moves to the data operation before it.
+        // A cut on a Clifford gate before the first data operation still has to act on the observable, so an
+        // identity operation carries it.
+        if (out.empty()) out.push_back(cliff(CUPAULIPROP_CLIFFORD_GATE_I, {0}));
+        out.back().trunc = true;
+      }
       continue;
     }
     if (o.type == OP_NOISE) flush();

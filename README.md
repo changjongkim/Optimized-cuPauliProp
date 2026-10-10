@@ -295,7 +295,7 @@ SectorQ에는 미리 세운 계획이 없다. 하나의 고리가 구간마다 �
 
 이 성질이 R1, R2, R3을 함께 만족시킨다. sector 안에서 gate마다 합치므로 truncation은 항상 합쳐진 계수를 본다(R1). 다른 sector와 주고받을 것이 없으므로 구간 동안 통신하지 않는다(R2). 합치기를 미루지 않으므로 합쳐지지 않은 항이 쌓이지 않는다(R3). hash 분할과의 차이는 무엇을 key로 삼는가에 있다. hash는 Pauli string 전체를 key로 삼아, gate가 string을 바꾸면 배정도 바뀐다. sector는 string 가운데 구간의 gate가 바꾸지 않는 부분만 key로 삼는다.
 
-**Sector 수.** 살아 있는 항의 수와 지난 구간의 증가율로 정한다. 구간이 시작될 때의 항 수를 sector당 목표 항 수(`--target`)로 나누며, 구간 하나에 최대 256개이다(`--gmax`로 4,096개까지 올릴 수 있다). 항이 아주 적은 동안은 sector 하나, GPU 하나로 돈다(R6). sector 하나가 2,000항을 넘을 만큼 되면 노드마다 sector를 하나씩 준다(`--early-per-node`). 초반 구간은 항 수가 가장 빠르게 늘어나는 곳이어서, sector 하나로 두면 GPU 한 장이 일하는 동안 나머지가 기다린다(4.6절).
+**Sector 수.** 살아 있는 항의 수와 지난 구간의 증가율로 정한다. 구간이 시작될 때의 항 수를 sector당 목표 항 수(`--target`)로 나누며, 구간 하나에 최대 256개이다(`--gmax`로 4,096개까지 올릴 수 있다). 항이 아주 적은 동안은 sector 하나, GPU 하나로 돈다(R6). sector 하나가 2,000항을 넘을 만큼 되면 노드마다 sector를 하나씩 준다(`--early-per-node`). 초반 구간은 항 수가 가장 빠르게 늘어나는 곳이어서, sector 하나로 두면 GPU 한 장이 일하는 동안 나머지가 기다린다(4.6절). GPU가 한 장뿐이면 sector를 받아 줄 다른 GPU가 없으므로 목표 항 수 규칙만 쓴다. 이때 구간과 다음 구간이 모두 sector 하나이면 결과를 나누지도 host로 내리지도 않고 GPU에 그대로 둔다(4.11절).
 
 ### 3.3 통신을 구간 경계로 모으기
 
@@ -325,7 +325,7 @@ SectorQ에는 미리 세운 계획이 없다. 하나의 고리가 구간마다 �
 
 sector는 서로 독립이므로 하나씩 따로 처리할 수 있다. 이것이 GPU memory의 한계를 없앤다(R5).
 
-**Host sector 저장소.** sector는 고정 크기 chunk(262,144항)의 목록이다. chunk는 한 번 고정(pin)하여 계속 재사용한다. GPU와의 복사와 노드 사이의 전송이 같은 메모리를 쓴다.
+**Host sector 저장소.** sector는 고정 크기 chunk(262,144항)의 목록이다. chunk는 한 번 고정(pin)하여 계속 재사용한다. GPU와의 복사와 노드 사이의 전송이 같은 메모리를 쓴다. 새 chunk는 16개씩 묶어 만든다: 일반 메모리를 받아 한 번 쓴 뒤 CUDA에 등록한다. `cudaHostAlloc`으로 받으면 2 GB/s이고 이 방법은 7 GB/s이며, GPU와의 복사 속도는 같다(26 GB/s, `src/proto/pin_test.cpp`). 교환에서 도착하는 항을 받을 chunk가 모자랐으면, 다음 구간이 도는 동안 main thread가 그만큼을 미리 만든다(4.11절).
 
 **GPU에서의 처리.** GPU memory는 입력 버퍼와 출력 버퍼에 20%씩, 나머지를 작업 공간에 쓴다. 36 GB에서 버퍼 하나가 1.9억 항이다. (1) worker는 저장소에서 sector를 꺼내 입력 버퍼에 올린다. (2) 구간의 gate를 차례로 적용하며 merge와 truncation을 수행한다. gate 적용에는 cuPauliProp의 단일 GPU 연산을 쓴다. sector가 작업 단위이므로 먼저 끝난 GPU가 남은 sector를 가져간다.
 
@@ -362,7 +362,8 @@ Clifford gate와 Clifford 각도의 rotation은 항 수를 바꾸지 않고 bit�
 
 | 구성 요소 | 위치 |
 |---|---|
-| SectorQ 본체 | `src/engine/pp_engine.cpp` (1,400여 줄): 구간 결정, sector 저장소, GPU worker, 노드 사이 교환, 넘치는 sector의 분할, checkpoint, 검산, 기준 모드 |
+| SectorQ 본체 | `src/engine/pp_engine.cpp` (1,600여 줄): 구간 결정, sector 저장소, GPU worker, 노드 사이 교환, 넘치는 sector의 분할, checkpoint, 검산, 기준 모드 |
+| 연속된 noise channel의 묶음 호출 | `src/engine/noise_fusion.hpp` (80줄): noise channel은 항을 늘리지도 합치지도 않으므로 최대 10개를 한 번의 호출로 적용한다. truncation과 구간 경계에서 묶음을 끊는다. cuPauliProp 기준선에도 같이 적용한다 |
 | 회로와 Clifford frame | `src/engine/circuit.hpp` (451줄): 회로 7종, frame, 연산의 bit 변환 |
 | GF(2) 소거 | `src/engine/gf2.hpp` (87줄): 생성자 공간, 유효한 행의 공간 |
 | 행 계산과 분할 kernel | `src/proto/shuffle.cu` (125줄) |
@@ -647,6 +648,8 @@ gate 적용이 39–60%를 차지한다. 이 부분은 cuPauliProp의 단일 GPU
 | 앞 구간이 오래 걸리면 그때부터 잘게 나누기 | 초반의 성장이 너무 빨라 늦게 반응한다(32 GPU 10.8 → 10.2초). 2,250만 항 설정은 1.3 → 2.0초로 느려진다. 코드에서 뺐다 (`logs/pp_e8-59482607.out`) |
 | 노드 안에서 큰 sector를 반으로 나누어 쉬는 GPU에 주기 (`--share-above`) | 32 GPU 8.8초 대 8.1초(끔), 한 노드 4 GPU 48.3초 대 48.1초. 나눈 조각이 host를 거치는 비용이 이득보다 크다. 기본에서 껐다 |
 | 성장률 상한을 올려 sector 수를 미리 늘리기 (`--growth-cap 64`) | sector가 256개까지 늘어 chunk를 고정하는 비용이 커진다. 32 GPU 12.2초 대 11.0초 |
+| GPU 한 장에 들어가면 항상 sector 하나로 두기 | QAOA cutoff 1e-4, GPU 1장: 5.41초 대 4.26초(목표 크기대로 나눔). cuPauliProp의 연산은 sector가 클수록 항당 시간이 늘어, 들어가더라도 목표 크기로 나누는 쪽이 빠르다. 목표 크기 아래일 때만 하나로 둔다 (`logs/u3`) |
+| 구간이 도는 동안 필요할 chunk를 예측해 `cudaHostAlloc`으로 미리 만들기 | `cudaHostAlloc`이 도는 동안 같은 GPU의 복사와 연산이 밀린다. kicked Ising cutoff 3e-5, GPU 1장의 host → GPU 복사가 0.29초에서 1.60초로 늘고, 16 GPU에서는 GPU 연산 시간의 합이 3–17% 늘었다. 예측이 크면 쓰지 않을 chunk까지 만든다. chunk를 만드는 방법을 바꾸고, 지난 교환에서 모자랐던 만큼만 미리 만든다 (`logs/u2`, `logs/u4`) |
 | sector 안에서 dedup을 truncation 직전까지 미루기 (`--defer-dedup k`) | 한 노드 4 GPU, kicked Ising cutoff 1e-5: 미루지 않으면 48.6초, 간격 10이면 50.3초, 간격 3이면 70.8초. TFIM 52.5초 대 52.7초. 답은 같다. cuPauliProp의 gate 적용은 dedup을 포함해도 이미 빠르고, 미루면 들고 있는 항만 늘어난다. dedup을 미룬 cuPauliProp이 빨라지는 것은 전역 dedup이 줄어서이며 계산이 줄어서가 아니다 |
 
 ### 4.10 초기 프로토타입의 측정
@@ -663,6 +666,53 @@ SectorQ 이전에 기능별 프로토타입(`src/proto/lo_*`)으로 잰 값이�
 | `lo_pool` (한 노드, sector task) | 14억 항 설정 1 / 2 / 4 GPU | 212 / 116 / 64초 |
 | | cutoff 3e-6 설정 | 한 노드 4 GPU 676초, 4 노드 16 GPU 221초. 기대값 0.289217470624 일치 |
 | `lo_virtual` (한 GPU 안의 가상 rank) | θ=0.15π, cutoff 1e-5 | 0.771759253455 일치 |
+
+### 4.11 Sector 관리 비용
+
+sector를 나누고, host에 두고, 노드 사이에 옮기는 일은 통신을 구간 경계로 모으는 값이다. 이 비용이 어디에서 나오는지 재고 줄였다(2026-10-09, 할당 59620962의 같은 노드들, 설정마다 1회; `logs/u1`, `logs/u2`, `logs/u6`). 기대값은 모든 실행에서 이전과 같다.
+
+**GPU 한 장.** 이전에는 GPU가 한 장이어도 "GPU마다 sector 둘" 규칙으로 sector를 나누고 구간마다 host를 거쳤다. 지금은 목표 크기 아래에서는 sector 하나로 GPU에 둔다(3.2절).
+
+| 회로, cutoff | 이전 | 지금 | cuPauliProp 단일 GPU (같은 방식으로 GPU에 둠) |
+|---|---|---|---|
+| kicked Ising, 1e-4 | 2.31초 | 1.72초 | 1.71초 |
+| TFIM heavy-hex, 1e-4 | 2.91초 | 1.92초 | 1.89초 |
+| noisy kicked Ising, 1e-4 | 4.39초 | 1.95초 | 1.91초 |
+| TFIM 11×11, 1e-4 | 2.24초 | 1.62초 | – |
+| XXZ 8×8, 1e-4 | 3.24초 | 2.67초 | – |
+| QAOA n=100, 1e-4 | 4.60초 | 4.26초 | – |
+| ansatz n=100, 1e-5 | 14.5초 | 13.4초 | 메모리 부족 |
+| kicked Ising, 3e-5 | 18.8초 | 18.3초 | 메모리 부족 |
+| kicked Ising, 1e-5 | 170.6초 | 166.9초 | 메모리 부족 |
+
+한 장에 들어가는 설정에서 SectorQ는 이제 cuPauliProp 단일 GPU와 같다(차이 1–2%). 한 장에 들어가지 않는 설정은 2–8% 줄었다. 이 설정의 시간은 약 90%가 cuPauliProp의 연산이어서 관리 비용을 줄여도 더 줄지 않는다. 연산이 더 빠른 단일 GPU 구현(SPD)은 kicked Ising cutoff 3e-5를 7.3초에 끝내고, 그다음 cutoff에서 메모리가 부족하다.
+
+**여러 노드.** 16 GPU에서 구간 경계의 교환은 전체 시간의 8–39%였다. 나누어 재니 그 대부분은 통신이 아니었다.
+
+| 설정 (16 GPU) | 교환, 노드당: 이전 | 그중 새 chunk 만들기 | 그중 전송 | 교환, 노드당: 지금 |
+|---|---|---|---|---|
+| kicked Ising, 1e-5 | 2.97초 | 2.06초 | 0.79초 | 1.42초 |
+| ansatz n=100, 1e-6 | 10.10초 | 7.68초 | 1.92초 | 3.43초 |
+| noisy kicked Ising, 5e-6 | 2.58초 | 1.48초 | 0.95초 | 1.61초 |
+| QAOA n=100, 1e-6 | 8.94초 | 7.66초 | 0.67초 | 2.81초 |
+| TFIM heavy-hex, 5e-6 | 14.32초 | 8.80초 | 4.62초 | 6.71초 |
+| kicked Ising, 3e-6 | 17.49초 | 8.49초 | 5.16초 | 9.58초 |
+
+- 교환 시간의 49–86%는 도착하는 항을 받을 고정(pinned) chunk를 새로 만드는 시간이었다. 노드의 GPU가 모두 기다리는 동안 `cudaHostAlloc`이 2 GB/s로 메모리를 고정한다. 전송 자체는 전체 시간의 2–8%이다(kicked Ising 3e-6에서 노드당 24 GB/s).
+- chunk를 만드는 방법을 바꾸고(7 GB/s), 교환에서 chunk가 모자랐으면 다음 구간이 도는 동안 미리 만든다(3.4절). GPU worker가 출력을 내릴 때 새 chunk를 기다리는 시간도 같이 준다.
+
+| 설정 (16 GPU) | 이전 | 지금 | |
+|---|---|---|---|
+| kicked Ising, 1e-5 | 15.3초 | 12.8초 | 1.20배 |
+| ansatz n=100, 1e-6 | 25.7초 | 18.5초 | 1.39배 |
+| noisy kicked Ising, 5e-6 | 32.1초 | 30.2초 | 1.06배 |
+| QAOA n=100, 1e-6 | 42.1초 | 31.9초 | 1.32배 |
+| TFIM heavy-hex, 5e-6 | 62.3초 | 53.5초 | 1.17배 |
+| kicked Ising, 3e-6 | 133.5초 | 120.0초 | 1.11배 |
+
+host memory는 더 쓴다(가장 바쁜 노드에서 kicked Ising 3e-6이 26 → 33 GiB, QAOA가 22 → 33 GiB). 묶음으로 만들고 미리 만든 chunk의 몫이다. 4.2–4.4절의 수치는 이 변경 이전의 SectorQ로 잰 값이다.
+
+**noise channel 묶음.** noisy kicked Ising에서 SectorQ는 4 GPU cutoff 1e-5가 35.1초에서 33.2초가 된다. 같은 호출을 쓴 cuPauliProp은 4 GPU cutoff 1e-4의 기본 모드가 34.4초에서 33.9초가 된다. 단일 GPU 기준은 2.11초에서 1.91초가 되며, 여기에는 구간마다 host를 거치지 않게 된 몫이 함께 들어 있다.
 
 ## 5. 한계
 
@@ -742,6 +792,10 @@ thrust 코드는 `-gencode arch=compute_80,code=sm_80`로 빌드한다. 실행�
 | `jobs/e10_final.sh` | 최종 설정의 SectorQ와 두 기준선(16과 32 GPU), GPU 수별, 회로 7종 | `logs/pp_e10-59483161.out` | 4.2, 4.3, 4.6 |
 | `jobs/e12_scaling.sh` | 4–128 GPU, GPU 수마다 job 하나. cuPauliProp 두 모드(16–128 GPU), cutoff 3e-6의 cuPauliProp(64와 128 GPU), SectorQ cutoff 1e-6(128 GPU) | `logs/pp_e12_g4-59491670.out`, `g8-59491668`, `g16-59491638`, `g32-59491640`, `g64-59491662`, `g128-59491663` | 4.4 |
 | `jobs/e13_scaling.sh` | SectorQ의 strong scaling과 weak scaling(4–128 GPU), sector 수 상한과 chunk 크기의 변형, cutoff 1e-6(128 GPU) | `logs/pp_e13_g4-59520491.out`, `g8-59520488`, `g16-59520479`, `g32-59520481`, `g64-59520484`, `g128-59520486` | 4.4 |
+
+| `jobs/u1_validate.sh` | GPU 1장의 자동 선택(첫 판)과 noise 묶음 호출: 새 binary와 캠페인 f의 binary(`bin/pp_engine_f`), 단일 GPU 기준과 cuPauliProp 분산 모드 | `logs/u1/` | 4.11 |
+| `jobs/u2_exchange.sh` | 16 GPU에서 교환 시간의 분해(`bin/pp_engine_u2`), chunk를 예측해 미리 만든 판(`pp_engine_u3`, 기각) | `logs/u2/` | 4.9, 4.11 |
+| `jobs/u6_drive.sh` | 최종 판(`bin/pp_engine_u6` = `bin/pp_engine`): 16 GPU, GPU 1장, kicked Ising 1e-5의 GPU 1장. `logs/u3`, `logs/u4`는 기각한 GPU 1장 규칙의 기록이다 | `logs/u6/` | 4.11 |
 
 작업은 `sbatch jobs/*.sh`로 낸다(`-A m5320_g -C gpu -q debug`). `e5`–`e10`은 측정 당시의 시험용 binary(`bin/pp_engine_dd*`)를 가리킨다. 최종 소스로 빌드한 SectorQ로 다시 돌리려면 `PP_BIN=bin/pp_engine`을 준다. `e8`의 `--busy-window`는 기각하여 최종 소스에 없다. `inter_run*.sh`는 interactive 할당 안에서 `PP_JOB=<할당 번호> bash jobs/inter_runN.sh`로 실행한다.
 

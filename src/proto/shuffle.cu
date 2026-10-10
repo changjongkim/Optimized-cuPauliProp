@@ -48,7 +48,21 @@ struct Term { uint64_t w[W]; };
 
 }  // namespace
 
+namespace {
+__global__ void sampleTermsKernel(const uint64_t* xz, int64_t n, int words, int64_t stride, uint64_t* out) {
+  const int64_t i = (int64_t)blockIdx.x * blockDim.x + threadIdx.x;
+  if (i * stride >= n) return;
+  for (int w = 0; w < words; w++) out[i * words + w] = xz[i * stride * words + w];
+}
+}  // namespace
+
 extern "C" {
+
+// out[i] = term i * stride of xz, for the (n + stride - 1) / stride terms of a regular sample.
+void pp_sample_terms(const uint64_t* xz, int64_t n, int words, int64_t stride, uint64_t* out) {
+  const int64_t count = (n + stride - 1) / stride;
+  if (count) sampleTermsKernel<<<(unsigned)((count + 255) / 256), 256>>>(xz, n, words, stride, out);
+}
 
 // owners[i] = owner id of term i. masks: g rows of `words` 64-bit words (host memory).
 void pp_owners(const uint64_t* xz, int64_t n, int words, const uint64_t* masks, int g, uint8_t* owners) {

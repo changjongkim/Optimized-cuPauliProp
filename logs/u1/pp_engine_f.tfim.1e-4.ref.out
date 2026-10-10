@@ -1,0 +1,11 @@
+===== ref nodes=1 gpus=1 args: --circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-4 --vram-frac 0.9
+circuit: TFIM Trotter, Eagle heavy-hex; 127 qubits; 5420 gates -> 5420 operations on the data (5420 branching rotations, 0 Clifford, 0 noise); 0 Clifford gates deferred by the frame
+mode=ref nodes=1 gpus/node=1 coef=0.0001 weight=0 truncEvery=10 GPU capacity=188801777 terms/buffer bucket target=4000000 gmax=0 window=ann host=pinned chunks
+expectation=0.324547666766
+windows=40 (longest 145 operations, smallest row space 127 of 254, largest coset share 0.0000) partitioned boundaries=0
+max_terms_at_window_boundary=3395973 largest_bucket_on_a_gpu=21228985 bucket_runs=40 splits_on_gpu=0 splits_on_host=0
+integrity: 31747376 term checks against 1 conserved parities, 0 violations (0.070 s summed over workers)
+wall=2.084 s; summed over 1 GPU workers: operations=1.835 partition=0.000 host->gpu=0.050 gpu->host=0.116 idle=0.000; planning=0.008; pilot=0.000 (0 window ends chosen)
+host memory in chunks: 0.13 GiB on the busiest node
+wall on a node, averaged over nodes: windows running=2.075, waiting for the slowest node=0.000; windows with a single bucket=2.075; buckets shared out inside a node=0
+exit=0

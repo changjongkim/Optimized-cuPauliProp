@@ -1,0 +1,12 @@
+===== ref nodes=1 gpus=1 args: --circuit ki_lab --weight 0 --coef 1e-4 --vram-frac 0.9
+circuit: kicked Ising, Eagle heavy-hex; 127 qubits; 5420 gates -> 2541 operations on the data (2540 branching rotations, 1 Clifford, 0 noise); 2880 Clifford gates deferred by the frame
+mode=ref nodes=1 gpus/node=1 coef=0.0001 weight=0 truncEvery=10 GPU capacity=188801777 terms/buffer bucket target=4000000 gmax=0 window=ann host=pinned chunks
+expectation=0.153108187591
+windows=20 (longest 128 operations, smallest row space 127 of 254, largest coset share 0.0000) partitioned boundaries=0
+max_terms_at_window_boundary=2325624 largest_bucket_on_a_gpu=22525673 bucket_runs=20 splits_on_gpu=0 splits_on_host=0
+integrity: 18886844 term checks against 8 conserved parities, 0 violations (0.057 s summed over workers)
+wall=1.708 s; summed over 1 GPU workers: operations=1.638 partition=0.000 host->gpu=0.000 gpu->host=0.000 idle=0.000; planning=0.003; pilot=0.000 (0 window ends chosen)
+host memory in chunks: 0.01 GiB on the busiest node
+one GPU: the operator stayed on the GPU after 19 of 20 windows
+wall on a node, averaged over nodes: windows running=1.704, waiting for the slowest node=0.000; windows with a single bucket=1.704; buckets shared out inside a node=0
+exit=0

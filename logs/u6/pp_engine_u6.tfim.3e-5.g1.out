@@ -1,0 +1,58 @@
+===== engine nodes=1 gpus=1 args: --circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 3e-5 --target 4000000 --trace 1 --vram-frac 0.9 --gpus 1
+circuit: TFIM Trotter, Eagle heavy-hex; 127 qubits; 5420 gates -> 5420 operations on the data (5420 branching rotations, 0 Clifford, 0 noise); 0 Clifford gates deferred by the frame
+mode=engine nodes=1 gpus/node=1 coef=3e-05 weight=0 truncEvery=10 GPU capacity=188801777 terms/buffer bucket target=4000000 gmax=8 window=ann host=pinned chunks
+trace window=0 ops=0..140 branching_rotations=140 generator_rank=127 valid_rows=127 rows=0 sectors=1 largest_sector_in=1 terms_in=1 terms_out=1 next_rows=0 splits_so_far=0 sector_runs_so_far=1 run=0.026 s
+trace window=1 ops=140..260 branching_rotations=120 generator_rank=127 valid_rows=127 rows=0 sectors=1 largest_sector_in=1 terms_in=1 terms_out=2 next_rows=0 splits_so_far=0 sector_runs_so_far=2 run=0.020 s
+trace window=2 ops=260..380 branching_rotations=120 generator_rank=127 valid_rows=127 rows=0 sectors=1 largest_sector_in=2 terms_in=2 terms_out=5 next_rows=0 splits_so_far=0 sector_runs_so_far=3 run=0.013 s
+trace window=3 ops=380..500 branching_rotations=120 generator_rank=127 valid_rows=127 rows=0 sectors=1 largest_sector_in=5 terms_in=5 terms_out=40 next_rows=0 splits_so_far=0 sector_runs_so_far=4 run=0.005 s
+trace window=4 ops=500..620 branching_rotations=120 generator_rank=127 valid_rows=127 rows=0 sectors=1 largest_sector_in=40 terms_in=40 terms_out=58 next_rows=0 splits_so_far=0 sector_runs_so_far=5 run=0.005 s
+trace window=5 ops=620..740 branching_rotations=120 generator_rank=127 valid_rows=127 rows=0 sectors=1 largest_sector_in=58 terms_in=58 terms_out=176 next_rows=0 splits_so_far=0 sector_runs_so_far=6 run=0.005 s
+trace window=6 ops=740..860 branching_rotations=120 generator_rank=127 valid_rows=127 rows=0 sectors=1 largest_sector_in=176 terms_in=176 terms_out=779 next_rows=0 splits_so_far=0 sector_runs_so_far=7 run=0.005 s
+trace window=7 ops=860..980 branching_rotations=120 generator_rank=127 valid_rows=127 rows=0 sectors=1 largest_sector_in=779 terms_in=779 terms_out=5271 next_rows=0 splits_so_far=0 sector_runs_so_far=8 run=0.006 s
+trace window=8 ops=980..1100 branching_rotations=120 generator_rank=127 valid_rows=127 rows=0 sectors=1 largest_sector_in=5271 terms_in=5271 terms_out=38138 next_rows=0 splits_so_far=0 sector_runs_so_far=9 run=0.008 s
+trace window=9 ops=1100..1230 branching_rotations=130 generator_rank=127 valid_rows=127 rows=0 sectors=1 largest_sector_in=38138 terms_in=38138 terms_out=101973 next_rows=0 splits_so_far=0 sector_runs_so_far=10 run=0.010 s
+trace window=10 ops=1230..1350 branching_rotations=120 generator_rank=127 valid_rows=127 rows=0 sectors=1 largest_sector_in=101973 terms_in=101973 terms_out=561565 next_rows=0 splits_so_far=0 sector_runs_so_far=11 run=0.016 s
+trace window=11 ops=1350..1480 branching_rotations=130 generator_rank=127 valid_rows=127 rows=0 sectors=1 largest_sector_in=561565 terms_in=561565 terms_out=753880 next_rows=0 splits_so_far=0 sector_runs_so_far=12 run=0.028 s
+trace window=12 ops=1480..1600 branching_rotations=120 generator_rank=127 valid_rows=127 rows=0 sectors=1 largest_sector_in=753880 terms_in=753880 terms_out=3705476 next_rows=0 splits_so_far=0 sector_runs_so_far=13 run=0.091 s
+trace window=13 ops=1600..1720 branching_rotations=120 generator_rank=127 valid_rows=127 rows=0 sectors=1 largest_sector_in=3705476 terms_in=3705476 terms_out=3686521 next_rows=0 splits_so_far=0 sector_runs_so_far=14 run=0.118 s
+trace window=14 ops=1720..1840 branching_rotations=120 generator_rank=127 valid_rows=127 rows=0 sectors=1 largest_sector_in=3686521 terms_in=3686521 terms_out=12555428 next_rows=1 splits_so_far=0 sector_runs_so_far=15 run=0.509 s
+trace window=15 ops=1840..1960 branching_rotations=120 generator_rank=127 valid_rows=127 rows=1 sectors=2 largest_sector_in=6284569 terms_in=12555428 terms_out=14389465 next_rows=4 splits_so_far=0 sector_runs_so_far=17 run=0.654 s
+trace window=16 ops=1960..2080 branching_rotations=120 generator_rank=127 valid_rows=127 rows=4 sectors=16 largest_sector_in=904221 terms_in=14389465 terms_out=13078054 next_rows=3 splits_so_far=0 sector_runs_so_far=33 run=0.712 s
+trace window=17 ops=2080..2200 branching_rotations=120 generator_rank=127 valid_rows=127 rows=3 sectors=8 largest_sector_in=1638414 terms_in=13078054 terms_out=26897287 next_rows=2 splits_so_far=0 sector_runs_so_far=41 run=1.847 s
+trace window=18 ops=2200..2320 branching_rotations=120 generator_rank=127 valid_rows=127 rows=2 sectors=4 largest_sector_in=6733050 terms_in=26897287 terms_out=16862509 next_rows=5 splits_so_far=0 sector_runs_so_far=45 run=1.040 s
+trace window=19 ops=2320..2440 branching_rotations=120 generator_rank=127 valid_rows=127 rows=5 sectors=32 largest_sector_in=529299 terms_in=16862509 terms_out=31656273 next_rows=3 splits_so_far=0 sector_runs_so_far=77 run=2.111 s
+trace window=20 ops=2440..2580 branching_rotations=140 generator_rank=127 valid_rows=127 rows=3 sectors=8 largest_sector_in=3974237 terms_in=31656273 terms_out=18789922 next_rows=5 splits_so_far=0 sector_runs_so_far=85 run=1.528 s
+trace window=21 ops=2580..2700 branching_rotations=120 generator_rank=127 valid_rows=127 rows=5 sectors=32 largest_sector_in=590366 terms_in=18789922 terms_out=27750486 next_rows=3 splits_so_far=0 sector_runs_so_far=117 run=1.970 s
+trace window=22 ops=2700..2820 branching_rotations=120 generator_rank=127 valid_rows=127 rows=3 sectors=8 largest_sector_in=3483810 terms_in=27750486 terms_out=17331962 next_rows=4 splits_so_far=0 sector_runs_so_far=125 run=1.111 s
+trace window=23 ops=2820..2940 branching_rotations=120 generator_rank=127 valid_rows=127 rows=4 sectors=16 largest_sector_in=1089568 terms_in=17331962 terms_out=20669777 next_rows=3 splits_so_far=0 sector_runs_so_far=141 run=1.441 s
+trace window=24 ops=2940..3060 branching_rotations=120 generator_rank=127 valid_rows=127 rows=3 sectors=8 largest_sector_in=2588011 terms_in=20669777 terms_out=15072131 next_rows=4 splits_so_far=0 sector_runs_so_far=149 run=0.837 s
+trace window=25 ops=3060..3180 branching_rotations=120 generator_rank=127 valid_rows=127 rows=4 sectors=16 largest_sector_in=946493 terms_in=15072131 terms_out=12162376 next_rows=2 splits_so_far=0 sector_runs_so_far=165 run=0.839 s
+trace window=26 ops=3180..3300 branching_rotations=120 generator_rank=127 valid_rows=127 rows=2 sectors=4 largest_sector_in=3042048 terms_in=12162376 terms_out=12623757 next_rows=2 splits_so_far=0 sector_runs_so_far=169 run=0.870 s
+trace window=27 ops=3300..3420 branching_rotations=120 generator_rank=127 valid_rows=127 rows=2 sectors=4 largest_sector_in=3160528 terms_in=12623757 terms_out=7897892 next_rows=3 splits_so_far=0 sector_runs_so_far=173 run=0.486 s
+trace window=28 ops=3420..3540 branching_rotations=120 generator_rank=127 valid_rows=127 rows=3 sectors=8 largest_sector_in=990176 terms_in=7897892 terms_out=10931388 next_rows=1 splits_so_far=0 sector_runs_so_far=181 run=0.777 s
+trace window=29 ops=3540..3670 branching_rotations=130 generator_rank=127 valid_rows=127 rows=1 sectors=2 largest_sector_in=5465797 terms_in=10931388 terms_out=5900028 next_rows=3 splits_so_far=0 sector_runs_so_far=183 run=0.458 s
+trace window=30 ops=3670..3790 branching_rotations=120 generator_rank=127 valid_rows=127 rows=3 sectors=8 largest_sector_in=738304 terms_in=5900028 terms_out=8231209 next_rows=1 splits_so_far=0 sector_runs_so_far=191 run=0.587 s
+trace window=31 ops=3790..3920 branching_rotations=130 generator_rank=127 valid_rows=127 rows=1 sectors=2 largest_sector_in=4118350 terms_in=8231209 terms_out=4960111 next_rows=2 splits_so_far=0 sector_runs_so_far=193 run=0.348 s
+trace window=32 ops=3920..4040 branching_rotations=120 generator_rank=127 valid_rows=127 rows=2 sectors=4 largest_sector_in=1241158 terms_in=4960111 terms_out=6054251 next_rows=1 splits_so_far=0 sector_runs_so_far=197 run=0.435 s
+trace window=33 ops=4040..4160 branching_rotations=120 generator_rank=127 valid_rows=127 rows=1 sectors=2 largest_sector_in=3027634 terms_in=6054251 terms_out=4195108 next_rows=2 splits_so_far=0 sector_runs_so_far=199 run=0.235 s
+trace window=34 ops=4160..4280 branching_rotations=120 generator_rank=127 valid_rows=127 rows=2 sectors=4 largest_sector_in=1055024 terms_in=4195108 terms_out=4491749 next_rows=1 splits_so_far=0 sector_runs_so_far=203 run=0.327 s
+trace window=35 ops=4280..4400 branching_rotations=120 generator_rank=127 valid_rows=127 rows=1 sectors=2 largest_sector_in=2246615 terms_in=4491749 terms_out=3667820 next_rows=1 splits_so_far=0 sector_runs_so_far=205 run=0.206 s
+trace window=36 ops=4400..4520 branching_rotations=120 generator_rank=127 valid_rows=127 rows=1 sectors=2 largest_sector_in=1834348 terms_in=3667820 terms_out=2560416 next_rows=0 splits_so_far=0 sector_runs_so_far=207 run=0.128 s
+trace window=37 ops=4520..4640 branching_rotations=120 generator_rank=127 valid_rows=127 rows=0 sectors=1 largest_sector_in=2560416 terms_in=2560416 terms_out=3557407 next_rows=0 splits_so_far=0 sector_runs_so_far=208 run=0.222 s
+trace window=38 ops=4640..4760 branching_rotations=120 generator_rank=127 valid_rows=127 rows=0 sectors=1 largest_sector_in=3557407 terms_in=3557407 terms_out=2017403 next_rows=0 splits_so_far=0 sector_runs_so_far=209 run=0.120 s
+trace window=39 ops=4760..4880 branching_rotations=120 generator_rank=127 valid_rows=127 rows=0 sectors=1 largest_sector_in=2017403 terms_in=2017403 terms_out=2985280 next_rows=0 splits_so_far=0 sector_runs_so_far=210 run=0.157 s
+trace window=40 ops=4880..5020 branching_rotations=140 generator_rank=127 valid_rows=127 rows=0 sectors=1 largest_sector_in=2985280 terms_in=2985280 terms_out=1590394 next_rows=0 splits_so_far=0 sector_runs_so_far=211 run=0.119 s
+trace window=41 ops=5020..5140 branching_rotations=120 generator_rank=127 valid_rows=127 rows=0 sectors=1 largest_sector_in=1590394 terms_in=1590394 terms_out=2127305 next_rows=0 splits_so_far=0 sector_runs_so_far=212 run=0.112 s
+trace window=42 ops=5140..5260 branching_rotations=120 generator_rank=127 valid_rows=127 rows=0 sectors=1 largest_sector_in=2127305 terms_in=2127305 terms_out=1387468 next_rows=0 splits_so_far=0 sector_runs_so_far=213 run=0.075 s
+trace window=43 ops=5260..5380 branching_rotations=120 generator_rank=127 valid_rows=127 rows=0 sectors=1 largest_sector_in=1387468 terms_in=1387468 terms_out=1461428 next_rows=0 splits_so_far=0 sector_runs_so_far=214 run=0.083 s
+trace window=44 ops=5380..5420 branching_rotations=40 generator_rank=40 valid_rows=214 rows=0 sectors=1 largest_sector_in=1461428 terms_in=1461428 terms_out=1460649 next_rows=-1 splits_so_far=0 sector_runs_so_far=215 run=0.013 s
+expectation=0.377938535022
+windows=45 (longest 140 operations, smallest row space 127 of 254, largest coset share 0.0000) partitioned boundaries=22
+max_terms_at_window_boundary=31656273 largest_bucket_on_a_gpu=91458494 bucket_runs=215 splits_on_gpu=0 splits_on_host=0
+integrity: 322709970 term checks against 1 conserved parities, 0 violations (0.596 s summed over workers)
+wall=21.108 s; summed over 1 GPU workers: operations=18.023 partition=0.939 host->gpu=0.468 gpu->host=0.681 idle=0.000; planning=0.394; pilot=0.000 (0 window ends chosen)
+host memory in chunks: 1.41 GiB on the busiest node
+one GPU: the operator stayed on the GPU after 21 of 45 windows
+wall on a node, averaged over nodes: windows running=20.713, waiting for the slowest node=0.000; windows with a single bucket=1.766; buckets shared out inside a node=0
+new host chunks: 0.208 s per node on average, summed over the threads of a node (144 chunks on the busiest node); of it 0.000 s for 0 chunks prepared while the GPUs worked
+exit=0

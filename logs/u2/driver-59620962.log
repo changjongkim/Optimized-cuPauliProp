@@ -1,0 +1,7 @@
+21:32:50 pp_engine_u2 ki.1e-5.g16 exit=0 wall=15.325 expectation=0.228607441423
+21:33:23 pp_engine_u2 hea.1e-6.g16 exit=0 wall=25.660 expectation=-0.1651345923
+21:34:02 pp_engine_u2 noise.5e-6.g16 exit=0 wall=32.112 expectation=0.187171541035
+21:34:56 pp_engine_u2 qaoa.1e-6.g16 exit=0 wall=42.095 expectation=82.3256865097
+21:36:07 pp_engine_u2 tfim.5e-6.g16 exit=0 wall=62.312 expectation=0.484256348881
+21:38:34 pp_engine_u2 ki.3e-6.g16 exit=0 wall=133.523 expectation=0.289217470624
+done after 370s

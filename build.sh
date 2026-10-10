@@ -56,3 +56,6 @@ CC -O2 -std=c++17 -pthread $INC "$ROOT/src/engine/pp_engine.cpp" "$ROOT/bin/shuf
    -Wl,-rpath,"$CUQ/lib" -Wl,-rpath,"$SP/cutensor/lib" -Wl,-rpath,"$MATH" -Wl,-rpath,"$CUDA_HOME/lib64" -Wl,-rpath,"$FAB" \
    -o "$ROOT/bin/pp_engine"
 echo "built pp_engine"
+# Measurement: how fast new pinned host memory is (cudaHostAlloc against touched and registered memory).
+CC -O2 -std=c++17 -pthread -I"$CUDA_HOME/include" "$ROOT/src/proto/pin_test.cpp" -L"$CUDA_HOME/lib64" -lcudart -Wl,-rpath,"$CUDA_HOME/lib64" -o "$ROOT/bin/pin_test"
+echo "built pin_test"

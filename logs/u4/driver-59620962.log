@@ -1,0 +1,11 @@
+21:56:57 pp_engine_u4 ki.1e-4.g1 exit=0 wall=1.929 expectation=0.153108187591 one GPU: the operator stayed on the GPU after 19 of 20 windows
+21:57:02 pp_engine_u4 tfim.1e-4.g1 exit=0 wall=1.960 expectation=0.324547666766 one GPU: the operator stayed on the GPU after 44 of 45 windows
+21:57:07 pp_engine_u4 noise.1e-4.g1 exit=0 wall=2.151 expectation=0.156114065827 one GPU: the operator stayed on the GPU after 19 of 20 windows
+21:57:35 pp_engine_u4 ki.3e-5.g1 exit=0 wall=19.934 expectation=0.174003538182 one GPU: the operator stayed on the GPU after 5 of 20 windows
+21:58:02 pp_engine_u4 tfim.3e-5.g1 exit=0 wall=22.526 expectation=0.377938535022 one GPU: the operator stayed on the GPU after 21 of 45 windows
+21:58:25 pp_engine_u4 noise.3e-5.g1 exit=0 wall=17.633 expectation=0.154419952246 one GPU: the operator stayed on the GPU after 12 of 20 windows
+21:58:31 pp_engine_u4 tfimsq.1e-4.g1 exit=0 wall=1.625 expectation=0.798821812544 one GPU: the operator stayed on the GPU after 23 of 24 windows
+21:58:38 pp_engine_u4 xxz.1e-4.g1 exit=0 wall=2.654 expectation=0.00558248729487 one GPU: the operator stayed on the GPU after 22 of 23 windows
+21:58:51 pp_engine_u4 qaoa.1e-4.g1 exit=0 wall=6.676 expectation=81.8841164502 one GPU: the operator stayed on the GPU after 5 of 8 windows
+21:59:09 pp_engine_u4 hea.1e-5.g1 exit=0 wall=14.560 expectation=-0.165478238238 one GPU: the operator stayed on the GPU after 20 of 34 windows
+one GPU done after 137s
