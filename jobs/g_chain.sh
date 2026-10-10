@@ -6,7 +6,8 @@ source /pscratch/sd/s/sgkim/kcj/pauliprop/jobs/env.sh
 cd $PP_ROOT
 Q=$PP_ROOT/queue_g
 echo $$ > $Q/chain.pid
-alive() { local p; p=$(cat $Q/loop_$1.pid 2>/dev/null); [ -n "$p" ] && timeout 20 ps -p $p -o args= 2>/dev/null | grep -q "g_loop.sh $1"; }
+# a loop is alive while its process exists and is still that script (ps can hang on the login nodes: read /proc)
+alive() { local p; p=$(cat $Q/loop_$1.pid 2>/dev/null); [ -n "$p" ] && [ -r /proc/$p/cmdline ] && tr '\0' ' ' < /proc/$p/cmdline | grep -q "g_loop.sh $1"; }
 while alive a || alive b; do sleep 120; done
 echo "$(date +%m-%dT%H:%M:%S) both loops have ended; $($PP_ROOT/env/bin/python3 jobs/g_run.py --count) runs open"
 [ -e $Q/stop ] && { echo "stop file found"; exit 0; }
