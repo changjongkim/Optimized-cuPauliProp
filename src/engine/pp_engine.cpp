@@ -557,7 +557,7 @@ struct Shared {
   std::vector<std::mutex> bm{4096};
   std::mutex em;
   double expec = 0;
-  std::atomic<long> nout{0}, splits{0}, runs{0}, peak{0}, hostSplits{0}, verified{0}, violations{0}, earlyDedups{0}, shares{0};
+  std::atomic<long> nout{0}, peakSum{0}, splits{0}, runs{0}, peak{0}, hostSplits{0}, verified{0}, violations{0}, earlyDedups{0}, shares{0};
   std::atomic<int> waiting{0};          // workers of this node with nothing to do while another one is busy
   std::atomic<int> finished{0};
   // conserved rows as masks for strings at the start of the current window, and their expected values
@@ -988,6 +988,7 @@ struct Worker {
     }
     long pk = sh.peak.load();
     while (peak > pk && !sh.peak.compare_exchange_weak(pk, peak)) {}
+    sh.peakSum += peak;
     const long m = numTerms();
     sh.nout += m;
     tOps += now() - t0;
@@ -1492,7 +1493,7 @@ int main(int argc, char** argv) {
   const bool oneGpu = (o.gpus == 1 && g_R == 1 && !o.pilot);
   double tPlan = 0, growth = 2.0, tExchange = 0, bytesMoved = 0, worstCoset = 0, tPilot = 0, pilotGrowth = -1;
   long pilotEnds = 0;
-  long maxBoundary = 0, movedBuckets = 0;
+  long maxBoundary = 0, maxInside = 0, movedBuckets = 0;
   int windows = 0, maxWindowOps = 0, minAnn = 2 * g_L.n;
   // Where the wall time goes on this node: its workers running a window, the wait for the slowest
   // node after it, and the part of the run with a single bucket (one GPU of one node works).
@@ -1600,6 +1601,7 @@ int main(int argc, char** argv) {
 
     sh.nextB.assign(last ? 1 : ((size_t)1 << nextW.g), Bucket());
     sh.nout = 0;
+    sh.peakSum = 0;
     sh.canStay = false; sh.stayed = false;
     sh.nextRows = last ? 0 : nextW.g; sh.oneBucket = o.target;
     sh.splitEarly = oneGpu && w.g == 0;
@@ -1640,6 +1642,7 @@ int main(int argc, char** argv) {
 
     long NoutLocal = sh.nout.load(), Nout = 0;
     MPI_Allreduce(&NoutLocal, &Nout, 1, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
+    { long pl = sh.peakSum.load(), pg = 0; MPI_Allreduce(&pl, &pg, 1, MPI_LONG, MPI_SUM, MPI_COMM_WORLD); maxInside = std::max(maxInside, pg); }
     tSync += now() - tr1;
     { double tm = tr1 - tr0; lastRunMax = tm; MPI_Allreduce(&tm, &lastRunMax, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD); }
     if (w.g == 0) tSingle += lastRunMax;
@@ -1692,12 +1695,14 @@ int main(int argc, char** argv) {
            windows, maxWindowOps, minAnn, 2 * g_L.n, worstCoset, movedBuckets);
     printf("max_terms_at_window_boundary=%ld largest_bucket_on_a_gpu=%ld bucket_runs=%ld splits_on_gpu=%ld splits_on_host=%ld\n",
            maxBoundary, mc[3], sc[0], sc[1], sc[2]);
+    // what an implementation that keeps the whole operator at once would hold: every sector at its largest
+    printf("max_terms_inside_a_window=%ld (sum over the sector runs of one window of the largest count each reached)\n", maxInside);
     if (!conserved.empty())
       printf("integrity: %ld term checks against %zu conserved parities, %ld violations (%.3f s summed over workers)\n", sc[4], conserved.size(), sc[5], sum[8]);
     printf("wall=%.3f s; summed over %d GPU workers: operations=%.3f partition=%.3f host->gpu=%.3f gpu->host=%.3f idle=%.3f; planning=%.3f; pilot=%.3f (%ld window ends chosen)\n",
            wall, o.gpus * g_R, sum[0], sum[1], sum[2], sum[3], sum[4], tPlan, tPilot, pilotEnds);
-    printf("host memory in chunks: %.2f GiB on the busiest node\n",
-           mc[6] * (double)o.chunk * (words * 8 + 8) / 1073741824.0);
+    printf("host memory in chunks: %.2f GiB on the busiest node, %.2f GiB over all nodes\n",
+           mc[6] * (double)o.chunk * (words * 8 + 8) / 1073741824.0, sc[6] * (double)o.chunk * (words * 8 + 8) / 1073741824.0);
     if (oneGpu) printf("one GPU: the operator stayed on the GPU after %ld of %d windows\n", workers[0].windowsOnGpu, windows);
     if (!o.profile.empty() && g_R == 1) {
       FILE* f = fopen(o.profile.c_str(), "w");

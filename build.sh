@@ -14,6 +14,8 @@ export LD_LIBRARY_PATH="${CRAY_LD_LIBRARY_PATH}:${FAB}:${LD_LIBRARY_PATH:-}"
 INC="-I$CUQ/include -I$CUDA_HOME/include"
 cc -shared -fPIC -std=gnu99 -O2 $INC "$ROOT/src/plugin/prof_mpi.c" -o "$ROOT/bin/libcupp_mpi_prof.so"
 cc -shared -fPIC -std=gnu99 -O2 $INC "$ROOT/src/plugin/orig_mpi.c" -o "$ROOT/bin/libcupp_mpi_orig.so"
+# times the MPI calls of an unmodified MPI program (LD_PRELOAD), for the distributed CPU baselines
+cc -shared -fPIC -std=gnu99 -O2 "$ROOT/src/plugin/mpi_shim.c" -o "$ROOT/bin/libmpi_shim.so"
 CC -O2 -std=c++17 $INC "$ROOT/src/driver/ki_prof.cpp" \
    -L"$CUQ/lib" -l:libcupauliprop.so.0 -L"$CUDA_HOME/lib64" -lcudart -ldl \
    -Wl,-rpath,"$CUQ/lib" -Wl,-rpath,"$SP/cutensor/lib" -Wl,-rpath,"$MATH" -Wl,-rpath,"$CUDA_HOME/lib64" -Wl,-rpath,"$FAB" \
