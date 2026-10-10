@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Campaign g, last part: where the answer converges.   python3 jobs/g_conv_items.py  -> queue_g/todo_c.jsonl
+"""Campaign g, last part: where the answer converges.   python3 jobs/g_conv_items.py  -> queue_g/later/todo_c.jsonl
 
 The kicked Ising circuit of the sweep (127 qubits, 20 steps, <Z_62>) at eight more rotation angles, from 0.05 pi
 to 0.45 pi (the sweep has 0.25 pi). For every angle a ladder over the cutoff with SectorQ on 1 and 16 GPUs and
 cuPauliProp on one GPU and on 16 GPUs (distributed, default): the expectation value against the number of terms
 shows where it settles, and how far each implementation gets on the same hardware. The limit of a run is 20
 minutes here (the same for both implementations); a ladder stops at its first failure as everywhere else.
-The list sorts after todo_a and todo_b, so these runs come last.
+jobs/g_chain.sh puts the list into the queue when the rest of the campaign has ended.
 """
 import json
 import os
@@ -32,7 +32,8 @@ for t in THETAS:
                       "ladder": f"conv.cupp.t{t}.g16", "coef": float(coef)})
 items.sort(key=lambda i: -i["coef"])
 assert len({i["id"] for i in items}) == len(items)
-with open(os.path.join(Q, "todo_c.jsonl"), "w") as f:
+os.makedirs(os.path.join(Q, "later"), exist_ok=True)
+with open(os.path.join(Q, "later", "todo_c.jsonl"), "w") as f:
     for i in items:
         f.write(json.dumps(i) + "\n")
 print(len(items), "runs:", len(THETAS), "angles x", len(RUNGS), "cutoffs x (SectorQ on 1 and 16 GPUs, cuPauliProp on 1 and 16 GPUs)")
