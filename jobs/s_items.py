@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run list of the scale campaign (32, 64, 128 and 256 GPUs = 8, 16, 32 and 64 nodes): queue_s/todo_s.jsonl, in the
+"""Run list of the scale campaign (32, 64, 128 and 256 GPUs = 8, 16, 32 and 64 nodes; 512 GPUs: scale-out only): queue_s/todo_s.jsonl, in the
 item format of campaign g (jobs/g_items.py, jobs/g_ext_items.py). Run by jobs/s_run.py inside one batch job per GPU count.
 
   python3 jobs/s_items.py          writes the list and takes over the runs that the scaling jobs e15 already made
@@ -97,6 +97,14 @@ for g in (32, 64, 128, 256):
             ext(f"weakL.{b}.{c}.{WEAK_L[g]}.g{g}", b, c, WEAK_L[g], g)
     # 7. reach of SectorQ below the cutoffs of the sweep (last: only when time is left)
     eng(f"eng.ki.5e-7.g{g}", "ki", "5e-7", g, f"eng.ki.g{g}")
+
+# 512 GPUs (128 nodes): the scale-out of SectorQ only, on the representative circuit (no baselines, no weak scaling, so that
+# the job is short). The default of 256 sectors per window is below the number of GPUs, so every run sets the limit:
+# 1,024, or 4,096 with host chunks of 65,536 terms (a partly filled chunk per sector and node stays small).
+for x, est in (("1e-5", 120), ("3e-6", 120), ("1e-6", 300)):
+    eng(f"eng10.ki.{x}.g512", "ki", x, 512, est=est, more=" --gmax 10")
+for x, est in (("3e-6", 120), ("1e-6", 300), ("5e-7", 900), ("3e-7", 1500)):
+    eng(f"eng12.ki.{x}.g512", "ki", x, 512, "eng12.ki.g512", est, " --gmax 12 --chunk 65536")
 
 assert len({i["id"] for i in items}) == len(items)
 os.makedirs(os.path.join(Q, "done"), exist_ok=True)

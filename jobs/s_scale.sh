@@ -14,6 +14,7 @@
 #   sbatch -N 16 -J pp_s_g64  -t 03:00:00 jobs/s_scale.sh
 #   sbatch -N 32 -J pp_s_g128 -t 03:00:00 jobs/s_scale.sh
 #   sbatch -N 64 -J pp_s_g256 -t 03:00:00 jobs/s_scale.sh
+#   sbatch -N 128 -J pp_s_g512 -t 00:30:00 jobs/s_scale.sh      (512 GPUs: the scale-out runs of SectorQ only)
 # The runner takes the runs that need as many nodes as the job has, from the top of the list: SectorQ over the cutoffs,
 # weak scaling, cuPauliProp's distributed mode, the CPU implementations on the same nodes. A run that does not fit into
 # the time that is left stays open; the same script submitted again continues with what is open.
