@@ -38,7 +38,38 @@ def stop(proc):
             pass
 
 
+def launch_engine(item, job, hosts):
+    """Several builds or settings of the engine, one after the other on the same hosts (backend "engine").
+    variants: [name, binary in bin/, extra arguments]; logs/<tag>/<name>.<id>.out in the format of logs/g."""
+    nn = len(hosts.split(","))
+    tag = item.get("tag", "h1")
+    os.makedirs(os.path.join(ROOT, "logs", tag), exist_ok=True)
+    env = os.environ.copy()
+    env["MPICH_GPU_SUPPORT_ENABLED"] = "0"
+    walls, values, codes = {}, {}, {}
+    start = time.time()
+    for name, binary, extra in item["variants"]:
+        log = os.path.join(ROOT, "logs", tag, f"{name}.{item['id']}.out")
+        cmd = ["timeout", "300", "srun", f"--jobid={job}", f"--nodelist={hosts}", "--overlap", "-N", str(nn), "-n", str(nn),
+               "--ntasks-per-node=1", "-c", "128", "--gpus-per-node=4", "--cpu-bind=none", "stdbuf", "-oL", "./bin/" + binary,
+               "--gpus", str(item["per"])] + (item["args"] + " " + extra).split()
+        with open(log, "w") as f:
+            f.write(f"===== engine nodes={nn} gpus={nn * item['per']} args: {item['args']} {extra} --gpus {item['per']} binary={binary}\n")
+            f.flush()
+            code = subprocess.run(cmd, env=env, cwd=ROOT, stdout=f, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL).returncode
+            f.write(f"exit={code}\n")
+        text = open(log, errors="replace").read()
+        w = re.search(r"^wall=([0-9.]+)", text, re.M)
+        v = re.search(r"^expectation=(\S+)", text, re.M)
+        walls[name], values[name], codes[name] = (float(w.group(1)) if w else None), (float(v.group(1)) if v else None), code
+    same = len({round(v, 10) for v in values.values() if v is not None}) == 1
+    ok = all(c == 0 for c in codes.values()) and same and all(v is not None for v in values.values())
+    return dict(status="ok" if ok else "fail", walls=walls, values=values, exits=codes, seconds=round(time.time() - start, 1), log=f"logs/{tag}/")
+
+
 def launch(item, job, hosts):
+    if item["backend"] == "engine":
+        return launch_engine(item, job, hosts)
     given = hosts.split(",")
     use = int(item.get("use", len(given)))
     sel = given[:use]

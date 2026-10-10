@@ -24,7 +24,7 @@ import time
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 Q = os.path.join(ROOT, "queue_g")
 LOGS = os.path.join(ROOT, "logs", "g")
-BIN = os.environ.get("PP_BIN", "bin/pp_engine_g")
+BIN = os.environ.get("PP_BIN", "")
 DROP = re.compile(r"^$|^srun: (Job|Step)|gtl_init|Current device_id|IPC is disabled|GTL DEBUG|MPICH ERROR|aborting job|application called")
 
 
@@ -113,6 +113,16 @@ def predict(item, earlier):
     return t1 * (c1 / item["coef"]) ** p
 
 
+def binary_of(item):
+    """SectorQ on more than one GPU runs the engine that chooses the rows of the next window while the window runs
+    (bin/pp_engine_h, from 2026-10-10 01:20); SectorQ on one GPU and cuPauliProp run the first campaign binary
+    (bin/pp_engine_g0), whose code for them is the same. bin/pp_engine_g makes the same choice for the runners
+    that were started before."""
+    if BIN:
+        return BIN
+    return "bin/pp_engine_h" if item["kind"] == "eng" and item["nodes"] * item["per"] > 1 else "bin/pp_engine_g0"
+
+
 def srun_prefix(job, hosts, tasks, per_node, cpus, bind):
     return ["srun", f"--jobid={job}", f"--nodelist={hosts}", "--overlap", "-N", str(len(hosts.split(","))), "-n", str(tasks),
             f"--ntasks-per-node={per_node}", "-c", str(cpus), "--gpus-per-node=4", f"--cpu-bind={bind}"]
@@ -122,19 +132,20 @@ def run_engine(item, job, hosts):
     nn = len(hosts.split(","))
     env = os.environ.copy()
     kind, per, args = item["kind"], item["per"], item["args"].split()
+    binary = binary_of(item)
     if kind == "eng":
         env["MPICH_GPU_SUPPORT_ENABLED"] = "0"
         head = f"===== engine nodes={nn} gpus={nn * per} args: {item['args']} --gpus {per}"
-        cmd = srun_prefix(job, hosts, nn, 1, 128, "none") + ["stdbuf", "-oL", "./" + BIN, "--gpus", str(per)] + args
+        cmd = srun_prefix(job, hosts, nn, 1, 128, "none") + ["stdbuf", "-oL", "./" + binary, "--gpus", str(per)] + args
     elif kind == "ref":
         env["MPICH_GPU_SUPPORT_ENABLED"] = "0"
         head = f"===== ref nodes=1 gpus=1 args: {item['args']}"
-        cmd = srun_prefix(job, hosts, 1, 1, 32, "none") + ["stdbuf", "-oL", "./" + BIN, "--mode", "ref"] + args
+        cmd = srun_prefix(job, hosts, 1, 1, 32, "none") + ["stdbuf", "-oL", "./" + binary, "--mode", "ref"] + args
     else:
         env["MPICH_GPU_SUPPORT_ENABLED"] = "1"
         env["CUPAULIPROP_COMM_LIB"] = os.path.join(ROOT, "bin", f"libcupp_mpi_{item.get('plugin', 'orig')}.so")
         head = f"===== cupp nodes={nn} gpus={nn * per} args: {item['args']} plugin={item.get('plugin', 'orig')}"
-        cmd = srun_prefix(job, hosts, nn * per, per, 128 // per, "cores") + ["stdbuf", "-oL", "./" + BIN, "--mode", "cupp"] + args
+        cmd = srun_prefix(job, hosts, nn * per, per, 128 // per, "cores") + ["stdbuf", "-oL", "./" + binary, "--mode", "cupp"] + args
     sampler = None
     if item.get("smi"):
         sampler = subprocess.Popen(srun_prefix(job, hosts, nn, 1, 1, "none") +
@@ -145,7 +156,7 @@ def run_engine(item, job, hosts):
     t0 = time.time()
     seen, lines = set(), 0
     with open(log, "w") as out:
-        out.write(head + "\n")
+        out.write(head + "\n" + "binary=" + os.path.basename(binary) + "\n")
         out.flush()
         proc = subprocess.Popen(["timeout", str(item["limit"])] + cmd, env=env, cwd=ROOT, stdout=subprocess.PIPE,
                                 stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL, text=True, errors="replace")
@@ -184,7 +195,8 @@ def run_engine(item, job, hosts):
     else:
         status = "fail"
     return dict(status=status, exit=code, wall=float(wall.group(1)) if wall else None,
-                expectation=float(exp.group(1)) if exp else None, seconds=round(seconds, 1), log=f"logs/g/{item['id']}.out")
+                expectation=float(exp.group(1)) if exp else None, seconds=round(seconds, 1), log=f"logs/g/{item['id']}.out",
+                bin=os.path.basename(binary))
 
 
 def run_item(item, job, hosts):

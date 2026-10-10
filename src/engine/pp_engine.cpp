@@ -134,6 +134,8 @@ struct Opts {
   long shareAbove = 0;           // k > 0: a bucket above k terms is halved at a truncation while GPUs of its node wait (off: it did not pay, job 59483080)
   long chunk = 262144;           // terms per host chunk
   int pinned = 1, verify = 1;
+  int overlapPlan = 1;           // several GPUs: choose the rows of the next window while this window runs
+  double longWindow = 0.5;       // perGpu buckets per GPU only when the last window ran at least this long (s); else one
   std::string ckptFile, resume;
   int ckptWindow = -1, stopAtCkpt = 0;
   std::string profile;           // write the number of terms before every operation to this file
@@ -568,6 +570,10 @@ struct Shared {
   std::atomic<bool> canStay{false};     // this window is one bucket and not the last window
   std::atomic<bool> stayed{false};      // ... and its result stayed on the GPU
   int nextRows = 0;                     // rows planned for the next window
+  // The rows of the next window may be chosen while this window runs; a worker waits for them before it partitions.
+  std::mutex planM;
+  std::condition_variable planCv;
+  bool planReady = true;
   long oneBucket = 0;                   // target size: up to this many terms at a window start are one bucket
   bool splitEarly = false;              // a single bucket far above the target size is split when the window starts
 };
@@ -593,7 +599,7 @@ struct Worker {
   std::vector<cupaulipropTruncationStrategy_t> trunc, junk;
   std::vector<cupaulipropQuantumOperator_t> oper;
   std::mt19937_64 rng;
-  double tOps = 0, tPart = 0, tH2D = 0, tD2H = 0, tIdle = 0, tVerify = 0;
+  double tOps = 0, tPart = 0, tH2D = 0, tD2H = 0, tIdle = 0, tVerify = 0, tPlanWait = 0;
   NoiseFusion noiseFusion;
   bool onGpu = false;              // the current expansion is the whole operator at a window boundary
   long windowsOnGpu = 0;
@@ -1010,6 +1016,7 @@ struct Worker {
 
     // One GPU and the window ran as one bucket. The result stays on the GPU if the next window is one bucket: it
     // was planned so, or it was planned with rows from an estimate and the result is within the target size.
+    { const double tw = now(); std::unique_lock<std::mutex> lk(sh.planM); sh.planCv.wait(lk, [&] { return sh.planReady; }); tPlanWait += now() - tw; }
     if (sh.canStay && (sh.nextRows == 0 || m <= sh.oneBucket)) { onGpu = true; windowsOnGpu++; sh.stayed = true; return; }
 
     // Partition the output by the next window's rows; copy each piece straight to its bucket.
@@ -1336,6 +1343,8 @@ int main(int argc, char** argv) {
     else if (a == "--trace")       o.trace = atoi(next());
     else if (a == "--chunk")       o.chunk = atol(next());
     else if (a == "--pinned")      o.pinned = atoi(next());
+    else if (a == "--overlap-plan") o.overlapPlan = atoi(next());
+    else if (a == "--long-window") o.longWindow = atof(next());
     else if (a == "--verify")      o.verify = atoi(next());
     else if (a == "--ckpt-window") o.ckptWindow = atoi(next());
     else if (a == "--ckpt-file")   o.ckptFile = next();
@@ -1561,16 +1570,30 @@ int main(int argc, char** argv) {
     // Plan the next window: its rows are scored on a sample of the current terms, moved through the
     // bit-changing operations of this window (branching is ignored for the estimate).
     Window nextW;
+    int gWanted = 0;
+    std::vector<uint64_t> sample;
+    // With several GPUs the rows are chosen while the workers run this window: they need them only to partition
+    // their output. The sample is taken before, while the terms are still in the pool.
+    const bool planLater = !last && !ref && !oneGpu && o.overlapPlan && !o.stream;
+    auto planNext = [&] {
+      const double tp = now();
+      for (int k = w.b; k < w.e; k++)
+        if (changesBits(g_ops[k]))
+          for (size_t i = 0; i < sample.size() / words; i++) mapVec(g_ops[k], &sample[i * words], g_L);
+      nextW = planShared(w.e, gWanted, sample, o, rng);
+      tPlan += now() - tp;
+    };
     if (!last) {
       const double tp = now();
-      int gWanted = 0;
       // Terms expected at the end of this window: from the pilot if there was one, else from the last ratio.
       if (!ref) {
         const double est = Nin * (pilotGrowth > 0 ? pilotGrowth * 1.3 : growth);
         while (gWanted < o.gmax && est / (double)(1L << gWanted) > (double)o.target) gWanted++;
         // Enough buckets that every GPU has several tasks per window, as long as buckets stay reasonably large
         // (not on one GPU: there is no other GPU to give a bucket to).
-        const double tasks = (double)o.perGpu * o.gpus * g_R;
+        // A bucket costs a fixed time per window (one library call per operation, however few terms): several
+        // buckets per GPU pay off only when the windows are long.
+        const double tasks = (double)(lastRunMax >= o.longWindow ? o.perGpu : 1) * o.gpus * g_R;
         while (!oneGpu && gWanted < o.gmax && (double)(1L << gWanted) < tasks && est / (double)(2L << gWanted) >= (double)o.minBucket) gWanted++;
         // The first windows grow fastest and the estimate lags behind: give every node a bucket early, so
         // that no node waits while one GPU carries the whole operator. Inside a node the bucket is shared
@@ -1578,19 +1601,15 @@ int main(int argc, char** argv) {
         while (gWanted < o.gmax && (1L << gWanted) < (long)g_R * o.earlyPerNode && est / (double)(2L << gWanted) >= (double)o.minBucketEarly) gWanted++;
       }
       pilotGrowth = -1;
-      std::vector<uint64_t> sample;
       if (gWanted > 0) {
         const long stride = std::max<long>(1, Nin / std::max<long>(1, o.sample));   // o.sample terms over all nodes: every node sends its share
         if (onGpuTerms > 0) { workers[0].sampleOnGpu(sample, stride); CUDA(cudaSetDevice(0)); }
         for (auto& b : pool)
           for (auto& k : b.ch)
             for (long i = 0; i < k.n; i += stride) sample.insert(sample.end(), k.xz + (size_t)i * words, k.xz + (size_t)(i + 1) * words);
-        for (int k = w.b; k < w.e; k++)
-          if (changesBits(g_ops[k]))
-            for (size_t i = 0; i < sample.size() / words; i++) mapVec(g_ops[k], &sample[i * words], g_L);
       }
-      nextW = planShared(w.e, gWanted, sample, o, rng);
       tPlan += now() - tp;
+      if (!planLater) planNext();
     }
     windows++;
     windowStarts.push_back(w.b);
@@ -1599,11 +1618,12 @@ int main(int argc, char** argv) {
     worstCoset = std::max(worstCoset, w.cosetFrac);
     if (!conserved.empty()) setCheckRows(w.b);
 
-    sh.nextB.assign(last ? 1 : ((size_t)1 << nextW.g), Bucket());
+    if (!planLater) sh.nextB.assign(last ? 1 : ((size_t)1 << nextW.g), Bucket());
+    sh.planReady = !planLater;
     sh.nout = 0;
     sh.peakSum = 0;
     sh.canStay = false; sh.stayed = false;
-    sh.nextRows = last ? 0 : nextW.g; sh.oneBucket = o.target;
+    sh.nextRows = (last || planLater) ? 0 : nextW.g; sh.oneBucket = o.target;
     sh.splitEarly = oneGpu && w.g == 0;
     if (oneGpu) {
       int inputs = workers[0].onGpu ? 1 : 0;
@@ -1620,6 +1640,13 @@ int main(int argc, char** argv) {
     sh.finished = 0;
     const double tr0 = now();
     for (int t = 0; t < o.gpus; t++) th.emplace_back([&, t] { workers[t].run(w, last ? nullptr : &nextW, sh, !ref); sh.finished++; });
+    if (planLater) {
+      planNext();
+      sh.nextB.assign((size_t)1 << nextW.g, Bucket());
+      sh.nextRows = nextW.g;
+      { std::lock_guard<std::mutex> lk(sh.planM); sh.planReady = true; }
+      sh.planCv.notify_all();
+    }
     if (g_R > 1 && !last && o.stream) streamExchange(sh.nextB, sh.bm, sh.finished, o.gpus, tExchange, bytesMoved);
     else if (!last && g_R > 1 && g_xNewChunks > 0) {
       // The last exchange had to allocate chunks for the arriving terms while all GPUs of the node waited: the
@@ -1674,9 +1701,9 @@ int main(int argc, char** argv) {
   const double wall = now() - tBegin;
   if (g_rank == 0) printf("solve_epoch=%.3f..%.3f\n", epochBegin, epochNow());
 
-  double loc[9] = {0, 0, 0, 0, 0, tExchange, bytesMoved, sh.expec, 0}, sum[9];
-  for (auto& x : workers) { loc[0] += x.tOps; loc[1] += x.tPart; loc[2] += x.tH2D; loc[3] += x.tD2H; loc[4] += x.tIdle; loc[8] += x.tVerify; }
-  MPI_Allreduce(loc, sum, 9, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  double loc[10] = {0, 0, 0, 0, 0, tExchange, bytesMoved, sh.expec, 0, 0}, sum[10];
+  for (auto& x : workers) { loc[0] += x.tOps; loc[1] += x.tPart; loc[2] += x.tH2D; loc[3] += x.tD2H; loc[4] += x.tIdle; loc[8] += x.tVerify; loc[9] += x.tPlanWait; }
+  MPI_Allreduce(loc, sum, 10, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
   long lc[7] = {sh.runs.load(), sh.splits.load(), sh.hostSplits.load(), sh.peak.load(), sh.verified.load(), sh.violations.load(), g_pool.allocated}, sc[7], mc[7];
   MPI_Allreduce(lc, sc, 7, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
   MPI_Allreduce(lc, mc, 7, MPI_LONG, MPI_MAX, MPI_COMM_WORLD);
@@ -1701,6 +1728,8 @@ int main(int argc, char** argv) {
       printf("integrity: %ld term checks against %zu conserved parities, %ld violations (%.3f s summed over workers)\n", sc[4], conserved.size(), sc[5], sum[8]);
     printf("wall=%.3f s; summed over %d GPU workers: operations=%.3f partition=%.3f host->gpu=%.3f gpu->host=%.3f idle=%.3f; planning=%.3f; pilot=%.3f (%ld window ends chosen)\n",
            wall, o.gpus * g_R, sum[0], sum[1], sum[2], sum[3], sum[4], tPlan, tPilot, pilotEnds);
+    if (!oneGpu && o.overlapPlan && !ref)
+      printf("rows of the next window chosen while the window runs: %.3f s on the main thread of node 0; workers waited %.3f s for them (summed)\n", tPlan, sum[9]);
     printf("host memory in chunks: %.2f GiB on the busiest node, %.2f GiB over all nodes\n",
            mc[6] * (double)o.chunk * (words * 8 + 8) / 1073741824.0, sc[6] * (double)o.chunk * (words * 8 + 8) / 1073741824.0);
     if (oneGpu) printf("one GPU: the operator stayed on the GPU after %ld of %d windows\n", workers[0].windowsOnGpu, windows);
