@@ -520,18 +520,39 @@ def b_ckpt():
 
 
 def b_conv():
-    conv = sorted({i.split(".")[2] for i in ids if i.startswith("conv.eng.")}, key=lambda t: float(t[1:]))
-    if not conv or not any(i.startswith("conv.") and i in state for i in ids):
+    """Kicked Ising at other rotation angles: the value by cutoff and how far each implementation gets."""
+    pat = re.compile(r"conv\.(eng|cupp)\.t([0-9.]+)\.([0-9.]+e-[0-9]+)\.g(\d+)$")
+    parsed = [m for m in (pat.match(i) for i in ids) if m]
+    if not parsed or not any(m.group(0) in state for m in parsed):
         return "수렴 실험(224건)은 큐의 맨 뒤에 있으며 아직 시작하지 않았다."
-    rungs = sorted({i.split(".")[3] for i in ids if i.startswith("conv.eng.")}, key=float, reverse=True)
+    angles = sorted({m.group(2) for m in parsed}, key=float)
+    rungs = sorted({m.group(3) for m in parsed}, key=float, reverse=True)
     rows = []
-    for t in conv:
-        row = [t[1:] + "π"]
+    for t in angles:
+        row = [t + "π"]
         for x in rungs:
-            s = state.get(f"conv.eng.{t}.{x}.g16") or state.get(f"conv.eng.{t}.{x}.g1")
-            row.append(("%+.5f" % s["expectation"]).replace("-", "−") if ok(s) and s.get("expectation") is not None else (cell(s) if s else "측정 중"))
+            s = state.get(f"conv.eng.t{t}.{x}.g16")
+            if not ok(s):
+                s = state.get(f"conv.eng.t{t}.{x}.g1") if ok(state.get(f"conv.eng.t{t}.{x}.g1")) else s
+            item = f"conv.eng.t{t}.{x}.g16"
+            row.append(("%+.5f" % s["expectation"]).replace("-", "−") if ok(s) and s.get("expectation") is not None else (cell(s) if s else waiting(item)))
         rows.append(row)
-    return table(["rotation 각도"] + rungs, rows)
+    out = ["**기대값.** SectorQ의 값이다(16 GPU, 16 GPU의 값이 없으면 GPU 1장).\n\n" + table(["rotation 각도"] + rungs, rows)]
+    rows = []
+    for t in angles:
+        row = [t + "π"]
+        for tag, g in (("eng", 1), ("eng", 16), ("cupp", 1), ("cupp", 16)):
+            done = [x for x in rungs if ok(state.get(f"conv.{tag}.t{t}.{x}.g{g}"))]
+            still = any(f"conv.{tag}.t{t}.{x}.g{g}" not in state for x in rungs)
+            if not done:
+                row.append("측정 중" if still else "")
+                continue
+            x = min(done, key=float)
+            row.append(f"{x} ({sec(state[f'conv.{tag}.t{t}.{x}.g{g}']['wall'])})" + (" *" if still else ""))
+        rows.append(row)
+    out.append("**끝낸 가장 작은 cutoff**(괄호는 그 실행의 시간).\n\n" + table(["rotation 각도", "SectorQ, GPU 1장", "SectorQ, 16 GPU", "cuPauliProp, GPU 1장", "cuPauliProp 분산 기본, 16 GPU"], rows)
+               + "\n\n\\* 더 작은 cutoff의 실행이 아직 측정 중이다.")
+    return "\n\n".join(out)
 
 
 def b_single():

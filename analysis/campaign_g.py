@@ -352,21 +352,24 @@ def extra_tables(items, state, ladders, want):
                     if row:
                         print("  %-20s %2d GPUs  %s" % (NAMES.get(c, c), g, "  ".join(f"{p[0].split('.')[2]}: {p[1]:.3g}/{p[2]:.3g} ({p[3]:.2f}x)" for p in row)))
 
-    # convergence: kicked Ising at other rotation angles
-    conv = sorted({i["id"].split(".")[2] for i in items if i["id"].startswith("conv.eng.")}, key=lambda t: float(t[1:]))
-    if conv and any(get(i["id"]) for i in items if i["id"].startswith("conv.")):
-        print("\n## convergence: kicked Ising at other rotation angles, expectation value by cutoff (SectorQ, 16 GPUs; the value of the smallest finished cutoff last)")
-        rungs = sorted({i["id"].split(".")[3] for i in items if i["id"].startswith("conv.eng.")}, key=float, reverse=True)
+    # convergence: kicked Ising at other rotation angles (ids conv.<eng|cupp>.t<angle/pi>.<cutoff>.g<GPUs>)
+    pat = re.compile(r"conv\.(eng|cupp)\.t([0-9.]+)\.([0-9.]+e-[0-9]+)\.g(\d+)$")
+    parsed = [m for m in (pat.match(i["id"]) for i in items) if m]
+    if parsed and any(get(m.group(0)) for m in parsed):
+        angles = sorted({m.group(2) for m in parsed}, key=float)
+        rungs = sorted({m.group(3) for m in parsed}, key=float, reverse=True)
+        print("\n## convergence: kicked Ising at other rotation angles, expectation value by cutoff (SectorQ on 16 GPUs, else on 1 GPU)")
         print("  %-8s %s" % ("angle/pi", " ".join("%9s" % x for x in rungs)))
-        for t in conv:
+        for t in angles:
             vals = []
             for x in rungs:
-                s = get(f"conv.eng.{t}.{x}.g16") or get(f"conv.eng.{t}.{x}.g1")
+                s = get(f"conv.eng.t{t}.{x}.g16")
+                s = s if (s and s["status"] == "ok") else (get(f"conv.eng.t{t}.{x}.g1") or s)
                 vals.append("%+.5f" % s["expectation"] if s and s["status"] == "ok" and s.get("expectation") is not None else (cell(s) if s else ""))
-            print("  %-8s %s" % (t[1:], " ".join("%9s" % v for v in vals)))
-        print("  how far each gets (smallest cutoff finished): " + "; ".join(
-            f"{label} " + ", ".join(f"{t[1:]}: " + (min((x for x in rungs if (get(f'conv.{tag}.{t}.{x}.g{g}') or {}).get('status') == 'ok'), key=float, default='-')) for t in conv)
-            for label, tag, g in (("SectorQ 1 GPU", "eng", 1), ("cuPauliProp 1 GPU", "cupp", 1), ("cuPauliProp 16 GPUs", "cupp", 16))))
+            print("  %-8s %s" % (t, " ".join("%9s" % v for v in vals)))
+        print("  smallest cutoff finished, by angle:")
+        for label, tag, g in (("SectorQ, 1 GPU", "eng", 1), ("SectorQ, 16 GPUs", "eng", 16), ("cuPauliProp, 1 GPU", "cupp", 1), ("cuPauliProp, 16 GPUs", "cupp", 16)):
+            print("    %-22s %s" % (label, "  ".join(f"{t}: " + min((x for x in rungs if (get(f'conv.{tag}.t{t}.{x}.g{g}') or {}).get('status') == 'ok'), key=float, default='-') for t in angles)))
     more_tables(items, state)
     same_error(state, ladders, want)
 
