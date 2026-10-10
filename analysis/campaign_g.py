@@ -13,6 +13,7 @@ import json
 import os
 import re
 import sys
+import time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 Q = os.path.join(ROOT, "queue_g")
@@ -170,6 +171,72 @@ def ratio(a, b):
     return None
 
 
+def gpu_busy(item_id, text):
+    """Mean GPU utilization (percent) during the solve, from the nvidia-smi samples of the run."""
+    m = re.search(r"^solve_epoch=([\d.]+)\.\.([\d.]+)", text, re.M)
+    if not m:
+        return None
+    t0, t1 = float(m.group(1)), float(m.group(2))
+    vals = []
+    for path in glob.glob(os.path.join(ROOT, "logs", "g", f"smi.{item_id}.*.csv")):
+        for line in open(path, errors="replace"):
+            f = line.split(",")
+            if len(f) < 3:
+                continue
+            try:
+                stamp = f[0].strip()
+                t = time.mktime(time.strptime(stamp[:19], "%Y/%m/%d %H:%M:%S")) + float("0" + stamp[19:] or 0)
+                if t0 <= t <= t1:
+                    vals.append(float(f[2]))
+            except ValueError:
+                continue
+    return sum(vals) / len(vals) if vals else None
+
+
+def breakdown_table(state, want):
+    """Where the time goes on 2, 4, 8 and 16 GPUs (runs bd: SectorQ, bdc: cuPauliProp, bdd: cuPauliProp deferred)."""
+    num = lambda pat, text: (lambda m: float(m.group(1)) if m else None)(re.search(pat, text, re.M))
+    pct = lambda x, wall: "" if x is None or not wall else "%3.0f%%" % (100 * x / wall)
+    print("\n## where the time goes (wall seconds; shares of the wall time)")
+    print("  %-20s %-6s %3s  %-9s %7s %6s  %s" % ("circuit", "cutoff", "GPU", "", "wall", "GPU%", "shares"))
+    for c in MAIN:
+        if c not in want:
+            continue
+        for coef in ("1e-4", "3e-5"):
+            for g in (2, 4, 8, 16):
+                for tag, name in (("bd", "SectorQ"), ("bdc", "cuPP"), ("bdd", "cuPP def")):
+                    item_id = f"{tag}.{c}.{coef}.g{g}"
+                    st = state.get(item_id)
+                    if not st:
+                        continue
+                    if st["status"] != "ok" or not st.get("log"):
+                        print("  %-20s %-6s %3d  %-9s %7s" % (NAMES[c], coef, g, name, cell(st)))
+                        continue
+                    try:
+                        text = open(os.path.join(ROOT, st["log"]), errors="replace").read()
+                    except OSError:
+                        continue
+                    wall = st.get("wall")
+                    busy = gpu_busy(item_id, text)
+                    if tag == "bd":
+                        ops = num(r"operations=([\d.]+)", text)
+                        part = num(r"partition=([\d.]+)", text)
+                        cp = (num(r"host->gpu=([\d.]+)", text) or 0) + (num(r"gpu->host=([\d.]+)", text) or 0)
+                        exch = num(r"GB sent, ([\d.]+) s per node", text)
+                        wait = num(r"waiting for the slowest node=([\d.]+)", text)
+                        waited = num(r"workers waited ([\d.]+) s", text)
+                        shares = "gates %s  re-sectoring %s  copies %s  exchange %s  other nodes %s  waiting for rows %s" % (
+                            pct(ops / g if ops else None, wall), pct(part / g if part else None, wall), pct(cp / g, wall), pct(exch, wall), pct(wait, wall),
+                            pct(waited / g if waited is not None else None, wall))
+                    else:
+                        app = num(r"application=([\d.]+)", text)
+                        mpi = num(r"cupp mpi, seconds per rank: .*total=([\d.]+)", text)
+                        coll = num(r"collective=([\d.]+)", text)
+                        per = num(r"cupp mpi allgather: calls/rank=\d+ \(([\d.]+) per operation\)", text)
+                        shares = "inside MPI %s (collective %s)  allgather calls per operation %s" % (pct(mpi, wall), pct(coll, wall), "" if per is None else "%.1f" % per)
+                    print("  %-20s %-6s %3d  %-9s %7s %6s  %s" % (NAMES[c], coef, g, name, cell(st), "" if busy is None else "%.0f" % busy, shares))
+
+
 def extra_tables(items, state, ladders, want):
     ids = {i["id"] for i in items}
     get = state.get
@@ -242,6 +309,8 @@ def extra_tables(items, state, ladders, want):
             if any(facts):
                 per = ["" if not f or not f[0] else "%.1f" % (f[0] / g / 1e6) for f, g in zip(facts, GPUS)]
                 print("  %-34s %s" % ("boundary terms per GPU (millions)", " ".join("%7s" % x for x in per)))
+
+    breakdown_table(state, want)
 
     # less GPU memory, design parameters
     print("\n## SectorQ with less GPU memory, cutoff 1e-5 (fraction of the 40 GB; default 0.9): seconds on 1 GPU and on 4 GPUs")
