@@ -7,7 +7,8 @@ item format of campaign g (jobs/g_items.py, jobs/g_ext_items.py). Run by jobs/s_
 
 The plan follows campaign g: every performance experiment has all the implementations that run on several nodes
 (SectorQ, cuPauliProp's distributed mode in both forms, the ORQA reproduction, MonoProp); the cutoff ladders go from
-what everything finishes down to where each implementation fails; 40 minutes per run; one run per setting. A run that
+what everything finishes down to where each implementation fails (SectorQ on the representative circuit goes on
+below the cutoffs of campaign g until it fails); 40 minutes per run; one run per setting. A run that
 jobs e15 already made (logs/pp_e15_g*-*.out) is not repeated: its record goes to queue_s/done with its part of the log
 in logs/s. The list is ordered by importance: a batch job works through it from the top.
 """
@@ -26,6 +27,7 @@ ARGS = {"ki": ("--circuit ki_lab --weight 0", 6000000), "tfim": ("--circuit tfim
 NAME = {"ki_lab": "ki", "tfim_hh": "tfim", "ki_noisy": "noise"}
 WEAK_L = {32: "3.4e-6", 64: "2.3e-6", 128: "1.6e-6", 256: "1.15e-6"}       # cutoff = 1e-5 * (GPUs/4)^-0.52
 WEAK_S = {32: "1e-5", 64: "7.1e-6", 128: "4.9e-6", 256: "3.5e-6"}           # cutoff = 3e-5 * (GPUs/4)^-0.52
+REACH = ("5e-7", "3e-7", "2e-7", "1e-7")            # cutoffs below the sweep of campaign g
 items = []
 
 
@@ -52,9 +54,16 @@ def ext(item_id, b, c, x, g, ladder=None, est=900):
 
 for g in (32, 64, 128, 256):
     n = g // 4
-    # 1. the representative circuit: SectorQ over the cutoffs (strong-scaling panel and scale-out)
+    # 1. the representative circuit: SectorQ over the cutoffs (strong-scaling panel and scale-out), then on down until it
+    #    fails: out of memory, or a step that the steps before predict to take more than the 40 minutes of a run
     for x in ("1e-4", "5e-5", "3e-5", "2e-5", "1e-5", "5e-6", "3e-6", "2e-6", "1e-6"):
         eng(f"eng.ki.{x}.g{g}", "ki", x, g, f"eng.ki.g{g}")
+    if g < 128:
+        for x in REACH:
+            eng(f"eng.ki.{x}.g{g}", "ki", x, g, f"eng.ki.g{g}")
+    else:               # two sectors or fewer per GPU with the default of 256 per window: up to 4,096, small host chunks
+        for x in ("1e-6",) + REACH:
+            eng(f"eng12.ki.{x}.g{g}", "ki", x, g, f"eng12.ki.g{g}", more=" --gmax 12 --chunk 65536")
     # 2. the other two large circuits
     for c in ("tfim", "noise"):
         for x in ("1e-4", "3e-5", "1e-5", "5e-6", "3e-6", "2e-6", "1e-6"):
@@ -95,15 +104,13 @@ for g in (32, 64, 128, 256):
     for b, cs in (("monoprop", ("ki", "tfim")), ("orqa", ("noise",))):
         for c in cs:
             ext(f"weakL.{b}.{c}.{WEAK_L[g]}.g{g}", b, c, WEAK_L[g], g)
-    # 7. reach of SectorQ below the cutoffs of the sweep (last: only when time is left)
-    eng(f"eng.ki.5e-7.g{g}", "ki", "5e-7", g, f"eng.ki.g{g}")
 
 # 512 GPUs (128 nodes): the scale-out of SectorQ only, on the representative circuit (no baselines, no weak scaling, so that
 # the job is short). The default of 256 sectors per window is below the number of GPUs, so every run sets the limit:
 # 1,024, or 4,096 with host chunks of 65,536 terms (a partly filled chunk per sector and node stays small).
 for x, est in (("1e-5", 120), ("3e-6", 120), ("1e-6", 300)):
     eng(f"eng10.ki.{x}.g512", "ki", x, 512, est=est, more=" --gmax 10")
-for x, est in (("3e-6", 120), ("1e-6", 300), ("5e-7", 900), ("3e-7", 1500)):
+for x, est in (("3e-6", 120), ("1e-6", 300), ("5e-7", 900), ("3e-7", 1500), ("2e-7", 2400), ("1e-7", 2400)):
     eng(f"eng12.ki.{x}.g512", "ki", x, 512, "eng12.ki.g512", est, " --gmax 12 --chunk 65536")
 
 assert len({i["id"] for i in items}) == len(items)
