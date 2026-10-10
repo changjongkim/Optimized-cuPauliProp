@@ -367,6 +367,71 @@ def extra_tables(items, state, ladders, want):
         print("  how far each gets (smallest cutoff finished): " + "; ".join(
             f"{label} " + ", ".join(f"{t[1:]}: " + (min((x for x in rungs if (get(f'conv.{tag}.{t}.{x}.g{g}') or {}).get('status') == 'ok'), key=float, default='-')) for t in conv)
             for label, tag, g in (("SectorQ 1 GPU", "eng", 1), ("cuPauliProp 1 GPU", "cupp", 1), ("cuPauliProp 16 GPUs", "cupp", 16))))
+    more_tables(items, state)
+
+
+EXACT = {4: 0.802867136639, 6: 0.790133273060}      # 5x6 TFIM, state vector (analysis/exact_sv.py)
+
+
+def more_tables(items, state):
+    """Checkpoint and resume, the exact-value check, baselines given more resources than they use, core counts."""
+    get = state.get
+    ids = [i["id"] for i in items]
+    value = lambda s: "" if not s or s.get("expectation") is None else "%.12f" % s["expectation"]
+
+    if any(i.startswith("ckpt") for i in ids):
+        print("\n## checkpoint and resume, kicked Ising, cutoff 1e-5: the run is stopped at a checkpoint and resumed from the file")
+        for g in (4, 16):
+            whole, w, r = get(f"eng.ki.1e-5.g{g}"), get(f"ckptw.ki.1e-5.g{g}"), get(f"ckptr.ki.1e-5.g{g}")
+            if not (w or r):
+                continue
+            note = ""
+            if r and r.get("log"):
+                try:
+                    m = re.search(r"^resumed at operation (\d+) with (\d+) terms", open(os.path.join(ROOT, r["log"]), errors="replace").read(), re.M)
+                    note = "resumed at operation %s with %s terms" % (m.group(1), terms(int(m.group(2)))) if m else ""
+                except OSError:
+                    pass
+            same = whole and r and whole.get("expectation") is not None and r.get("expectation") is not None and abs(whole["expectation"] - r["expectation"]) < 1e-10
+            print("  %2d GPUs  whole run: %s s   resumed part: %s s   value whole %s, resumed %s (%s)   %s" % (
+                g, cell(whole) or "open", cell(r) or "open", value(whole), value(r), "same" if same else "DIFFERENT" if whole and r and r["status"] == "ok" else "open", note))
+
+    rows = sorted((i for i in ids if i.startswith("exact.tfim30.")), key=lambda i: (int(i.split(".")[2][1:]), -float(i.split(".s")[1].split(".", 1)[1].rsplit(".g", 1)[0])))
+    if rows:
+        print("\n## exact-value check: 5x6 TFIM (30 qubits), SectorQ on 4 GPUs; error against the state-vector value")
+        print("  %-5s %-7s %8s  %-15s %-9s %s" % ("steps", "cutoff", "seconds", "value", "error", "terms"))
+        for i in rows:
+            steps = int(i.split(".")[2][1:])
+            coef = i.split(f".s{steps}.", 1)[1].rsplit(".g", 1)[0]
+            s = get(i)
+            facts = engine_facts(i, s) or (None, None, None)
+            err = "" if not s or s.get("expectation") is None else "%.5f" % abs(s["expectation"] - EXACT[steps])
+            print("  %-5d %-7s %8s  %-15s %-9s %s" % (steps, coef, cell(s) or "open", value(s), err, terms(facts[0])))
+
+    giv = [i for i in ids if i.startswith("giv.")]
+    if giv:
+        print("\n## baselines that run on one node or one GPU, given more: seconds (own: 1 node, SPD 1 GPU; then what they were given)")
+        groups = {}
+        for i in giv:
+            m = re.match(r"giv\.([a-z]+)\.([a-z]+)\.(.+)\.([ng])(\d+)$", i)
+            groups.setdefault(m.group(1, 2, 3), []).append((m.group(4), int(m.group(5)), i))
+        for (b, c, x), members in groups.items():
+            own = get(f"{b}.{c}.{x}.n1")
+            print("  %-9s %-18s %-6s own: %-7s %s" % (b, NAMES.get(c, c), x, cell(own) or "open", "  ".join(
+                "%d %s: %s" % (n, "nodes" if unit == "n" else "GPUs", cell(get(i)) or "open") for unit, n, i in sorted(members, key=lambda t: t[1]))))
+
+    thr = [i for i in ids if i.startswith("thr.")]
+    if thr:
+        print("\n## CPU baselines by core count on one node: seconds (64 cores is the setting of the sweep; Qiskit pauli-prop: 1 thread there)")
+        groups = {}
+        for i in thr:
+            m = re.match(r"thr\.([a-z]+)\.([a-z]+)\.(.+)\.c(\d+)$", i)
+            groups.setdefault(m.group(1, 2, 3), []).append((int(m.group(4)), i))
+        for (b, c, x), members in groups.items():
+            base = get(f"{b}.{c}.{x}.n1")
+            cells = ["%d: %s" % (n, cell(get(i)) or "open") for n, i in sorted(members)]
+            cells.insert(0, "1: %s" % (cell(base) or "open")) if b == "qiskit" else cells.append("64: %s" % (cell(base) or "open"))
+            print("  %-9s %-18s %-6s %s" % (b, NAMES.get(c, c), x, "  ".join(cells)))
 
 
 if __name__ == "__main__":
