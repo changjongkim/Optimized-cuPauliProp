@@ -65,7 +65,7 @@ def sec(w):
 
 
 def mult(x):
-    return ("%.1f배" % x) if x < 9.95 else ("%.0f배" % x)
+    return ("%.1f배" % x) if x < 9.95 else "{:,.0f}배".format(x)
 
 
 def cell(item_id, against=None):
@@ -186,40 +186,70 @@ BACKENDS = (("spd", "SPD", "GPU 1장", "n1"), ("orqa", "ORQA (재현)", "4 노�
 SOTA_CUTS = ("1e-3", "1e-4", "3e-5", "1e-5", "5e-6", "3e-6", "2e-6", "1e-6")
 
 
-def b_sota():
+def b_single_node():
+    """One node: every implementation on the resources of one node (4 GPUs, 64 cores), time by cutoff."""
+    cuts = ("1e-3", "1e-4", "3e-5", "1e-5", "3e-6", "1e-6")
     out = []
     for c in MAIN:
-        head = ["구현", "자원"] + list(SOTA_CUTS)
-        rows = [["구간 경계의 항 수", ""] + [ko_terms(facts(c, x)[0]) for x in SOTA_CUTS],
-                ["**SectorQ**", "16 GPU"] + [cell(f"eng.{c}.{x}.g16") for x in SOTA_CUTS],
-                ["**SectorQ**", "GPU 1장"] + [cell(f"eng.{c}.{x}.g1") for x in SOTA_CUTS],
-                ["cuPauliProp 분산 (기본)", "16 GPU"] + [cell(f"cupp.{c}.{x}.g16") for x in SOTA_CUTS],
-                ["cuPauliProp 분산 (dedup 미룸)", "16 GPU"] + [deferred_cell(c, x, 16) for x in SOTA_CUTS],
-                ["cuPauliProp", "GPU 1장"] + [cell(f"cupp.{c}.{x}.g1") for x in SOTA_CUTS]]
-        for b, name, res, suffix in BACKENDS:
-            if not any(f"{b}.{c}.{x}.{suffix}" in ids for x in ladder(f"{b}.{c}", suffix)):
-                continue
-            rows.append([name, res] + [cell(f"{b}.{c}.{x}.{suffix}") for x in SOTA_CUTS])
-        out.append(f"**{KO[c]}** (실행 시간)\n\n" + table(head, rows, ["---", "---"] + ["---:"] * len(SOTA_CUTS)))
+        rows = [["구간 경계의 항 수", ""] + [ko_terms(facts(c, x)[0]) for x in cuts],
+                ["**SectorQ**", "4 GPU"] + [cell(f"eng.{c}.{x}.g4") for x in cuts],
+                ["**SectorQ**", "GPU 1장"] + [cell(f"eng.{c}.{x}.g1") for x in cuts],
+                ["cuPauliProp 분산 (기본)", "4 GPU"] + [cell(f"cupp.{c}.{x}.g4") for x in cuts],
+                ["cuPauliProp 분산 (dedup 미룸)", "4 GPU"] + [deferred_cell(c, x, 4) for x in cuts],
+                ["cuPauliProp", "GPU 1장"] + [cell(f"cupp.{c}.{x}.g1") for x in cuts]]
+        for b, name, res in (("spd", "SPD", "GPU 1장"), ("orqa", "ORQA (재현)", "64 rank"), ("monoprop", "MonoProp", "8 rank × 8 thread"),
+                             ("julia", "PauliPropagation.jl", "64 thread"), ("ppvm", "ppvm", "64 thread"), ("qiskit", "Qiskit pauli-prop", "thread 1개")):
+            if any(f"{b}.{c}.{x}.n1" in ids for x in ladder(f"{b}.{c}", "n1")):
+                rows.append([name, res] + [cell(f"{b}.{c}.{x}.n1") for x in cuts])
+        out.append(f"**{KO[c]}** (한 노드, 실행 시간)\n\n" + table(["구현", "자원"] + list(cuts), rows, ["---", "---"] + ["---:"] * len(cuts)))
     return "\n\n".join(out)
 
 
-def b_sota_mult():
-    """Multiples at the largest size both finished, on the same nodes."""
-    head = ["회로", "cuPauliProp 분산 기본 (16 GPU)", "ORQA 재현 (4 노드)", "MonoProp (4 노드)", "PauliPropagation.jl (1 노드)", "ppvm (1 노드)", "SPD (GPU 1장)"]
+def mult_table(columns, ours_of):
+    """Their seconds / SectorQ seconds at the largest setting both finished; columns: (title, prefix format, suffix, SectorQ suffix)."""
     rows = []
     for c in ALL:
         row = [KO[c]]
-        for prefix, suffix, g in ((f"cupp.{c}", "g16", 16), (f"orqa.{c}", "n4", 16), (f"monoprop.{c}", "n4", 16), (f"julia.{c}", "n1", 4), (f"ppvm.{c}", "n1", 4), (f"spd.{c}", "n1", 1)):
+        for _, prefix, suffix, mine in columns:
             pick = ""
-            for x in sorted(ladder(prefix, suffix, True), key=float):
-                a, b = state.get(f"eng.{c}.{x}.g{g}"), state.get(f"{prefix}.{x}.{suffix}")
+            xs = sorted({x for t in (("defer", "defer3", "defer2") if prefix == "defer" else (prefix,)) for x in ladder(f"{t}.{c}", suffix, True)}, key=float)
+            for x in xs:
+                a = state.get(f"eng.{c}.{x}.{mine}")
+                b = deferred(c, x, int(suffix[1:])) if prefix == "defer" else state.get(f"{prefix}.{c}.{x}.{suffix}")
                 if ok(a) and ok(b):
                     pick = f"{mult(b['wall'] / a['wall'])} ({x})"
                     break
             row.append(pick)
         rows.append(row)
-    return table(head, rows)
+    return table(["회로"] + [t for t, _, _, _ in columns], rows)
+
+
+def b_node_mult():
+    return mult_table((("cuPauliProp 분산 기본 (4 GPU)", "cupp", "g4", "g4"), ("cuPauliProp dedup 미룸 (4 GPU)", "defer", "g4", "g4"),
+                       ("ORQA 재현 (64 rank)", "orqa", "n1", "g4"), ("MonoProp (64 코어)", "monoprop", "n1", "g4"),
+                       ("PauliPropagation.jl (64 thread)", "julia", "n1", "g4"), ("ppvm (64 thread)", "ppvm", "n1", "g4"),
+                       ("Qiskit pauli-prop (thread 1개)", "qiskit", "n1", "g4"), ("SPD (GPU 1장, SectorQ도 GPU 1장)", "spd", "n1", "g1")), None)
+
+
+def b_multi_mult():
+    return mult_table((("cuPauliProp 분산 기본 (8 GPU)", "cupp", "g8", "g8"), ("ORQA 재현 (2 노드)", "orqa", "n2", "g8"), ("MonoProp (2 노드)", "monoprop", "n2", "g8"),
+                       ("cuPauliProp 분산 기본 (16 GPU)", "cupp", "g16", "g16"), ("cuPauliProp dedup 미룸 (16 GPU)", "defer", "g16", "g16"),
+                       ("ORQA 재현 (4 노드)", "orqa", "n4", "g16"), ("MonoProp (4 노드)", "monoprop", "n4", "g16")), None)
+
+
+def b_strong_sota(c="ki"):
+    """The representative circuit on 4, 8 and 16 GPUs: every implementation that runs on several nodes, time by cutoff."""
+    cuts = ("1e-4", "3e-5", "1e-5", "5e-6", "3e-6", "2e-6", "1e-6")
+    out = []
+    for g, n in ((4, 1), (8, 2), (16, 4)):
+        e = lambda x: state.get(f"eng.{c}.{x}.g{g}")
+        rows = [["**SectorQ**"] + [cell(f"eng.{c}.{x}.g{g}") for x in cuts],
+                ["cuPauliProp 분산 (기본)"] + [cell(f"cupp.{c}.{x}.g{g}", e(x)) for x in cuts],
+                ["cuPauliProp 분산 (dedup 미룸)"] + [deferred_cell(c, x, g, e(x)) for x in cuts],
+                ["ORQA (재현)"] + [cell(f"orqa.{c}.{x}.n{n}", e(x)) for x in cuts],
+                ["MonoProp"] + [cell(f"monoprop.{c}.{x}.n{n}", e(x)) for x in cuts]]
+        out.append(f"**{KO[c]}, {g} GPU ({n} 노드).** 괄호는 SectorQ 대비이다.\n\n" + table(["구현"] + list(cuts), rows))
+    return "\n\n".join(out)
 
 
 def b_same_error(g=16, n=4):
@@ -354,7 +384,7 @@ def weak_run(load, c, g, tag=""):
 
 def b_weak():
     out = []
-    for load, label in (("L", "큰 부하 (4 GPU에서 cutoff 1e-5)"), ("S", "작은 부하 (4 GPU에서 cutoff 3e-5)")):
+    for load, label in (("S", "작은 부하 (4 GPU에서 cutoff 3e-5)"), ("L", "큰 부하 (4 GPU에서 cutoff 1e-5)")):
         rows = [["cutoff"] + [cg.WEAK[load][g] for g in GPUS]]
         for c in MAIN:
             rate = []
@@ -366,22 +396,26 @@ def b_weak():
             cells = []
             for g, (s, r) in zip(GPUS, rate):
                 x = cg.WEAK[load][g]
-                known = any(f"{t}.{c}.{x}.g{g}" in ids for t in (f"weak{load}", "eng"))
-                cells.append(f"{100 * r / base:.0f}% ({sec(s['wall'])})" if (r and base) else (cell(s) if s else ("측정 중" if known else "")))
-            rows.append([f"SectorQ, {KO[c]}"] + cells)
-            if load == "S":
-                for tag, name in (("c", "cuPauliProp 기본"), ("d", "cuPauliProp dedup 미룸")):
-                    cells = []
-                    for g in GPUS:
-                        s, x = weak_run(load, c, g, tag)
-                        if tag == "d" and g == 1:
-                            cells.append("")
-                            continue
-                        if tag == "d" and s is None:
-                            s = deferred(c, x, g)
-                        cells.append(cell(s) if s else ("측정 중" if any(f"{t}.{c}.{x}.g{g}" in ids for t in (f"weak{load}{tag}", {"c": "cupp", "d": "defer"}[tag])) else ""))
+                item = f"weak{load}.{c}.{x}.g{g}" if f"weak{load}.{c}.{x}.g{g}" in ids else f"eng.{c}.{x}.g{g}"
+                cells.append(f"{sec(s['wall'])} ({100 * r / base:.0f}%)" if (r and base) else (cell(s) if s else waiting(item)))
+            rows.append([f"**SectorQ**, {KO[c]}"] + cells)
+            for tag, name in (("c", "cuPauliProp 기본"), ("d", "cuPauliProp dedup 미룸")):
+                cells = []
+                for g in GPUS:
+                    s, x = weak_run(load, c, g, tag)
+                    if tag == "d" and g == 1:
+                        cells.append("")
+                        continue
+                    if tag == "d" and s is None:
+                        s = deferred(c, x, g)
+                    first = f"weak{load}{tag}.{c}.{x}.g{g}"
+                    cells.append(cell(s) if s else waiting(first if first in ids else f"{ {'c': 'cupp', 'd': 'defer'}[tag]}.{c}.{x}.g{g}"))
+                rows.append([f"{name}, {KO[c]}"] + cells)
+            for b, name in (("orqa", "ORQA (재현)"), ("monoprop", "MonoProp")):
+                cells = [cell(f"{b}.{c}.{cg.WEAK[load][g]}.n1" if g == 4 else f"weak{load}.{b}.{c}.{cg.WEAK[load][g]}.g{g}") for g in GPUS]
+                if any(cells):
                     rows.append([f"{name}, {KO[c]}"] + cells)
-        out.append(f"**{label}.** SectorQ의 값은 GPU 한 장이 1초에 처리한 항 수(1 GPU 대비)이고 괄호는 실행 시간이다. cuPauliProp의 값은 실행 시간이다.\n\n"
+        out.append(f"**{label}.** 값은 실행 시간이다. SectorQ의 괄호는 GPU 한 장이 1초에 처리한 항 수를 1 GPU와 비교한 것이다. CPU 구현은 1 GPU와 2 GPU 자리에서 16 코어와 32 코어를, 4 / 8 / 16 GPU 자리에서 1 / 2 / 4 노드를 쓴다.\n\n"
                    + table(["실행"] + [f"{g} GPU" for g in GPUS], rows))
     return "\n\n".join(out)
 
@@ -549,7 +583,8 @@ def b_gain():
     return table(["회로", "cutoff", "구간 경계의 항 수", "구간 안 최대 항 수", "GPU 1장", "16 GPU", "1장 대비"], rows, ["---", "---", "---:", "---:", "---:", "---:", "---:"])
 
 
-BLOCKS = {"single": b_single, "gain": b_gain, "progress": b_progress, "agree": b_agree, "speed": b_speed, "sota": b_sota, "sota_mult": b_sota_mult, "same_error": b_same_error, "given": b_given,
+BLOCKS = {"single": b_single, "gain": b_gain, "progress": b_progress, "agree": b_agree, "speed": b_speed, "single_node": b_single_node, "node_mult": b_node_mult,
+          "multi_mult": b_multi_mult, "strong_sota": b_strong_sota, "same_error": b_same_error, "given": b_given,
           "threads": b_threads, "gpus": b_gpus, "reach": b_reach, "largest": b_largest, "strong": b_strong, "weak": b_weak, "parts": b_parts,
           "base_parts": b_base_parts, "params": b_params, "vram": b_vram, "exact": b_exact, "ckpt": b_ckpt, "engine": b_engine, "conv": b_conv}
 

@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """Background and evaluation figures of the README.
 
+  make_eval_figures.py           every figure of the README
+  make_eval_figures.py --g       only the figures of the 1-16 GPU campaign (queue_g/done, logs/g); --print lists the numbers
+  make_eval_figures.py --old     the evaluation figures before that campaign, from the earlier logs
+  --out DIR                      writes the figures to DIR instead of this folder (drafts)
+
 Run times, expectation values and time breakdowns are read from the run logs in ../logs
 (blocks that start with "===== engine|cupp nodes=... args: ..."). The numbers of the
 background figure and of the exact-value check come from earlier logs with other formats
@@ -672,232 +677,238 @@ def gterms(G, c, coef):
 
 
 def count(n):
-    return f"{n / 1e9:.3g} B" if n >= 1e9 else f"{n / 1e6:.3g} M"
+    return f"{n / 1e9:.3g} B" if n >= 1e9 else (f"{n / 1e6:.3g} M" if n >= 1e6 else f"{n / 1e3:.3g} K")
 
 
-def three_bars(ax, i, G, c, coef, g, w=0.26, floor=None, seconds=False):
-    """SectorQ, deferred cuPauliProp and default cuPauliProp of one setting at position i; multiples above the baselines."""
-    e, t, d = G.get(f"eng.{c}.{coef}.g{g}"), gdeferred(G, c, coef, g) if g > 1 else None, G.get(f"cupp.{c}.{coef}.g{g}")
-    for j, (s, col, prefix) in enumerate(((e, OURS, f"eng.{c}"), (t, TUNED, f"defer.{c}"), (d, BASE, f"cupp.{c}"))):
-        x = i + (j - 1) * w
-        if gok(s):
-            ax.bar(x, s["wall"], width=w * 0.94, color=col)
-            if j == 0 and seconds:
-                ax.text(x + w * 0.1, s["wall"] * 1.1, secs(s["wall"]), ha="right", va="bottom", fontsize=10.5)
-            if j > 0 and gok(e):          # the deferred multiple grows to the left, the default multiple to the right
-                ax.text(x + (w * 0.47 if j == 1 else -w * 0.47), s["wall"] * 1.1, times(s["wall"], e["wall"]),
-                        ha="right" if j == 1 else "left", va="bottom", fontsize=10.5)
-        elif s is not None and floor is not None:
-            ax.text(x, floor, gwhy(G, prefix, coef, f"g{g}").replace("\n", " "), ha="center", va="bottom", fontsize=9.5, rotation=90, color=(OURS, "#9A8763", BASE)[j])
-    return e, t, d
+# The look of these figures follows the evaluation of ScaleQsim (SIGMETRICS '26): time against the problem size or
+# the GPU count, one line per implementation with a fixed color and marker, a legend strip above the panels, in the
+# order single node -> weak scaling -> strong scaling -> other circuits -> scale-out.
+SQ = {"ours": ("#1f77b4", "o"), "cupp": ("#d62728", "^"), "defer": ("#8c564b", "s"), "orqa": ("#800080", "v"), "monoprop": ("#FFA500", "d"),
+      "spd": ("#008000", "X"), "julia": ("#17becf", "P"), "ppvm": ("#7f7f7f", "h"), "qiskit": ("#e377c2", "*")}
+SQ_NAME = {"ours": "SectorQ", "cupp": "cuPauliProp", "defer": "cuPauliProp, dedup deferred", "orqa": "ORQA (reproduction)", "monoprop": "MonoProp",
+           "spd": "SPD", "julia": "PauliPropagation.jl", "ppvm": "ppvm", "qiskit": "Qiskit pauli-prop"}
+SHORT_WHY = {"oom": "out of memory", "tl": "over 40 min", "predicted_tl": "over 40 min"}
 
 
-def log_axis(ax, lo, hi):
-    ax.set_yscale("log")
-    ax.set_ylim(lo, hi)
-    ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:g}"))
-    ax.yaxis.set_minor_formatter(NullFormatter())
-
-
-def three_legend(fig, y):
-    fig.legend([plt.Rectangle((0, 0), 1, 1, color=c) for c in (OURS, TUNED, BASE)], ["SectorQ", "cuPauliProp distributed, dedup deferred", "cuPauliProp distributed"],
-               loc="upper center", ncol=3, bbox_to_anchor=(0.5, y), fontsize=12.5, columnspacing=2.2, handlelength=1.4)
-
-
-def g_speed(G, g=16):
-    """Seven circuits on 16 GPUs at two sizes: the largest that cuPauliProp finishes on one GPU, and on 16 GPUs."""
-    def largest(c, base_g):
-        both = [x for x in gladder(G, f"eng.{c}", f"g{g}") if gok(G.get(f"eng.{c}.{x}.g{g}")) and gok(G.get(f"cupp.{c}.{x}.g{base_g}"))]
-        return both[-1] if both else None
-    fig, axes = plt.subplots(1, 2, figsize=(15.6, 3.9), gridspec_kw={"wspace": 0.07})
-    table = []
-    for ax, base_g, title in ((axes[0], 1, f"Largest Problem cuPauliProp Finishes on One GPU, Run on {g} GPUs"),
-                              (axes[1], g, f"Largest Problem cuPauliProp Finishes on {g} GPUs")):
-        labels = []
-        for i, (c, name) in enumerate(G7):
-            coef = largest(c, base_g)
-            labels.append(name + "\n" + (coef or ""))
-            if coef:
-                table.append((name.replace("\n", " "), coef, g) + three_bars(ax, i, G, c, coef, g, floor=0.24))
-        log_axis(ax, 0.2, 400)
-        ax.set_xlim(-0.6, len(G7) - 0.4)
-        ax.set_xticks(range(len(G7)))
-        ax.set_xticklabels(labels, fontsize=10.5)
-        ax.set_title(title, fontsize=13.5, pad=8)
-        clean(ax)
-    axes[0].set_ylabel("Time (s)")
-    axes[1].set_yticklabels([])
-    three_legend(fig, 1.09)
-    save(fig, "eval_speed.png")
-    return table
-
-
-def g_gpus(G, coef="3e-5"):
-    """Three circuits on 1-16 GPUs at the largest cutoff of the sweep that cuPauliProp finishes from four GPUs on."""
-    fig, axes = plt.subplots(1, 3, figsize=(15.6, 3.8), gridspec_kw={"wspace": 0.07})
-    rows = []
-    for j, (c, title) in enumerate(G3):
-        ax = axes[j]
-        for i, g in enumerate(GPUS_G):
-            rows.append((title, coef, g) + three_bars(ax, i, G, c, coef, g, w=0.27, floor=1.15, seconds=True))
-        log_axis(ax, 1.0, 130)
-        ax.set_xlim(-0.75, len(GPUS_G) - 0.4)
-        ax.set_xticks(range(len(GPUS_G)))
-        ax.set_xticklabels([str(g) for g in GPUS_G])
-        n = gterms(G, c, coef)
-        ax.set_xlabel(f"GPUs (cutoff {coef}" + (f", {count(n)} terms)" if n else ")"))
-        ax.set_title(title, fontsize=14, fontweight="bold", pad=8)
-        if j == 0:
-            ax.set_ylabel("Time (s)")
-        else:
-            ax.set_yticklabels([])
-        clean(ax)
-    three_legend(fig, 1.1)
-    save(fig, "eval_gpus.png")
-    return rows
-
-
-SOTA = [("SectorQ, 16 GPUs", "eng.%s", "g16", OURS, "o", "-", 3.0),
-        ("SectorQ, 1 GPU", "eng.%s", "g1", OURS, "o", (0, (4, 2)), 1.8),
-        ("cuPauliProp distributed, 16 GPUs", "cupp.%s", "g16", BASE, "s", "-", 1.8),
-        ("SPD, 1 GPU", "spd.%s", "n1", "#E39A1F", "v", "-", 1.8),
-        ("ORQA (reproduction), 4 nodes", "orqa.%s", "n4", "#5B3A8C", "D", "-", 1.8),
-        ("MonoProp, 4 nodes (own truncation rule)", "monoprop.%s", "n4", "#C0432F", "^", "-", 1.8),
-        ("PauliPropagation.jl, 1 node", "julia.%s", "n1", "#3B6FB6", "P", "-", 1.8),
-        ("ppvm, 1 node", "ppvm.%s", "n1", "#6E7B87", "X", "-", 1.8),
-        ("Qiskit pauli-prop, 1 thread", "qiskit.%s", "n1", "#B07AA1", "*", "-", 1.8)]
-
-
-def g_sota(G):
-    """Time by cutoff for SectorQ and every other implementation, on the same nodes (a node: 4 GPUs, 64 cores)."""
-    fig, axes = plt.subplots(1, 3, figsize=(15.6, 4.3), gridspec_kw={"wspace": 0.07})
-    rows = []
-    for j, (c, title) in enumerate(G3):
-        ax = axes[j]
-        for name, prefix, suffix, col, mk, ls, lw in SOTA:
-            ladder = gladder(G, prefix % c, suffix)
-            pts = [(float(x), G[f"{prefix % c}.{x}.{suffix}"]["wall"]) for x in ladder if gok(G[f"{prefix % c}.{x}.{suffix}"])]
-            if not pts:
-                continue
-            ax.plot([p[0] for p in pts], [p[1] for p in pts], color=col, marker=mk, markersize=6.5 if lw < 2.5 else 7.5, linewidth=lw, linestyle=ls,
-                    label=name if j == 0 else None, zorder=3 if col == OURS else 2)
-            failed = [x for x in ladder if float(x) < pts[-1][0] and not gok(G[f"{prefix % c}.{x}.{suffix}"])]
-            why = gwhy(G, prefix % c, failed[0], suffix) if failed else None
-            if why:               # the next step of this implementation failed: a cross after its last point
-                ax.plot([pts[-1][0] / 1.35], [pts[-1][1]], color=col, marker="x", markersize=7, markeredgewidth=2.0, linestyle="none", zorder=4)
-            rows.append((title, name, pts, why))
-        ax.set_xscale("log")
-        ax.set_xlim(1.5e-3, 6.5e-7)
-        log_axis(ax, 0.07, 4000)
-        ax.set_xlabel("Cutoff (smaller keeps more terms)")
-        ax.set_title(title, fontsize=14, fontweight="bold", pad=8)
-        ax.grid(color=GRID, linewidth=1.0)
-        ax.tick_params(length=0)
-        if j == 0:
-            ax.set_ylabel("Time (s)")
-        else:
-            ax.set_yticklabels([])
-    handles, names = axes[0].get_legend_handles_labels()
-    handles.append(plt.Line2D([0], [0], color=INK, marker="x", markersize=7, markeredgewidth=2.0, linestyle="none"))
-    names.append("next cutoff: out of memory or over the time limit")
-    fig.legend(handles, names, loc="upper center", ncol=4, bbox_to_anchor=(0.5, 1.2), fontsize=11.5, columnspacing=1.8, handlelength=2.0)
-    save(fig, "eval_sota.png")
-    return rows
-
-
-def g_scaling(G, coef="3e-6"):
-    """Strong scaling (the same problem on 1-16 GPUs) and weak scaling (the cutoff lowered with the GPU count)."""
-    fig, axes = plt.subplots(2, 3, figsize=(13.6, 6.9), gridspec_kw={"wspace": 0.2, "hspace": 0.5})
-    strong, weak = [], []
-    for j, (c, title) in enumerate(G3):
-        ax = axes[0][j]
-        rs = [G.get(f"eng.{c}.{coef}.g{g}") for g in GPUS_G]
-        t0 = rs[0]["wall"] if gok(rs[0]) else None
-        for i, (g, s) in enumerate(zip(GPUS_G, rs)):
-            if not gok(s):
-                continue
-            ax.bar(i, s["wall"], width=0.62, color=OURS)
-            if t0:
-                ax.plot([i - 0.38, i + 0.38], [t0 / g, t0 / g], color=INK, linewidth=1.6)
-            ax.text(i, s["wall"] * 1.12, secs(s["wall"]) + " s" if i == 0 or not t0 else times(t0, s["wall"]), ha="center", va="bottom", fontsize=12)
-            strong.append((title, coef, g, s["wall"]))
-        if t0:
-            log_axis(ax, t0 / GPUS_G[-1] / 2.2, t0 * 2.6)
-        ax.set_xticks(range(len(GPUS_G)))
-        ax.set_xticklabels([str(g) for g in GPUS_G])
-        n = gterms(G, c, coef)
-        ax.set_xlabel(f"GPUs (cutoff {coef}" + (f", {count(n)} terms)" if n else ")"))
-        ax.set_title(title, fontsize=14, fontweight="bold", pad=8)
-        if j == 0:
-            ax.set_ylabel("Time (s)")
-        clean(ax)
-        # weak scaling: the rate is terms per second and GPU
-        ax = axes[1][j]
-        rs = [G.get(f"weakL.{c}.{WEAK_G[g]}.g{g}") or G.get(f"eng.{c}.{WEAK_G[g]}.g{g}") for g in GPUS_G]
-        ds = [gdetail(s) if gok(s) else None for s in rs]
-        rate = [None if not d or not d.get("checks") else d["checks"] / d["wall"] / g for g, d in zip(GPUS_G, ds)]
-        for i, (g, s) in enumerate(zip(GPUS_G, rs)):
-            if rate[i] is None or rate[0] is None:
-                continue
-            pct = 100 * rate[i] / rate[0]
-            ax.bar(i, pct, width=0.62, color=OURS)
-            ax.text(i, 103, f"{pct:.0f}%", ha="center", va="bottom", fontsize=12)
-            weak.append((title, g, WEAK_G[g], s["wall"], ds[i]["checks"], rate[i], pct))
-        ax.axhline(100, color=INK, linewidth=1.6)
-        ax.set_ylim(0, 118)
-        ax.set_yticks([0, 25, 50, 75, 100])
-        ax.set_xticks(range(len(GPUS_G)))
-        ax.set_xticklabels([f"{g}\n{WEAK_G[g]}" for g in GPUS_G], fontsize=11)
-        ax.set_xlabel("GPUs and Cutoff of the Run")
-        if j == 0:
-            ax.set_ylabel("Terms per Second per GPU\n(% of 1 GPU)")
-        clean(ax)
-    fig.legend([plt.Rectangle((0, 0), 1, 1, color=OURS), plt.Line2D([0], [0], color=INK, linewidth=1.6)], ["SectorQ", "Ideal scaling from 1 GPU"],
-               loc="upper center", ncol=2, bbox_to_anchor=(0.5, 0.985), fontsize=12.5, columnspacing=2.2, handlelength=1.4)
-    for ax, label in ((axes[0][0], "Strong Scaling"), (axes[1][0], "Weak Scaling")):
-        box = ax.get_position()
-        fig.text(0.028, (box.y0 + box.y1) / 2, label, fontsize=13.5, fontweight="bold", rotation=90, ha="center", va="center")
-    save(fig, "eval_scaling16.png")
-    return strong, weak
-
-
-def g_reach(G):
-    """The largest problem each implementation finished within the time limit on 1-16 GPUs (terms at the window boundaries)."""
-    fig, axes = plt.subplots(1, 3, figsize=(15.6, 3.8), gridspec_kw={"wspace": 0.07})
-    rows = []
-    w = 0.27
-    for j, (c, title) in enumerate(G3):
-        ax = axes[j]
-        for i, g in enumerate(GPUS_G):
-            kinds = ((OURS, ("eng",)), (TUNED, ("defer", "defer3", "defer2") if g > 1 else ()), (BASE, ("cupp",)))
-            for k, (col, tags) in enumerate(kinds):
-                done = [x for t in tags for x in gladder(G, f"{t}.{c}", f"g{g}") if gok(G[f"{t}.{c}.{x}.g{g}"])]
-                if not done:
-                    continue
-                coef = min(done, key=float)
-                n = gterms(G, c, coef)
-                if not n:
-                    continue
-                x = i + (k - 1) * w
-                ax.bar(x, n, width=w * 0.94, color=col)
-                ax.text(x, n * 1.15, coef, ha="center", va="bottom", fontsize=9, rotation=90)
-                rows.append((title, g, ("SectorQ", "deferred", "default")[k], coef, n))
+def sq_axes(ax, xlabel=None, ylabel=None, log=True, size=16):
+    for s in ax.spines.values():
+        s.set_visible(True)
+        s.set_color("black")
+        s.set_linewidth(1.0)
+    ax.grid(True, which="major", color="#B8B8B8", linewidth=0.6, linestyle="--")
+    if log:
         ax.set_yscale("log")
-        ax.set_ylim(2e6, 4e11)
-        ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: count(v)))
+        ax.grid(True, which="minor", axis="y", color="#DADADA", linewidth=0.4, linestyle="--")
+        ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:g}"))
         ax.yaxis.set_minor_formatter(NullFormatter())
-        ax.set_xlim(-0.6, len(GPUS_G) - 0.4)
-        ax.set_xticks(range(len(GPUS_G)))
-        ax.set_xticklabels([str(g) for g in GPUS_G])
-        ax.set_xlabel("GPUs (above each bar: the cutoff)")
-        ax.set_title(title, fontsize=14, fontweight="bold", pad=8)
-        if j == 0:
-            ax.set_ylabel("Terms of the Largest\nProblem Finished")
-        else:
-            ax.set_yticklabels([])
-        clean(ax)
-    three_legend(fig, 1.1)
-    save(fig, "eval_reach.png")
+    ax.tick_params(length=0, labelsize=size - 3)
+    if xlabel:
+        ax.set_xlabel(xlabel, fontsize=size, fontweight="bold")
+    if ylabel:
+        ax.set_ylabel(ylabel, fontsize=size, fontweight="bold")
+
+
+def sq_runs(G, kind, c, cutoffs, suffix):
+    """The records of one implementation over the cutoffs (None where there is no item or no record yet)."""
+    if kind == "defer":
+        return [gdeferred(G, c, x, int(suffix[1:])) for x in cutoffs]
+    return [G.get(f"{'eng' if kind == 'ours' else kind}.{c}.{x}.{suffix}") for x in cutoffs]
+
+
+def sq_fail(G, kind, c, cutoffs, suffix, recs):
+    """(position, reason) of the first cutoff after the last finished one that failed, or None."""
+    last = max((i for i, s in enumerate(recs) if gok(s)), default=-1)
+    for i in range(last + 1, len(recs)):
+        s = recs[i]
+        if s is None or gok(s):
+            continue
+        st = s["status"]
+        if st == "skipped_after_failure":
+            tag = "defer" if kind == "defer" else ("eng" if kind == "ours" else kind)
+            return i, {"out of\nmemory": "out of memory", "time\nlimit": "over 40 min"}.get(gwhy(G, f"{tag}.{c}", cutoffs[i], suffix), "failed")
+        return i, SHORT_WHY.get(st, "failed")
+    return None
+
+
+def sq_line(ax, G, kind, c, cutoffs, suffix, label=None, ls="-", lw=3.6, ms=9.5, xs=None, mark_end=True):
+    recs = sq_runs(G, kind, c, cutoffs, suffix)
+    xs = list(range(len(cutoffs))) if xs is None else xs
+    pts = [(xs[i], s["wall"]) for i, s in enumerate(recs) if gok(s)]
+    col, mk = SQ[kind]
+    if pts:
+        ax.plot([p[0] for p in pts], [p[1] for p in pts], color=col, marker=mk, markersize=ms, linewidth=lw, linestyle=ls, label=label,
+                zorder=4 if kind == "ours" else 3, solid_capstyle="round")
+    fail = sq_fail(G, kind, c, cutoffs, suffix, recs)
+    if pts and fail and mark_end:           # the implementation stops here: a cross at the height of its last point
+        ax.plot([xs[fail[0]]], [pts[-1][1]], color=col, marker="x", markersize=ms + 1, markeredgewidth=2.6, linestyle="none", zorder=5)
+    return recs, pts, fail
+
+
+def sq_legend(fig, ax, y, ncol, extra=True, size=13.5):
+    handles, names = ax.get_legend_handles_labels()
+    if extra:
+        handles.append(plt.Line2D([0], [0], color="black", marker="x", markersize=10, markeredgewidth=2.6, linestyle="none"))
+        names.append("stops here: out of memory or over 40 min")
+    fig.legend(handles, names, loc="upper center", ncol=ncol, bbox_to_anchor=(0.5, y), fontsize=size, columnspacing=1.6, handlelength=2.4, frameon=False)
+
+
+def cut_ticks(G, c, cutoffs, extra=None):
+    """Tick labels: the cutoff and, below it, the number of terms of that problem (or the text of `extra`)."""
+    out = []
+    for i, x in enumerate(cutoffs):
+        n = gterms(G, c, x)
+        second = extra[i] if extra is not None else ("(" + count(n).replace(" ", "") + ")" if n else "")
+        out.append(f"{x}\n{second}")
+    return out
+
+
+def g_single_node(G, c="ki", title="Kicked Ising"):
+    """One node (4 GPUs, 64 cores): SectorQ and every other implementation, time against the problem size."""
+    cutoffs = gladder(G, f"eng.{c}", "g4") or gladder(G, f"eng.{c}", "g1")
+    fig, ax = plt.subplots(figsize=(15.2, 5.6))
+    lines = [("ours", "g4", "-", "SectorQ (4 GPUs)"), ("ours", "g1", "--", "SectorQ (1 GPU)"),
+             ("cupp", "g4", "-", "cuPauliProp (4 GPUs)"), ("cupp", "g1", "--", "cuPauliProp (1 GPU)"),
+             ("defer", "g4", "-", "cuPauliProp, dedup deferred (4 GPUs)"), ("spd", "n1", "--", "SPD (1 GPU)"),
+             ("orqa", "n1", "-", "ORQA, reproduction (64 cores)"), ("monoprop", "n1", "-", "MonoProp (64 cores)"),
+             ("julia", "n1", "-", "PauliPropagation.jl (64 cores)"), ("ppvm", "n1", "-", "ppvm (64 cores)"), ("qiskit", "n1", "-", "Qiskit pauli-prop (1 core)")]
+    rows = []
+    for kind, suffix, ls, label in lines:
+        recs, pts, fail = sq_line(ax, G, kind, c, cutoffs, suffix, label=label, ls=ls, lw=3.4 if kind == "ours" else 2.6, ms=9 if kind == "ours" else 8)
+        rows.append((label, [(cutoffs[i], s["wall"]) for i, s in enumerate(recs) if gok(s)], (cutoffs[fail[0]], fail[1]) if fail else None))
+    sq_axes(ax, "Cutoff (# of Terms)", "Simulation Time (s)")
+    ax.set_xticks(range(len(cutoffs)))
+    ax.set_xticklabels(cut_ticks(G, c, cutoffs))
+    ax.set_xlim(-0.4, len(cutoffs) - 0.6)
+    ax.set_ylim(0.06, 5000)
+    sq_legend(fig, ax, 1.1, 4)
+    save(fig, "eval_single_node.png")
+    return rows
+
+
+WEAK_S = {1: "6.2e-5", 2: "4.3e-5", 4: "3e-5", 8: "2.1e-5", 16: "1.5e-5"}
+
+
+def g_weak(G):
+    """Weak scaling: the cutoff is lowered with the GPU count. One panel per circuit and load, one line per implementation."""
+    fig, axes = plt.subplots(2, 3, figsize=(15.6, 8.6), gridspec_kw={"wspace": 0.2, "hspace": 0.5})
+    rows = []
+    for r, (load, cuts) in enumerate((("S", WEAK_S), ("L", WEAK_G))):
+        for j, (c, title) in enumerate(G3):
+            ax = axes[r][j]
+            for kind in ("ours", "cupp", "defer", "orqa", "monoprop"):
+                pts, stop = [], None
+                for i, g in enumerate(GPUS_G):
+                    x = cuts[g]
+                    if kind == "ours":
+                        s = G.get(f"weak{load}.{c}.{x}.g{g}") or G.get(f"eng.{c}.{x}.g{g}")
+                    elif kind == "cupp":
+                        s = G.get(f"weak{load}c.{c}.{x}.g{g}") or G.get(f"cupp.{c}.{x}.g{g}")
+                    elif kind == "defer":
+                        s = None if g == 1 else (G.get(f"weak{load}d.{c}.{x}.g{g}") or gdeferred(G, c, x, g))
+                    else:
+                        s = G.get(f"{kind}.{c}.{x}.n1") if g == 4 else G.get(f"weak{load}.{kind}.{c}.{x}.g{g}")      # 4 GPUs: the sweep's run on one node
+                    if gok(s):
+                        pts.append((i, s["wall"]))
+                    elif s is not None and stop is None and (not pts or i > pts[-1][0]):
+                        stop = i
+                    rows.append((load, title, SQ_NAME[kind], g, x, s))
+                col, mk = SQ[kind]
+                if pts:
+                    ax.plot([p[0] for p in pts], [p[1] for p in pts], color=col, marker=mk, markersize=10, linewidth=3.8 if kind == "ours" else 3.0,
+                            label=SQ_NAME[kind] if (r == 0 and j == 0) else None, zorder=4 if kind == "ours" else 3)
+                    if stop is not None and stop > pts[-1][0]:
+                        ax.plot([stop], [pts[-1][1]], color=col, marker="x", markersize=11, markeredgewidth=2.6, linestyle="none", zorder=5)
+            sq_axes(ax, "# of GPUs (Cutoff)", "Simulation Time (s)" if j == 0 else None)
+            ax.set_xticks(range(len(GPUS_G)))
+            ax.set_xticklabels([f"{g}\n({cuts[g]})" for g in GPUS_G])
+            ax.set_xlim(-0.35, len(GPUS_G) - 0.65)
+            ax.set_ylim((1.5, 500) if load == "S" else (15, 1500))
+            ax.set_title(f"({'abcdef'[3 * r + j]}) {title}, {'small' if load == 'S' else 'large'} load", fontsize=14.5, pad=8)
+    sq_legend(fig, axes[0][0], 0.985, 6)
+    save(fig, "eval_weak.png")
+    return rows
+
+
+def g_strong(G, c="ki", cutoffs=("1e-4", "3e-5", "1e-5", "3e-6", "1e-6")):
+    """Strong scaling in the form of ScaleQsim: one panel per GPU count, time against the problem size; below each cutoff
+    the speedup of SectorQ over cuPauliProp's distributed mode on the same GPUs."""
+    panels = ((4, "g4", "n1", "4 GPUs (1 node)"), (8, "g8", "n2", "8 GPUs (2 nodes)"), (16, "g16", "n4", "16 GPUs (4 nodes)"))
+    panels = [p for p in panels if any(gok(G.get(f"eng.{c}.{x}.{p[1]}")) for x in cutoffs)]
+    fig, axes = plt.subplots(1, len(panels), figsize=(5.2 * len(panels), 4.9), gridspec_kw={"wspace": 0.2}, squeeze=False)
+    axes = axes[0]
+    rows = []
+    for j, (g, gs, ns, title) in enumerate(panels):
+        ax = axes[j]
+        got = {}
+        for kind, suffix in (("ours", gs), ("cupp", gs), ("defer", gs), ("orqa", ns), ("monoprop", ns)):
+            recs, pts, fail = sq_line(ax, G, kind, c, cutoffs, suffix, label=SQ_NAME[kind] if j == 0 else None, lw=3.8 if kind == "ours" else 3.0, ms=10)
+            got[kind] = recs
+            rows.append((title, SQ_NAME[kind], [(cutoffs[i], s["wall"]) for i, s in enumerate(recs) if gok(s)], (cutoffs[fail[0]], fail[1]) if fail else None))
+        extra = []
+        for a, b in zip(got["ours"], got["cupp"]):
+            extra.append("(" + times(b["wall"], a["wall"]).replace("×", "x") + ")" if gok(a) and gok(b) else ("(OOM)" if gok(a) and b is not None else ""))
+        sq_axes(ax, "Cutoff / Speedup of SectorQ", "Simulation Time (s)" if j == 0 else None)
+        ax.set_xticks(range(len(cutoffs)))
+        ax.set_xticklabels(cut_ticks(G, c, cutoffs, extra))
+        ax.set_xlim(-0.4, len(cutoffs) - 0.6)
+        ax.set_ylim(0.3, 4000)
+        ax.set_title(f"({'abc'[j]}) {title}", fontsize=14.5, pad=8)
+    sq_legend(fig, axes[0], 1.1, 3 if len(panels) < 3 else 6)
+    save(fig, "eval_strong.png")
+    return rows
+
+
+def g_circuits(G, g=16):
+    """Seven circuits on 16 GPUs: SectorQ against cuPauliProp's two distributed modes, time against the problem size."""
+    fig, axes = plt.subplots(2, 4, figsize=(15.6, 8.2), gridspec_kw={"wspace": 0.26, "hspace": 0.52})
+    flat = [a for row in axes for a in row]
+    rows = []
+    for j, (c, name) in enumerate(G7):
+        ax = flat[j]
+        cutoffs = gladder(G, f"eng.{c}", f"g{g}")
+        cutoffs = [x for x in cutoffs if "." not in x and x not in ("15e-7", "12e-7")]
+        got = {}
+        for kind in ("ours", "cupp", "defer"):
+            recs, pts, fail = sq_line(ax, G, kind, c, cutoffs, f"g{g}", label=SQ_NAME[kind] if j == 0 else None, lw=3.8 if kind == "ours" else 3.0, ms=9)
+            got[kind] = recs
+            rows.append((name.replace("\n", " "), SQ_NAME[kind], [(cutoffs[i], s["wall"]) for i, s in enumerate(recs) if gok(s)], (cutoffs[fail[0]], fail[1]) if fail else None))
+        extra = ["(" + times(b["wall"], a["wall"]).replace("×", "x") + ")" if gok(a) and gok(b) else "" for a, b in zip(got["ours"], got["cupp"])]
+        sq_axes(ax, "Cutoff / Speedup of SectorQ", "Simulation Time (s)" if j % 4 == 0 else None, size=13)
+        step = -(-len(cutoffs) // 4)                            # at most four labelled cutoffs in a panel
+        ax.set_xticks(range(0, len(cutoffs), step))
+        ax.set_xticklabels([f"{cutoffs[i]}\n{extra[i]}" for i in range(0, len(cutoffs), step)], fontsize=11.5)
+        ax.set_xlim(-0.4, len(cutoffs) - 0.6)
+        ax.set_ylim(0.2, 3000)
+        ax.set_title(f"({'abcdefg'[j]}) {name.replace(chr(10), ' ')}", fontsize=14, pad=8)
+    flat[7].axis("off")
+    sq_legend(fig, flat[0], 0.985, 4)
+    save(fig, "eval_circuits.png")
+    return rows
+
+
+def g_scaleout(G, c="ki", title="Kicked Ising"):
+    """Scale-out of SectorQ: time against the problem size, one line per GPU count."""
+    cutoffs = [x for x in gladder(G, f"eng.{c}", "g16") if x not in ("15e-7", "12e-7")][4:]         # from cutoff 1e-4
+    colors = {1: "#1f77b4", 2: "#d62728", 4: "#FFA500", 8: "#5b4a8a", 16: "#2ca02c"}
+    fig, ax = plt.subplots(figsize=(10.4, 4.9))
+    rows = []
+    for g in GPUS_G:
+        recs = [G.get(f"eng.{c}.{x}.g{g}") for x in cutoffs]
+        pts = [(i, s["wall"]) for i, s in enumerate(recs) if gok(s)]
+        if not pts:
+            continue
+        ax.plot([p[0] for p in pts], [p[1] for p in pts], color=colors[g], marker="s", markersize=10, linewidth=3.8, label=f"{g} GPU" + ("s" if g > 1 else ""))
+        fail = next((i for i in range(pts[-1][0] + 1, len(recs)) if recs[i] is not None), None)
+        if fail is not None:
+            ax.plot([fail], [pts[-1][1]], color=colors[g], marker="x", markersize=11, markeredgewidth=2.6, linestyle="none", zorder=5)
+        rows.append((g, [(cutoffs[i], w) for i, w in pts]))
+    sq_axes(ax, "Cutoff (# of Terms)", "Simulation Time (s)")
+    ax.set_xticks(range(len(cutoffs)))
+    ax.set_xticklabels(cut_ticks(G, c, cutoffs))
+    ax.set_xlim(-0.4, len(cutoffs) - 0.6)
+    ax.set_ylim(0.5, 4000)
+    sq_legend(fig, ax, 1.03, 6, extra=True, size=13)
+    save(fig, "eval_scaleout.png")
     return rows
 
 
@@ -972,34 +983,33 @@ def g_accuracy(G):
 
 def main_g():
     G = campaign_g()
-    speed_rows = g_speed(G)
-    gpu_rows = g_gpus(G)
-    sota_rows = g_sota(G)
-    strong, weak = g_scaling(G)
-    reach = g_reach(G)
+    single = g_single_node(G)
+    weak = g_weak(G)
+    strong = g_strong(G)
+    circuits = g_circuits(G)
+    scaleout = g_scaleout(G)
     parts = g_breakdown(G)
     sizes = g_breakdown_sizes(G)
     g_accuracy(G)
     if "--print" in sys.argv:
         f = lambda s: "-" if s is None else (secs(s["wall"]) if gok(s) else s["status"])
-        print("# seven circuits, 16 GPUs: circuit | cutoff | SectorQ | deferred | default")
-        for name, coef, g, e, t, d in speed_rows:
-            print(f"{name:20s} {coef:6s} {f(e):>8s} {f(t):>8s} {f(d):>8s}")
-        print("\n# 1-16 GPUs: circuit | cutoff | GPUs | SectorQ | deferred | default")
-        for name, coef, g, e, t, d in gpu_rows:
-            print(f"{name:20s} {coef:6s} {g:3d} {f(e):>8s} {f(t):>8s} {f(d):>8s}")
-        print("\n# all implementations: circuit | implementation | last cutoff finished (s) | next")
-        for title, name, pts, why in sota_rows:
-            print(f"{title:20s} {name:42s} {pts[-1][0]:g} ({secs(pts[-1][1])})  {(why or '').replace(chr(10), ' ')}")
-        print("\n# strong scaling: circuit | cutoff | GPUs | s")
-        for title, coef, g, wall in strong:
-            print(f"{title:20s} {coef:6s} {g:3d} {wall:8.1f}")
-        print("\n# weak scaling: circuit | GPUs | cutoff | s | work (1e9 terms) | rate (1e6 terms/s/GPU) | % of 1 GPU")
-        for title, g, coef, wall, checks, rate, pct in weak:
-            print(f"{title:20s} {g:3d} {coef:7s} {wall:8.1f} {checks / 1e9:8.2f} {rate / 1e6:6.2f} {pct:5.0f}%")
-        print("\n# reach: circuit | GPUs | implementation | cutoff | terms")
-        for title, g, name, coef, n in reach:
-            print(f"{title:20s} {g:3d} {name:9s} {coef:6s} {count(n)}")
+        show = lambda pts, stop: "  ".join(f"{x}: {secs(w)}" for x, w in pts) + (f"  | stops at {stop[0]} ({stop[1]})" if stop else "")
+        print("# one node, kicked Ising: implementation | cutoff: seconds")
+        for label, pts, stop in single:
+            print(f"{label:40s} {show(pts, stop)}")
+        print("\n# weak scaling: load | circuit | implementation | GPUs | cutoff | seconds")
+        for load, title, name, g, x, s in weak:
+            if s is not None:
+                print(f"{load} {title:20s} {name:28s} {g:3d} {x:7s} {f(s)}")
+        print("\n# strong scaling, kicked Ising: GPUs | implementation | cutoff: seconds")
+        for title, name, pts, stop in strong:
+            print(f"{title:18s} {name:28s} {show(pts, stop)}")
+        print("\n# seven circuits, 16 GPUs: circuit | implementation | cutoff: seconds")
+        for title, name, pts, stop in circuits:
+            print(f"{title:20s} {name:28s} {show(pts, stop)}")
+        print("\n# scale-out, kicked Ising: GPUs | cutoff: seconds")
+        for g, pts in scaleout:
+            print(f"{g:3d}  " + "  ".join(f"{x}: {secs(w)}" for x, w in pts))
         print("\n# where the time goes, 16 GPUs")
         for title, lab, d in parts:
             print(f"{title or '':32s} {lab:28s} {d['wall']:7.2f} s  " + "  ".join(f"{k}={v * 100:.0f}%" for k, v in d["share"].items())
@@ -1026,15 +1036,21 @@ def main():
             if "phases" in r:
                 print(f"{'':62s} phases: " + ", ".join(f"{k} {a:.2f} s ({b:.2f} in MPI)" for k, (a, b) in r["phases"].items()))
         return
+    e12, e13 = many("pp_e12_g*-*.out"), many("pp_e13_g*-*.out")
+    if "--old" not in sys.argv:
+        # the figures of the README: background, 1-16 GPUs from campaign g, 4-128 GPUs from the job sets e12 and e13
+        background()
+        scaling(e13)
+        scaling_baselines(e13, e12)
+        return main_g()
+    # the evaluation figures before campaign g, from the earlier logs (they overwrite eval_breakdown*.png and eval_accuracy.png)
     run4, run5, e3 = parse("inter_run4.out"), parse("inter_run5.out"), parse("pp_e3-59475516.out")
     run6 = parse("inter_run6.out")
     big = parse(BIG_LOG)        # 16 and 32 GPUs of the same eight nodes: engine and both baselines
     e2a, e2b, run2, run3 = parse("pp_e2a-59475513.out"), parse("pp_e2b-59475514.out"), parse("inter_run2.out"), parse("inter_run3.out")
     allruns = e2a + e2b + e3 + run2 + run3 + run4 + run5 + run6
-    background()
     table = speed(run5 + run6 + [r for r in big if r["kind"] == "engine"], e3 + run3 + run4 + run5 + run6, big)
     rows, reach = gpus_and_reach(run4, run5, run4 + run5 + run6, big)
-    e12, e13 = many("pp_e12_g*-*.out"), many("pp_e13_g*-*.out")
     strong, weak = scaling(e13)
     base = scaling_baselines(e13, e12)
     accuracy()
