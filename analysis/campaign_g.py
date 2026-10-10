@@ -151,6 +151,153 @@ def main():
                 row.append(("%.0e" % min(done) if done else "") + ("+" if still else ""))
             print("%-20s %-22s %s" % (NAMES[c] if label == "SectorQ" else "", label, " ".join("%8s" % r for r in row)))
     print("(+ : the ladder is still running)")
+    extra_tables(items, state, ladders, want)
+
+
+WEAK = {"L": {1: "2e-5", 2: "1.4e-5", 4: "1e-5", 8: "7e-6", 16: "4.8e-6"},
+        "S": {1: "6.2e-5", 2: "4.3e-5", 4: "3e-5", 8: "2.1e-5", 16: "1.5e-5"}}
+MAIN = ("ki", "tfim", "noise")
+BACKENDS = (("spd", "SPD, 1 GPU", (1,)), ("orqa", "ORQA (reproduction), 64 ranks/node", (1, 2, 4)),
+            ("monoprop", "MonoProp, own truncation rule", (1, 2, 4)), ("julia", "PauliPropagation.jl, 64 threads", (1,)),
+            ("ppvm", "ppvm, 64 threads", (1,)), ("qiskit", "Qiskit pauli-prop, 1 thread", (1,)), ("obp", "OBP, own error budget", (1,)))
+NODES_OF = {4: 1, 8: 2, 16: 4}
+
+
+def ratio(a, b):
+    """b seconds / a seconds where both runs completed."""
+    if a and b and a["status"] == "ok" and b["status"] == "ok" and a.get("wall") and b.get("wall"):
+        return b["wall"] / a["wall"]
+    return None
+
+
+def extra_tables(items, state, ladders, want):
+    ids = {i["id"] for i in items}
+    get = state.get
+
+    # external baselines: the sweep
+    print("\n## external baselines: solve seconds per cutoff (CPU implementations: 1, 2, 4 nodes stand for 4, 8, 16 GPUs)")
+    for c in want:
+        if c not in ladders:
+            continue
+        coefs = set()                      # cutoffs of the external ladders of this circuit (a cutoff may contain a dot: 6.2e-5)
+        for i in items:
+            m = re.match(r"[a-z]+\.%s\.(.+)\.n\d+$" % c, i["id"])
+            if m and i.get("kind") == "ext" and i.get("ladder"):
+                coefs.add(m.group(1))
+        coefs = sorted(coefs, key=float, reverse=True)
+        if not coefs:
+            continue
+        print(f"\n{NAMES[c]}\n%-46s %s" % ("", " ".join("%7s" % x for x in coefs)))
+        for g in (1, 4, 8, 16):
+            print("%-46s %s" % (f"SectorQ, {g} GPU" + ("s" if g > 1 else ""), " ".join(
+                "%7s" % cell(get(f"eng.{c}.{x}.g{g}") or get(f"weakL.{c}.{x}.g{g}") or get(f"weakS.{c}.{x}.g{g}")) for x in coefs)))
+        for b, label, node_counts in BACKENDS:
+            for n in node_counts:
+                if not any(f"{b}.{c}.{x}.n{n}" in ids for x in coefs):
+                    continue
+                name = label + (f", {n} node" + ("s" if n > 1 else "") if len(node_counts) > 1 else "")
+                print("%-46s %s" % (name, " ".join("%7s" % cell(get(f"{b}.{c}.{x}.n{n}")) for x in coefs)))
+    print("\n## SectorQ against the external baselines on the same nodes (their seconds / SectorQ seconds), largest size both finished")
+    for c in want:
+        if c not in ladders:
+            continue
+        out = []
+        for b, label, node_counts in BACKENDS:
+            for n in node_counts:
+                g = 1 if b == "spd" else 4 * n
+                pick = None
+                for x in sorted(ladders[c], key=float):
+                    r = ratio(get(f"eng.{c}.{x}.g{g}"), get(f"{b}.{c}.{x}.n{n}"))
+                    if r:
+                        pick = f"{b} n{n} ({x}): {r:.1f}x"
+                        break
+                if pick:
+                    out.append(pick)
+        if out:
+            print("%-20s %s" % (NAMES[c], "   ".join(out)))
+
+    # weak scaling
+    print("\n## weak scaling: seconds on 1 / 2 / 4 / 8 / 16 GPUs, cutoff lowered with the GPU count (L: 1e-5 on 4 GPUs, S: 3e-5 on 4 GPUs)")
+    for load in ("L", "S"):
+        for c in MAIN:
+            if c not in want:
+                continue
+            def pick(tag_weak, tag_sweep, g):
+                x = WEAK[load][g]
+                return get(f"{tag_weak}.{c}.{x}.g{g}") or get(f"{tag_sweep}.{c}.{x}.g{g}")
+            eng = [pick(f"weak{load}", "eng", g) for g in GPUS]
+            rows = [("SectorQ", eng), ("cuPauliProp", [pick(f"weak{load}c", "cupp", g) for g in GPUS]),
+                    ("cuPauliProp, deferred", [None] + [pick(f"weak{load}d", "defer", g) for g in GPUS[1:]])]
+            for b in ("orqa", "monoprop"):
+                r = []
+                for g in GPUS:
+                    x = WEAK[load][g]
+                    r.append(get(f"weak{load}.{b}.{c}.{x}.g{g}") or (get(f"{b}.{c}.{x}.n{NODES_OF[g]}") if g in NODES_OF else None))
+                rows.append((b + " (16, 32 cores; 1, 2, 4 nodes)", r))
+            print(f"\n{NAMES[c]}, load {load}: cutoffs " + " / ".join(WEAK[load][g] for g in GPUS))
+            for name, r in rows:
+                if any(r):
+                    print("  %-34s %s" % (name, " ".join("%7s" % cell(x) for x in r)))
+            facts = [engine_facts("", x) for x in eng]
+            if any(facts):
+                per = ["" if not f or not f[0] else "%.1f" % (f[0] / g / 1e6) for f, g in zip(facts, GPUS)]
+                print("  %-34s %s" % ("boundary terms per GPU (millions)", " ".join("%7s" % x for x in per)))
+
+    # less GPU memory, design parameters
+    print("\n## SectorQ with less GPU memory, cutoff 1e-5 (fraction of the 40 GB; default 0.9): seconds on 1 GPU and on 4 GPUs")
+    for c in MAIN:
+        if c not in want:
+            continue
+        for g in (1, 4):
+            row = [("0.9", get(f"eng.{c}.1e-5.g{g}"))] + [(f, get(f"vram.{c}.1e-5.g{g}.f{f}")) for f in ("0.45", "0.2", "0.1")]
+            print("  %-20s %2d GPU  %s" % (NAMES[c], g, "   ".join(f"{f}: {cell(x) or 'open'}" for f, x in row)))
+    print("\n## design parameters, cutoff 1e-5: seconds on 4 and 16 GPUs (desired terms per sector; sectors per GPU, default 2)")
+    for c in MAIN:
+        if c not in want:
+            continue
+        for g in (4, 16):
+            base = get(f"eng.{c}.1e-5.g{g}")
+            tg = sorted(((int(i["id"].rsplit(".t", 1)[1]), get(i["id"])) for i in items if i["id"].startswith(f"tgt.{c}.1e-5.g{g}.t")))
+            pg = sorted(((int(i["id"].rsplit(".p", 1)[1]), get(i["id"])) for i in items if i["id"].startswith(f"pg.{c}.1e-5.g{g}.p")))
+            print("  %-20s %2d GPUs  default: %s   target %s   per GPU %s" % (NAMES[c], g, cell(base) or "open",
+                  "  ".join(f"{t / 1e6:g}M: {cell(x) or 'open'}" for t, x in tg), "  ".join(f"{k}: {cell(x) or 'open'}" for k, x in pg)))
+
+    # the engine before and after the change of 2026-10-10 (rows chosen while the window runs)
+    old_dir = os.path.join(Q, "done_g")
+    if os.path.isdir(old_dir):
+        pairs = []
+        for name in os.listdir(old_dir):
+            new = get(name)
+            try:
+                old = json.load(open(os.path.join(old_dir, name)))
+            except ValueError:
+                continue
+            r = ratio(new, old)
+            if r and name.startswith("eng."):
+                pairs.append((name, old["wall"], new["wall"], r))
+        if pairs:
+            print("\n## engine before and after rows are chosen while the window runs (multi-GPU sweep runs measured with both): seconds, old / new")
+            for c in want:
+                for g in (2, 4, 8, 16):
+                    row = sorted((p for p in pairs if p[0].split(".")[1] == c and p[0].endswith(f".g{g}")), key=lambda p: -float(p[0].split(".")[2]))
+                    if row:
+                        print("  %-20s %2d GPUs  %s" % (NAMES.get(c, c), g, "  ".join(f"{p[0].split('.')[2]}: {p[1]:.3g}/{p[2]:.3g} ({p[3]:.2f}x)" for p in row)))
+
+    # convergence: kicked Ising at other rotation angles
+    conv = sorted({i["id"].split(".")[2] for i in items if i["id"].startswith("conv.eng.")}, key=lambda t: float(t[1:]))
+    if conv and any(get(i["id"]) for i in items if i["id"].startswith("conv.")):
+        print("\n## convergence: kicked Ising at other rotation angles, expectation value by cutoff (SectorQ, 16 GPUs; the value of the smallest finished cutoff last)")
+        rungs = sorted({i["id"].split(".")[3] for i in items if i["id"].startswith("conv.eng.")}, key=float, reverse=True)
+        print("  %-8s %s" % ("angle/pi", " ".join("%9s" % x for x in rungs)))
+        for t in conv:
+            vals = []
+            for x in rungs:
+                s = get(f"conv.eng.{t}.{x}.g16") or get(f"conv.eng.{t}.{x}.g1")
+                vals.append("%+.5f" % s["expectation"] if s and s["status"] == "ok" and s.get("expectation") is not None else (cell(s) if s else ""))
+            print("  %-8s %s" % (t[1:], " ".join("%9s" % v for v in vals)))
+        print("  how far each gets (smallest cutoff finished): " + "; ".join(
+            f"{label} " + ", ".join(f"{t[1:]}: " + (min((x for x in rungs if (get(f'conv.{tag}.{t}.{x}.g{g}') or {}).get('status') == 'ok'), key=float, default='-')) for t in conv)
+            for label, tag, g in (("SectorQ 1 GPU", "eng", 1), ("cuPauliProp 1 GPU", "cupp", 1), ("cuPauliProp 16 GPUs", "cupp", 16))))
 
 
 if __name__ == "__main__":
