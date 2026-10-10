@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Run list of the scale campaign (32 and 64 GPUs = 8 and 16 nodes): queue_s/todo_s.jsonl, in the item format of
-campaign g (jobs/g_items.py, jobs/g_ext_items.py). Run by jobs/s_run.py inside one batch job per GPU count.
+"""Run list of the scale campaign (32, 64, 128 and 256 GPUs = 8, 16, 32 and 64 nodes): queue_s/todo_s.jsonl, in the
+item format of campaign g (jobs/g_items.py, jobs/g_ext_items.py). Run by jobs/s_run.py inside one batch job per GPU count.
 
   python3 jobs/s_items.py          writes the list and takes over the runs that the scaling jobs e15 already made
+  python3 jobs/s_items.py --take   only takes over the runs of e15 (the list is left as it is: a runner may be reading it)
 
 The plan follows campaign g: every performance experiment has all the implementations that run on several nodes
 (SectorQ, cuPauliProp's distributed mode in both forms, the ORQA reproduction, MonoProp); the cutoff ladders go from
@@ -14,6 +15,7 @@ import glob
 import json
 import os
 import re
+import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 Q = os.path.join(ROOT, "queue_s")
@@ -23,7 +25,7 @@ ARGS = {"ki": ("--circuit ki_lab --weight 0", 6000000), "tfim": ("--circuit tfim
         "noise": ("--circuit ki_noisy --noise 0.005", 6000000)}
 NAME = {"ki_lab": "ki", "tfim_hh": "tfim", "ki_noisy": "noise"}
 WEAK_L = {32: "3.4e-6", 64: "2.3e-6", 128: "1.6e-6", 256: "1.15e-6"}       # cutoff = 1e-5 * (GPUs/4)^-0.52
-WEAK_S = {32: "1e-5", 64: "7.1e-6"}                                         # cutoff = 3e-5 * (GPUs/4)^-0.52
+WEAK_S = {32: "1e-5", 64: "7.1e-6", 128: "4.9e-6", 256: "3.5e-6"}           # cutoff = 3e-5 * (GPUs/4)^-0.52
 items = []
 
 
@@ -34,9 +36,9 @@ def add(item_id, g, kind, ladder=None, coef=None, est=600, **more):
     items.append(item)
 
 
-def eng(item_id, c, x, g, ladder=None, est=600):
+def eng(item_id, c, x, g, ladder=None, est=600, more=""):
     a, target = ARGS[c]
-    add(item_id, g, "eng", ladder, x, est, per=4, args=f"{a} --coef {x} --target {target} --trace 1 --vram-frac 0.9")
+    add(item_id, g, "eng", ladder, x, est, per=4, args=f"{a} --coef {x} --target {target} --trace 1 --vram-frac 0.9{more}")
 
 
 def cupp(item_id, c, x, g, ladder=None, tuned=False, est=300):
@@ -48,7 +50,7 @@ def ext(item_id, b, c, x, g, ladder=None, est=900):
     add(item_id, g, "ext", ladder, x, est, backend=b, case=c, policy=policy, rpn=rpn, threads=threads, predict=True)
 
 
-for g in (32, 64):
+for g in (32, 64, 128, 256):
     n = g // 4
     # 1. the representative circuit: SectorQ over the cutoffs (strong-scaling panel and scale-out)
     for x in ("1e-4", "5e-5", "3e-5", "2e-5", "1e-5", "5e-6", "3e-6", "2e-6", "1e-6"):
@@ -62,6 +64,11 @@ for g in (32, 64):
         eng(f"weakL.{c}.{WEAK_L[g]}.g{g}", c, WEAK_L[g], g)
         if WEAK_S[g] != "1e-5":                     # on 32 GPUs the small load is the cutoff 1e-5 of the sweep
             eng(f"weakS.{c}.{WEAK_S[g]}.g{g}", c, WEAK_S[g], g, est=120)
+    # 3b. up to 1,024 sectors per window for the largest problems: with the default of 256 there are two sectors or
+    #     fewer per GPU from 128 GPUs on, and the sectors of these problems do not fit the GPU buffer
+    if g >= 128:
+        for c, x in (("ki", WEAK_L[g]), ("ki", "3e-6"), ("ki", "1e-6"), ("tfim", WEAK_L[g])):
+            eng(f"eng10.{c}.{x}.g{g}", c, x, g, more=" --gmax 10")
     # 4. cuPauliProp's distributed mode on the same GPUs: default and deduplication deferred to the truncations
     for c in ARGS:
         for tag, tuned in (("cupp", False), ("defer", True)):
@@ -95,9 +102,12 @@ assert len({i["id"] for i in items}) == len(items)
 os.makedirs(os.path.join(Q, "done"), exist_ok=True)
 os.makedirs(os.path.join(Q, "lock"), exist_ok=True)
 os.makedirs(LOGS, exist_ok=True)
-with open(os.path.join(Q, "todo_s.jsonl"), "w") as f:
-    for i in items:
-        f.write(json.dumps(i) + "\n")
+if "--take" not in sys.argv:
+    tmp = os.path.join(Q, ".todo_s.tmp")
+    with open(tmp, "w") as f:
+        for i in items:
+            f.write(json.dumps(i) + "\n")
+    os.replace(tmp, os.path.join(Q, "todo_s.jsonl"))
 
 # runs already made by the scaling jobs e15: one record and one log per run
 ids = {i["id"] for i in items}
@@ -110,10 +120,12 @@ for path in sorted(glob.glob(os.path.join(ROOT, "logs", "pp_e15_g*-*.out"))):
             continue
         kind, g, args = m.group(1), int(m.group(3)), m.group(4)
         opt = dict(zip(args.split()[::2], args.split()[1::2]))
-        if "--gmax" in opt or "--chunk" in opt:
-            continue                                  # settings other than the defaults
+        if "--chunk" in opt or opt.get("--gmax", "10") != "10":
+            continue                                  # settings that are not in the list
         c, x = NAME[opt["--circuit"]], opt["--coef"]
-        if kind == "engine":
+        if kind == "engine" and "--gmax" in opt:
+            item_id = f"eng10.{c}.{x}.g{g}"
+        elif kind == "engine":
             item_id = f"weakL.{c}.{x}.g{g}" if x == WEAK_L.get(g) else f"eng.{c}.{x}.g{g}"
         else:
             item_id = ("defer" if opt.get("--cupp-tuned") == "1" else "cupp") + f".{c}.{x}.g{g}"
