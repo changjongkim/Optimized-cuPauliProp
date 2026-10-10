@@ -368,6 +368,49 @@ def extra_tables(items, state, ladders, want):
             f"{label} " + ", ".join(f"{t[1:]}: " + (min((x for x in rungs if (get(f'conv.{tag}.{t}.{x}.g{g}') or {}).get('status') == 'ok'), key=float, default='-')) for t in conv)
             for label, tag, g in (("SectorQ 1 GPU", "eng", 1), ("cuPauliProp 1 GPU", "cupp", 1), ("cuPauliProp 16 GPUs", "cupp", 16))))
     more_tables(items, state)
+    same_error(state, ladders, want)
+
+
+def same_error(state, ladders, want, g=16, n=4):
+    """MonoProp truncates by its own rule, so it is compared at the same error instead of the same cutoff. The error of
+    a value is its distance from SectorQ's value at the smallest cutoff it finished (the best value there is; not the
+    exact one). SectorQ's time at MonoProp's error is interpolated on log axes between the two cutoffs of its sweep
+    around that error, on the part of the sweep where the error falls with the cutoff."""
+    import math
+    print(f"\n## MonoProp ({n} nodes) against SectorQ ({g} GPUs) at the same error (error: distance from SectorQ's value at its smallest cutoff)")
+    print("  %-18s %-7s %-10s %-8s %9s   %-26s %s" % ("circuit", "cutoff", "value", "error", "MonoProp", "SectorQ at that error", "MonoProp / SectorQ"))
+    for c in want:
+        pts = sorted(((float(x), s["expectation"], s["wall"], x) for x in ladders.get(c, []) for s in [state.get(f"eng.{c}.{x}.g{g}")]
+                      if s and s["status"] == "ok" and s.get("expectation") is not None and s.get("wall")), reverse=True)
+        if len(pts) < 3:
+            continue
+        ref = pts[-1][1]
+        curve = [(abs(v - ref), t, x) for _, v, t, x in pts]
+        tail = [curve[-1]]                                  # from the smallest cutoff upwards while the error grows
+        for e in reversed(curve[:-1]):
+            if e[0] <= tail[-1][0]:
+                break
+            tail.append(e)
+        tail.reverse()                                      # largest error (largest cutoff) first
+        for x in sorted({k.split(".", 2)[2].rsplit(".n", 1)[0] for k in state if k.startswith(f"monoprop.{c}.") and k.endswith(f".n{n}")}, key=float, reverse=True):
+            m = state.get(f"monoprop.{c}.{x}.n{n}")
+            if not m or m["status"] != "ok" or m.get("expectation") is None or float(x) > float(tail[0][2]):
+                continue
+            err = abs(m["expectation"] - ref)
+            where, ours = "", None
+            for a, b in zip(tail, tail[1:]):
+                if a[0] >= err >= b[0] and b[0] > 0:
+                    f = (math.log(a[0]) - math.log(err)) / (math.log(a[0]) - math.log(b[0]))
+                    ours = a[1] * (b[1] / a[1]) ** f
+                    where = f"{ours:.1f} s (between {a[2]} and {b[2]})"
+                    break
+                if a[0] >= err >= b[0]:                     # between the last two points: the reference has error 0, interpolate linearly
+                    ours = a[1] + (b[1] - a[1]) * (a[0] - err) / a[0]
+                    where = f"{ours:.1f} s (between {a[2]} and {b[2]})"
+                    break
+            if ours is None:
+                where = "above the largest error of the part" if err > tail[0][0] else ""
+            print("  %-18s %-7s %-10.6f %-8.4f %8.1f s   %-26s %s" % (NAMES[c], x, m["expectation"], err, m["wall"], where, "" if not ours else "%.1fx" % (m["wall"] / ours)))
 
 
 EXACT = {4: 0.802867136639, 6: 0.790133273060}      # 5x6 TFIM, state vector (analysis/exact_sv.py)
