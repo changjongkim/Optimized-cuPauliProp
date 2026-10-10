@@ -90,21 +90,21 @@ SectorQ는 이 관찰에서 다음 규칙을 세운다.
 
 ### 1.5 주요 결과
 
-회로 7종(64–127 qubit)과 exact 값을 아는 30 qubit 회로, Perlmutter A100. 1–16 GPU의 값은 지금의 엔진을 모든 비교 대상과 함께 잰 것이고(4절), 32–128 GPU의 값은 그 이전 엔진의 측정이다(4.4절). 모든 구현에 같은 연산 목록을 주었고 측정은 설정마다 1회이다. 1–16 GPU 측정의 일부(8 GPU의 SectorQ, 외부 구현의 낮은 cutoff, 각도별 수렴)는 아직 측정 중이다.
+회로 7종(64–127 qubit)과 exact 값을 아는 30 qubit 회로, Perlmutter A100. 1–16 GPU는 모든 비교 대상과 함께 재었고(4.2–4.4절), 32–128 GPU는 SectorQ와 cuPauliProp을 재었다(4.4절). 모든 구현에 같은 연산 목록을 주었고 측정은 설정마다 1회이다. 1–16 GPU 측정의 일부(8 GPU의 SectorQ, 외부 구현의 낮은 cutoff, 각도별 수렴)는 아직 측정 중이다.
 
 | 항목 | cuPauliProp 분산 (기본) | cuPauliProp 분산 (dedup을 미룸) | SectorQ |
 |---|---:|---:|---:|
 | 기대값 | 기준 | 기준과 동일 | 실행이 둘 이상인 모든 설정에서 차이 5e-11 이하 (4.1절) |
 | 16 GPU, cuPauliProp이 GPU 1장으로 끝내는 가장 큰 설정 7종 | 12.6–49.1초 | 4.7–11.6초 | 0.68–1.64초 (기본의 18–52배, dedup을 미룬 것의 6.1–10배) |
 | 16 GPU, cuPauliProp 분산이 16 GPU로 끝내는 가장 큰 설정 7종 (최대 2.6억 항) | 17.3–71.3초 | 9.2–56.9초, 2종은 메모리 부족 | 2.7–14.8초 (기본의 4.2–9.7배, dedup을 미룬 것의 2.2–4.6배) |
-| 32 / 64 / 128 GPU, cutoff 1e-5의 3종 (이전 엔진) | 35.9–87.9초 | 16.3–26.6초 | 6.5–12.4초 (기본의 5.1–13배, dedup을 미룬 것의 2.1–3.0배) |
+| 32 / 64 / 128 GPU, cutoff 1e-5의 3종 | 35.9–87.9초 | 16.3–26.6초 | 6.5–12.4초 (기본의 5.1–13배, dedup을 미룬 것의 2.1–3.0배) |
 | Strong scaling, 1 → 16 GPU (cutoff 3e-6, 3종) | 메모리 부족 | 메모리 부족 | 14–15배 (kicked Ising: 1,741초 → 122초) |
-| Strong scaling, 4 → 128 GPU (cutoff 3e-6과 5e-6, 3종, 이전 엔진) | 3e-6은 메모리 부족, 나머지는 재지 않음 | 같음 | 11.2–20.8배 (kicked Ising 3e-6: 464.8초 → 22.4초) |
-| Weak scaling, GPU당 처리율 | 메모리 부족 | 메모리 부족 | 16 GPU에서 1 GPU의 79–87%. 이전 엔진: 64 GPU에서 4 GPU의 71–83%, 128 GPU에서 59–78% |
+| Strong scaling, 4 → 128 GPU (cutoff 3e-6과 5e-6, 3종) | 3e-6은 메모리 부족, 나머지는 재지 않음 | 같음 | 11.2–20.8배 (kicked Ising 3e-6: 464.8초 → 22.4초) |
+| Weak scaling, GPU당 처리율 | 메모리 부족 | 메모리 부족 | 16 GPU에서 1 GPU의 79–87%. 64 GPU에서 4 GPU의 71–83%, 128 GPU에서 59–78% |
 | Kicked Ising cutoff 1e-5(1.6억 항)를 끝내는 데 필요한 GPU 수 | 16 | 16 | 1 |
 | 같은 설정의 1 / 2 / 4 / 16 GPU 시간 | 16장 54.3초 | 16장 48.8초 | 168 / 85.3 / 46.7 / 12.2초 |
 | Kicked Ising cutoff 3e-6 (15억 항) | 메모리 부족 (16, 64, 128 GPU) | 메모리 부족 | 1 / 2 / 4 / 16 GPU에서 1,741 / 872 / 436 / 122초 |
-| Kicked Ising cutoff 1e-6 (119억 항) | cutoff 5e-6부터 메모리 부족 | 같음 | 16 GPU 1,625초. 128 GPU 189초 (이전 엔진) |
+| Kicked Ising cutoff 1e-6 (119억 항) | cutoff 5e-6부터 메모리 부족 | 같음 | 16 GPU 1,625초. 128 GPU 189초 |
 | 40분 안에 끝낸 가장 큰 크기 (kicked Ising, 구간 경계의 항 수) | 16 GPU로 1.6억 | 16 GPU로 1.6억 | GPU 1장으로 15억, 16 GPU로 119억 |
 | 16 GPU의 GPU 사용률 (cutoff 3e-5, 3종) | 6–10% | 12–19% | 43–48% |
 | 연산마다의 전원 통신 | rank마다 연산당 allgather 22회 | 연산당 2.2–3.9회 | 없음. 구간마다 표본과 행을 나누고, 구간이 바뀔 때 항을 교환한다 |
@@ -403,13 +403,13 @@ Clifford gate와 Clifford 각도의 rotation은 항 수를 바꾸지 않고 bit�
 
 플랫폼은 Perlmutter GPU 노드이다(노드당 A100 4장, CPU 64 코어, DRAM 256 GiB). 평가는 두 묶음의 측정으로 이루어진다.
 
-- **1–16 GPU.** 40 GB 노드 1–4대에서 GPU당 36 GB로(`--vram-frac 0.9`) 지금의 엔진과 모든 비교 대상을 재었다(캠페인 g, 6.3절). 4.1–4.3절, 4.4절의 앞부분, 4.5–4.8절이 이 측정이다. 모든 방식에 실행당 40분의 제한을 같게 두었다. cutoff는 쉬운 설정에서 시작하여 낮추어 가고, 한 방식이 메모리 부족이나 시간 초과로 실패하면 그 방식의 더 낮은 cutoff는 돌리지 않았다.
-- **16–128 GPU.** 4.4절의 뒷부분이다. 행 고르기를 구간 계산과 겹치기 전의 엔진으로 잰 값이며(4.11절), 지금의 엔진으로는 다시 재지 않았다.
+- **1–16 GPU.** 40 GB 노드 1–4대에서 GPU당 36 GB로(`--vram-frac 0.9`) SectorQ와 모든 비교 대상을 재었다(캠페인 g, 6.3절). 4.1–4.3절, 4.4절의 앞부분, 4.5–4.8절이 이 측정이다. 모든 방식에 실행당 40분의 제한을 같게 두었다. cutoff는 쉬운 설정에서 시작하여 낮추어 가고, 한 방식이 메모리 부족이나 시간 초과로 실패하면 그 방식의 더 낮은 cutoff는 돌리지 않았다.
+- **16–128 GPU.** 4.4절의 뒷부분이다. 40 GB 노드 4–32대에서 SectorQ와 cuPauliProp 분산 모드의 두 가지를 재었다.
 
 측정은 설정마다 1회이며 반복하지 않았다. 기대값은 12자리까지 출력하여 비교하였다. 표에서 "메모리 부족"과 "시간 초과"는 그 실행이 실패한 이유이다. "–"는 같은 방식이 더 쉬운 설정에서 이미 실패하여 돌리지 않은 칸이고, "측정 중"은 아직 끝나지 않은 칸이다.
 
 <!-- g:progress -->
-실행 2,412건 가운데 1,520건이 끝났다(완료 806, 메모리 부족 65, 시간 초과 14, 더 쉬운 칸에서 실패하여 돌리지 않음 189, 캠페인 f에서 가져온 기준선 실행 429). 남은 892건은 측정 중이다.
+실행 2,412건 가운데 1,559건이 끝났다(완료 831, 메모리 부족 70, 시간 초과 16, 더 쉬운 칸에서 실패하여 돌리지 않음 196, 캠페인 f에서 가져온 기준선 실행 429). 남은 853건은 측정 중이다.
 <!-- /g:progress -->
 
 | # | 회로 | 1–16 GPU 측정의 설정 | gate 구성 | 시험하는 것 | `--circuit` 이름 |
@@ -456,17 +456,17 @@ SectorQ의 기대값은 회로 7종 모두에서 단일 GPU 기준과 12자리�
 **1–16 GPU 측정 전체.** 위 표는 초기 측정의 작은 설정이다. 1–16 GPU 측정에서는 SectorQ의 모든 GPU 수, cuPauliProp의 모든 모드, 같은 truncation 규칙을 쓰는 외부 구현의 값을 모두 대조하였다.
 
 <!-- g:agree -->
-같은 truncation 규칙을 쓰는 구현의 완료한 실행을 설정(회로, cutoff)별로 모으면, 실행이 둘 이상인 설정 62개 모두에서 기대값의 최대 차이가 4.9e-11이다.
+같은 truncation 규칙을 쓰는 구현의 완료한 실행을 설정(회로, cutoff)별로 모으면, 실행이 둘 이상인 설정 65개 모두에서 기대값의 최대 차이가 4.9e-11이다.
 
 | 회로 | 설정 수 | 실행 수 | 기대값의 최대 차이 | SectorQ와 대조한 구현 |
 |---|---:|---:|---:|---|
-| Kicked Ising | 12 | 159 | 4.6e-13 | cupp, defer, defer2, defer3, julia, orqa, ppvm, qiskit, spd |
-| TFIM heavy-hex | 12 | 162 | 4.9e-13 | cupp, defer, defer2, defer3, julia, orqa, ppvm, qiskit, spd |
+| Kicked Ising | 13 | 166 | 4.6e-13 | cupp, defer, defer2, defer3, julia, orqa, ppvm, qiskit, spd |
+| TFIM heavy-hex | 13 | 168 | 4.9e-13 | cupp, defer, defer2, defer3, julia, orqa, ppvm, qiskit, spd |
 | 2D TFIM 11×11 | 6 | 74 | 4.9e-13 | cupp, defer, julia, orqa, ppvm, qiskit, spd |
 | XXZ 8×8 | 6 | 68 | 2.8e-14 | cupp, defer, julia, orqa, ppvm, qiskit, spd |
 | QAOA 100 qubit | 7 | 76 | 4.9e-11 | cupp, defer, julia, orqa, ppvm, spd |
-| Ansatz 100 qubit | 6 | 54 | 4.5e-13 | cupp, defer, julia, orqa, ppvm, spd |
-| 잡음 있는 kicked Ising | 13 | 158 | 4.4e-13 | cupp, defer, defer2, defer3, julia, orqa, ppvm |
+| Ansatz 100 qubit | 6 | 55 | 4.5e-13 | cupp, defer, julia, orqa, ppvm, spd |
+| 잡음 있는 kicked Ising | 14 | 162 | 4.4e-13 | cupp, defer, defer2, defer3, julia, orqa, ppvm |
 
 표의 구현 이름은 실행 식별자이다: `cupp` cuPauliProp(GPU 1장과 분산 기본), `defer*` dedup을 미룬 cuPauliProp, `spd` SPD, `orqa` ORQA 재현, `julia` PauliPropagation.jl, `ppvm` ppvm, `qiskit` Qiskit pauli-prop.
 <!-- /g:agree -->
@@ -496,7 +496,7 @@ MonoProp은 truncation 규칙이 달라 이 대조에 넣지 않았다(4.3절).
 | MonoProp | 8 rank × 8 thread | 0.09초 | 1.53초 | 25.1초 | 244초 | 메모리 부족 | – |
 | PauliPropagation.jl | 64 thread | 7.35초 | 34.9초 | 550초 | 측정 중 | 측정 중 | 측정 중 |
 | ppvm | 64 thread | 8.87초 | 499초 | 측정 중 | 측정 중 | 측정 중 | 측정 중 |
-| Qiskit pauli-prop | thread 1개 | 65.6초 | 측정 중 | 측정 중 | 측정 중 | 측정 중 | 측정 중 |
+| Qiskit pauli-prop | thread 1개 | 65.6초 | 시간 초과 | – | – | – | – |
 
 **TFIM heavy-hex** (한 노드, 실행 시간)
 
@@ -535,7 +535,7 @@ MonoProp은 truncation 규칙이 달라 이 대조에 넣지 않았다(4.3절).
 <!-- g:node_mult -->
 | 회로 | cuPauliProp 분산 기본 (4 GPU) | cuPauliProp dedup 미룸 (4 GPU) | ORQA 재현 (64 rank) | MonoProp (64 코어) | PauliPropagation.jl (64 thread) | ppvm (64 thread) | Qiskit pauli-prop (thread 1개) | SPD (GPU 1장, SectorQ도 GPU 1장) |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| Kicked Ising | 4.4배 (3e-5) | 2.1배 (3e-5) | 21배 (3e-5) | 5.2배 (1e-5) | 105배 (3e-5) | 580배 (1e-4) | 2,008배 (3e-4) | 0.4배 (3e-5) |
+| Kicked Ising | 4.4배 (3e-5) | 2.1배 (3e-5) | 21배 (3e-5) | 5.2배 (1e-5) | 105배 (3e-5) | 580배 (1e-4) | 3,654배 (2e-4) | 0.4배 (3e-5) |
 | TFIM heavy-hex | 6.8배 (3e-5) | 2.4배 (3e-5) | 17배 (3e-5) | 7.5배 (1e-5) | 123배 (3e-5) | 129배 (1e-4) | 1,810배 (3e-4) | 0.3배 (3e-5) |
 | 2D TFIM 11×11 | 6.5배 (3e-5) | 2.1배 (3e-5) | 13배 (1e-4) | 6.5배 (1e-5) | 47배 (1e-4) | 155배 (1e-4) | 2,079배 (3e-4) | 1.2배 (1e-4) |
 | XXZ 8×8 | 3.3배 (3e-5) | 4.3배 (1e-4) | 29배 (1e-4) | 2.3배 (1e-5) | 52배 (1e-4) | 334배 (1e-4) | 2,026배 (3e-4) | 1.7배 (1e-4) |
@@ -627,17 +627,17 @@ Pauli propagation은 문제 크기를 직접 정할 수 없으므로 cutoff를 �
 | **SectorQ**, Kicked Ising | 4.00초 (100%) | 4.86초 (82%) | 5.25초 (76%) | 측정 중 | 5.78초 (65%) |
 | cuPauliProp 기본, Kicked Ising | 3.96초 | 20.7초 | 23.2초 | 측정 중 | 36.5초 |
 | cuPauliProp dedup 미룸, Kicked Ising |  | 메모리 부족 | 10.8초 | 측정 중 | 19.1초 |
-| ORQA (재현), Kicked Ising | 측정 중 | 측정 중 | 108초 | 측정 중 | 120초 |
-| MonoProp, Kicked Ising | 측정 중 | 측정 중 | 25.1초 | 측정 중 | 25.6초 |
+| ORQA (재현), Kicked Ising | 42.7초 | 측정 중 | 108초 | 측정 중 | 120초 |
+| MonoProp, Kicked Ising | 14.8초 | 측정 중 | 25.1초 | 측정 중 | 25.6초 |
 | **SectorQ**, TFIM heavy-hex | 5.10초 (100%) | 5.63초 (91%) | 5.86초 (87%) | 측정 중 | 7.07초 (68%) |
 | cuPauliProp 기본, TFIM heavy-hex | 4.16초 | 36.2초 | 39.8초 | 측정 중 | 57.3초 |
 | cuPauliProp dedup 미룸, TFIM heavy-hex |  | 10.9초 | 14.3초 | 측정 중 | 22.3초 |
-| ORQA (재현), TFIM heavy-hex | 측정 중 | 측정 중 | 101초 | 측정 중 | 122초 |
-| MonoProp, TFIM heavy-hex | 측정 중 | 측정 중 | 36.1초 | 측정 중 | 37.3초 |
+| ORQA (재현), TFIM heavy-hex | 41.1초 | 측정 중 | 101초 | 측정 중 | 122초 |
+| MonoProp, TFIM heavy-hex | 20.1초 | 측정 중 | 36.1초 | 측정 중 | 37.3초 |
 | **SectorQ**, 잡음 있는 kicked Ising | 4.20초 (100%) | 4.46초 (91%) | 4.81초 (79%) | 측정 중 | 4.80초 (70%) |
 | cuPauliProp 기본, 잡음 있는 kicked Ising | 3.87초 | 35.3초 | 38.4초 | 측정 중 | 54.4초 |
 | cuPauliProp dedup 미룸, 잡음 있는 kicked Ising |  | 7.79초 | 9.86초 | 측정 중 | 14.7초 |
-| ORQA (재현), 잡음 있는 kicked Ising | 측정 중 | 측정 중 | 69.8초 | 측정 중 | 83.0초 |
+| ORQA (재현), 잡음 있는 kicked Ising | 31.1초 | 측정 중 | 69.8초 | 측정 중 | 83.0초 |
 
 **큰 부하 (4 GPU에서 cutoff 1e-5).** 값은 실행 시간이다. SectorQ의 괄호는 GPU 한 장이 1초에 처리한 항 수를 1 GPU와 비교한 것이다. CPU 구현은 1 GPU와 2 GPU 자리에서 16 코어와 32 코어를, 4 / 8 / 16 GPU 자리에서 1 / 2 / 4 노드를 쓴다.
 
@@ -657,7 +657,7 @@ Pauli propagation은 문제 크기를 직접 정할 수 없으므로 cutoff를 �
 | **SectorQ**, 잡음 있는 kicked Ising | 32.7초 (100%) | 31.0초 (101%) | 31.7초 (91%) | 측정 중 | 31.1초 (87%) |
 | cuPauliProp 기본, 잡음 있는 kicked Ising | – | 메모리 부족 | 메모리 부족 | 측정 중 | 메모리 부족 |
 | cuPauliProp dedup 미룸, 잡음 있는 kicked Ising |  | 메모리 부족 | 메모리 부족 | 측정 중 | 메모리 부족 |
-| ORQA (재현), 잡음 있는 kicked Ising | 측정 중 | 측정 중 | 574초 | 측정 중 | 측정 중 |
+| ORQA (재현), 잡음 있는 kicked Ising | 측정 중 | 측정 중 | 574초 | 측정 중 | 626초 |
 <!-- /g:weak -->
 
 - **SectorQ의 시간은 GPU 수가 늘어도 거의 평평하다.** 큰 부하에서 1 GPU의 32.7–46.6초가 16 GPU에서 31.1–56.2초이다. GPU 한 장의 처리율은 1 GPU의 79–87%이다. 작은 부하에서는 4.0–5.1초가 4.8–7.1초가 되고 처리율은 65–70%이다. 실행이 짧아 연산마다의 고정 비용과 교환의 몫이 크기 때문이다.
@@ -919,12 +919,12 @@ kicked Ising cutoff 1e-6은 구간 경계에서 119억 항, 구간 안에서 최
 
 1억 항이 넘는 설정은 16 GPU에서 13–15배 빨라지고, 수백만 항의 설정은 1.4–2.1배에 그친다. sector를 나누어도 각 sector는 구간의 gate를 모두 적용해야 하고, 연산 하나에는 항 수와 무관한 고정 비용이 있다. 작은 설정은 이 고정 비용이 시간의 대부분이다. 또 항 수는 1에서 시작하므로 처음 구간들은 나눌 만큼의 항이 없다. 남는 바닥은 rotation 2,540개를 호출 하나씩으로 적용하는 시간(약 0.4초)이다(4.11절). 같은 작은 설정에서 cuPauliProp 분산 모드는 GPU를 늘릴수록 느려진다(kicked Ising cutoff 1e-4: 1 GPU 1.83초, 16 GPU 28.3초).
 
-#### 16–128 GPU (이전 엔진)
+#### 16–128 GPU
 
-40 GB 노드에서 GPU당 36 GB로(`--vram-frac 0.9`), 4–128 GPU(1–32 노드)의 SectorQ를 기본 설정으로 실행하였다(`logs/pp_e13_g*.out`). cuPauliProp의 두 모드는 같은 종류의 노드에서 16–128 GPU로 실행하였다(`logs/pp_e12_g*.out`). 이 측정은 행 고르기를 구간 계산과 겹치기 전의 엔진으로 한 것이다(4.11절). 같은 설정을 지금의 엔진으로 잰 16 GPU의 값은 4.3절에 있다(kicked Ising cutoff 1e-5: 14.8초 → 12.2초, cutoff 3e-6: 133.5초 → 122초).
+40 GB 노드에서 GPU당 36 GB로(`--vram-frac 0.9`), 4–128 GPU(1–32 노드)의 SectorQ를 기본 설정으로 실행하였다(`logs/pp_e13_g*.out`). cuPauliProp의 두 모드는 같은 종류의 노드에서 16–128 GPU로 실행하였다(`logs/pp_e12_g*.out`). 이 측정은 4.2–4.3절의 측정보다 앞서 한 것이며, 그 사이의 개선(4.11절)으로 같은 16 GPU 설정은 4.3절의 값이 9–26% 짧다(kicked Ising cutoff 1e-5: 14.8초 대 12.2초). 32–128 GPU는 그 뒤에 다시 재지 않았다.
 
 <p align="center"><img src="figures/eval_scaling.png" width="940"></p>
-<p align="center"><b>그림 11.</b> 4–128 GPU에서 SectorQ의 확장성(이전 엔진). 위: strong scaling. 같은 문제를 4–128 GPU에서 실행한 시간이다. 막대 위의 배수는 4 GPU 대비이고, 검은 선은 4 GPU의 시간이 GPU 수만큼 줄었을 때의 값이다. 아래: weak scaling. GPU 수에 맞추어 cutoff를 낮춘 실행에서 GPU 한 장이 1초에 처리한 항 수를 4 GPU 대비로 나타냈다.</p>
+<p align="center"><b>그림 11.</b> 4–128 GPU에서 SectorQ의 확장성. 위: strong scaling. 같은 문제를 4–128 GPU에서 실행한 시간이다. 막대 위의 배수는 4 GPU 대비이고, 검은 선은 4 GPU의 시간이 GPU 수만큼 줄었을 때의 값이다. 아래: weak scaling. GPU 수에 맞추어 cutoff를 낮춘 실행에서 GPU 한 장이 1초에 처리한 항 수를 4 GPU 대비로 나타냈다.</p>
 
 **Strong scaling.** 같은 문제를 GPU 수만 바꾸어 실행하였다.
 
@@ -962,7 +962,7 @@ gate 적용 시간은 414.2초에서 12.5초로 33배 줄어 GPU 수를 그대�
 일의 양을 16배로 늘린 64 GPU 실행에서 GPU 한 장의 처리율은 4 GPU의 71–83%이고, 32배로 늘린 128 GPU 실행에서는 59–78%이다. 떨어지는 몫의 하나는 strong scaling과 같이 교환이다. TFIM은 64 GPU에서 79.2초 가운데 26.3초(33%)가 교환이고, kicked Ising은 66.5초 가운데 8.9초(13%)이다. 다른 하나는 sector 수의 상한이다. 128 GPU의 kicked Ising은 구간당 256개 상한에서 sector가 GPU 버퍼를 넘어 3,146번 다시 나뉘었다. 상한을 1,024개로 올리면 73.7초(71%)가 된다.
 
 <p align="center"><img src="figures/eval_scaling_base.png" width="940"></p>
-<p align="center"><b>그림 12.</b> cutoff 1e-5에서 GPU 수에 따른 세 방식의 실행 시간(같은 종류의 노드, 이전 엔진). 막대 위의 배수는 SectorQ 대비이다.</p>
+<p align="center"><b>그림 12.</b> cutoff 1e-5에서 GPU 수에 따른 세 방식의 실행 시간(같은 종류의 노드). 막대 위의 배수는 SectorQ 대비이다.</p>
 
 **cuPauliProp과의 차이.** cutoff 1e-5의 세 회로를 같은 종류의 노드에서 비교하였다. 괄호는 SectorQ 대비이다.
 
@@ -1099,7 +1099,7 @@ SectorQ의 시간을 문제 크기와 GPU 수에 따라 나누었다. GPU worker
 - **dedup을 미루면 allgather가 연산당 2.2–3.9번으로 줄지만 MPI 안의 시간은 55–66%로 비중이 커진다.** gate 적용이 rank 안에서 끝나 전체 시간이 줄어든 만큼, truncation 전마다 하는 전역 dedup의 몫이 커진다.
 - **SectorQ에서 항이 노드를 옮기는 것은 구간 경계의 교환뿐이다.** 같은 설정에서 실행 시간의 5–11%이다.
 
-**더 큰 설정의 기준선.** cutoff 1e-5의 기준선은 그 이전에 같은 방법으로 재었다(`jobs/u7_breakdown.sh`, `logs/u7`). 기준선의 실행은 SectorQ의 엔진과 무관하므로 그대로 쓴다.
+**더 큰 설정의 기준선.** cutoff 1e-5의 기준선은 같은 방법으로 따로 재었다(`jobs/u7_breakdown.sh`, `logs/u7`).
 
 | 설정 (16 GPU, 기본 모드) | 전체 | GPU에서 gate | host 쪽 작업 (GPU는 쉼) | 전체 GPU의 collective 호출 | GPU 사이 항 이동 | 연산당 allgather / 송신 (rank당) | rank당 보낸 양 |
 |---|---:|---:|---:|---:|---:|---:|---:|
@@ -1110,11 +1110,11 @@ SectorQ의 시간을 문제 크기와 GPU 수에 따라 나누었다. GPU worker
 
 - **큰 문제에서는 항의 이동이 더해진다.** cutoff 1e-5에서는 rank당 57–108 GB를 보내며 항 이동이 12–26%가 된다. collective 호출 18–32%와 host 쪽 작업 22–38%는 남는다. GPU가 일하는 시간은 18–34%이다. 같은 설정의 SectorQ는 16 GPU에서 gate 적용이 69–78%이다.
 - **dedup을 미룬 방식은 시간의 72–92%가 전역 dedup 호출 안에 있다**(kicked Ising cutoff 1e-5: 50.2초 가운데 46.2초). 이 설정과 TFIM은 dedup을 truncation 직전에만 하면 16 GPU에서 메모리가 부족하여 3개 연산마다 한 번 더 한다.
-- kicked Ising cutoff 1e-5에서 cuPauliProp 기본 모드는 16 rank가 모두 1,733 GB를 보낸다. 같은 측정에서 SectorQ가 실행 전체에서 보낸 양은 60 GB이고(29배 적다), 지금의 엔진에서는 45 GB이다.
+- kicked Ising cutoff 1e-5에서 cuPauliProp 기본 모드는 16 rank가 모두 1,733 GB를 보낸다. SectorQ가 실행 전체에서 노드 사이로 보내는 양은 45 GB이고, GPU 밖으로 내보내는 양을 모두 합쳐도 60 GB이다(29배 적다, 3.3절).
 
 2 GPU와 4 GPU의 같은 분해는 `python3 analysis/campaign_g.py`가 출력하는 표에 있다. 잡음 있는 kicked Ising의 가장 작은 설정(cutoff 1e-4, 2–4 GPU)에서는 worker가 다음 구간의 행을 기다린 시간이 29–30%이다. 이 회로는 구간이 525 연산으로 길어 행을 고르는 데 약 2초가 들고, 실행 전체가 2.5초여서 그 몫이 크게 보인다. cutoff 3e-5(4.9초)에서는 기다린 시간이 0.1초이다.
 
-이전 엔진을 노드별로 재었을 때 32 GPU의 10.4초 가운데 2.5초가 sector가 하나뿐인 초반 구간이었다. 그동안 GPU 한 장만 일하고 31장이 기다렸다. 초반부터 노드마다 sector를 하나씩 주도록 바꾼 뒤 이 구간은 0.4초가 되었다(4.7절).
+초반 구간에 sector를 하나만 두면 32 GPU의 10.4초 가운데 2.5초가 그 구간이다. 그동안 GPU 한 장만 일하고 31장이 기다린다. 초반부터 노드마다 sector를 하나씩 주면 이 구간은 0.4초가 된다(4.7절).
 
 ### 4.7 설계 요소별 측정
 
@@ -1261,7 +1261,7 @@ sector를 나누고, host에 두고, 노드 사이에 옮기는 일은 통신을
 | TFIM heavy-hex, 5e-6 | 62.3초 | 53.5초 | 1.17배 |
 | kicked Ising, 3e-6 | 133.5초 | 120.0초 | 1.11배 |
 
-host memory는 더 쓴다(가장 바쁜 노드에서 kicked Ising 3e-6이 26 → 33 GiB, QAOA가 22 → 33 GiB). 묶음으로 만들고 미리 만든 chunk의 몫이다. 4.4절의 16–128 GPU 수치는 이 변경 이전의 SectorQ로 잰 값이다.
+host memory는 더 쓴다(가장 바쁜 노드에서 kicked Ising 3e-6이 26 → 33 GiB, QAOA가 22 → 33 GiB). 묶음으로 만들고 미리 만든 chunk의 몫이다.
 
 **행 고르기를 구간 계산과 겹치기.** 위의 엔진은 다음 구간의 행을 구간 사이에 골랐고, 그 0.3–0.4초 동안 모든 GPU가 섰다. 크기와 무관한 비용이라 작은 operator에서 비중이 컸다(16 GPU, 233만 항에서 1.04초 가운데 0.27초). 지금은 구간이 시작할 때 표본만 뜨고, GPU가 구간을 계산하는 동안 main thread가 행을 고른다. 또 앞 구간이 0.5초보다 짧으면 GPU마다 sector를 하나만 준다. sector 하나는 구간마다 연산 호출의 고정 비용(연산당 약 0.15 ms)을 내기 때문이다. 같은 노드에서 두 엔진을 차례로 잰 값이다(`logs/h1/`, 설정마다 1회, 기대값 일치).
 
@@ -1277,33 +1277,21 @@ host memory는 더 쓴다(가장 바쁜 노드에서 kicked Ising 3e-6이 26 →
 
 남는 바닥은 rotation 2,540개를 호출 하나씩으로 적용하는 시간이다(약 0.4초). cuPauliProp 0.5.0은 rotation을 묶어 호출할 수 없다. 작은 operator를 노드에 늦게 나누는 변형(`--min-bucket-early 30000`)은 큰 크기에서 12.2초가 13.8초로 느려져 쓰지 않는다.
 
-1–16 GPU 측정의 sweep 가운데 두 엔진으로 모두 잰 설정을 구간 경계의 항 수로 묶었다. 값은 이전 엔진의 시간을 지금 엔진의 시간으로 나눈 것이다.
-
-<!-- g:engine -->
-|  | 100만 항 미만 | 100만–3,000만 항 | 3,000만 항 이상 |
-|---|---:|---:|---:|
-| 2 GPU | 0.94–1.84배 (16개 설정) | 1.03–1.76배 (16개 설정) | 0.99–1.06배 (20개 설정) |
-| 4 GPU | 0.94–1.87배 (16개 설정) | 1.08–1.73배 (16개 설정) | 0.95–1.13배 (20개 설정) |
-| 16 GPU | 1.01–2.26배 (16개 설정) | 1.14–1.58배 (16개 설정) | 0.90–1.42배 (23개 설정) |
-<!-- /g:engine -->
-
-이득은 100만–3,000만 항에서 가장 크고, 3,000만 항 이상에서는 대부분 같다. 가장 느려진 실행은 16 GPU의 XXZ 8×8 cutoff 3e-6이다(253초 → 281초, 0.90배).
-
 **noise channel 묶음.** noisy kicked Ising에서 SectorQ는 4 GPU cutoff 1e-5가 35.1초에서 33.2초가 된다. 같은 호출을 쓴 cuPauliProp은 4 GPU cutoff 1e-4의 기본 모드가 34.4초에서 33.9초가 된다. 단일 GPU 기준은 2.11초에서 1.91초가 되며, 여기에는 구간마다 host를 거치지 않게 된 몫이 함께 들어 있다.
 
 ## 5. 한계
 
-- 측정은 32 노드 128 GPU까지이다. 256 GPU 이상에서는 돌리지 않았다. 32–128 GPU의 값은 이전 엔진으로 잰 것이며 지금의 엔진으로 다시 재지 않았다(4.4절). 구간당 sector 수의 상한(256개)은 GPU 수와 문제 크기에 맞추어 정해야 하는데 그 규칙이 아직 없다.
+- 측정은 32 노드 128 GPU까지이다. 256 GPU 이상에서는 돌리지 않았다. 32–128 GPU는 1–16 GPU 측정보다 앞서 잰 값이며, 그 뒤의 개선(4.11절)을 넣어 다시 재지 않았다(4.4절). 구간당 sector 수의 상한(256개)은 GPU 수와 문제 크기에 맞추어 정해야 하는데 그 규칙이 아직 없다.
 - 1–16 GPU 측정의 일부는 아직 측정 중이다(8 GPU의 SectorQ, 외부 구현의 낮은 cutoff, 각도별 수렴). 표의 "측정 중" 칸이 그것이다.
 - 가장 강한 기준선(dedup을 미룬 cuPauliProp)과의 속도 차이는 16 GPU가 있어야 들어가는 설정에서 2.2–4.6배, 32–128 GPU에서 2.1–3.0배이다. 이 기준선은 GPU가 늘어 메모리가 넉넉해질수록 dedup을 더 미룰 수 있다. SectorQ의 gate 적용은 cuPauliProp의 단일 GPU 연산이므로 그 시간이 하한이다(4.6절).
 - GPU 1장 안에서는 다른 연산을 쓰는 SPD가 더 빠른 설정이 있다(kicked Ising cutoff 3e-5에서 최대 2.9배, 4.2절). SectorQ는 연산 자체를 바꾸지 않는다. 제자리 rotation kernel(3.7절 성질 6)은 구현하지 않았다. GPU 한 장이 한 번에 다루는 항 수(40 GB에 약 1억)도 cuPauliProp의 연산이 정한다.
 - 2초 안에 끝나는 작은 설정에서는 CPU 구현인 MonoProp이 SectorQ보다 빠르다(4.2–4.3절). SectorQ는 rotation마다 연산을 한 번씩 호출하며 그 고정 비용이 약 0.4초이다(4.11절).
-- 작은 문제는 GPU를 늘려도 덜 빨라진다(수백만 항에서 16 GPU가 1.4–2.1배, 4.4절). 한 GPU를 넘는 문제도 작으면 일찍 포화한다(이전 엔진에서 cutoff 1e-5는 32 GPU에서 64 GPU로 1.1–1.3배이고 128 GPU에서는 더 줄지 않는다, 4.4절). SectorQ는 항 수가 sector 목표보다 적은 동안 GPU 하나만 쓴다.
+- 작은 문제는 GPU를 늘려도 덜 빨라진다(수백만 항에서 16 GPU가 1.4–2.1배, 4.4절). 한 GPU를 넘는 문제도 작으면 일찍 포화한다(cutoff 1e-5는 32 GPU에서 64 GPU로 1.1–1.3배이고 128 GPU에서는 더 줄지 않는다, 4.4절). SectorQ는 항 수가 sector 목표보다 적은 동안 GPU 하나만 쓴다.
 - 구간이 도는 동안에는 항이 노드 사이를 오가지 않지만 구간이 바뀔 때마다 모든 항이 노드 사이를 이동한다. 통신이 없는 방식이 아니라 항의 교환을 구간 경계로 모으는 방식이다. 구간이 도는 동안에도 다음 구간의 행을 정하는 표본과 행은 노드 사이를 오간다.
-- 노드 사이의 교환은 16 GPU에서 실행 시간의 4–13%이고(4.6절), GPU가 늘수록 비중이 커진다(이전 엔진의 kicked Ising cutoff 3e-6: 8 GPU 9%, 64 GPU 21%). weak scaling의 처리율이 16 GPU에서 79–87%, 64 GPU에서 71–83%, 128 GPU에서 59–78%로 떨어지는 주된 이유이다. 노드마다 thread 하나가 보내고 그동안 GPU는 쉰다.
+- 노드 사이의 교환은 16 GPU에서 실행 시간의 4–13%이고(4.6절), GPU가 늘수록 비중이 커진다(kicked Ising cutoff 3e-6: 8 GPU 9%, 64 GPU 21%). weak scaling의 처리율이 16 GPU에서 79–87%, 64 GPU에서 71–83%, 128 GPU에서 59–78%로 떨어지는 주된 이유이다. 노드마다 thread 하나가 보내고 그동안 GPU는 쉰다.
 - 16 GPU에서 SectorQ가 닿는 범위는 4 노드의 host memory가 정한다. kicked Ising cutoff 1e-6은 788 GiB로 끝냈고 같은 cutoff의 TFIM heavy-hex는 메모리가 부족하였다(4.4절). 1–4 GPU에서는 40분의 시간 제한이 먼저 걸린다.
 - kicked Ising(θ=π/4, 20 step)의 값은 cutoff 1e-4, 1e-5, 3e-6, 1e-6에서 0.153, 0.229, 0.289, 0.322이며 수렴하지 않았다. 참값으로의 수렴은 exact 값을 아는 30 qubit 회로에서만 보였다. 다른 각도에서의 수렴은 측정 중이다(4.5절). 이 회로에서 주장하는 것은 같은 cutoff에서 같은 답을 더 빠르게, 더 적은 GPU로, 더 낮은 cutoff까지 낸다는 것이다.
-- 모든 측정은 1회이다. 1–16 GPU 측정은 모두 40 GB 노드에서 하였다. 그 이전 측정에는 40 GB 노드와 80 GB 노드(36 GB로 제한)의 결과가 섞여 있고, 같은 설정의 시간이 노드 종류에 따라 최대 8% 다르다.
+- 모든 측정은 1회이다. 1–16 GPU 측정은 모두 40 GB 노드에서 하였다. 그 밖의 측정에는 40 GB 노드와 80 GB 노드(36 GB로 제한)의 결과가 섞여 있고, 같은 설정의 시간이 노드 종류에 따라 최대 8% 다르다.
 - ORQA는 저자 코드가 공개되어 있지 않아 논문을 따라 재현한 것과 비교하였다. 재현본의 속도가 저자의 구현과 같다는 보장이 없다.
 - MonoProp은 truncation 규칙이 달라 같은 cutoff의 비교가 같은 정확도의 비교가 아니다. 같은 오차에서도 비교하였으나 오차의 기준이 exact 값이 아니라 SectorQ의 가장 작은 cutoff 값이다(4.3절). OBP는 회로 전체의 기대값을 내지 않아 비교에서 뺐다.
 - cuPauliProp과의 비교는 v0.5.0 하나에 대한 것이다. 라이브러리 내부가 공개되어 있지 않으므로 원인 분석은 MPI plugin 계측과 GPU 사용률 표본에 근거한다. dedup을 미룬 기준선은 이 연구가 구성한 것이며 NVIDIA가 제공한 설정이 아니다.
@@ -1387,7 +1375,7 @@ thrust 코드는 `-gencode arch=compute_80,code=sm_80`로 빌드한다. 실행�
 
 작업은 `sbatch jobs/*.sh`로 낸다(`-A m5320_g -C gpu -q debug`). `e5`–`e10`은 측정 당시의 시험용 binary(`bin/pp_engine_dd*`)를 가리킨다. 최종 소스로 빌드한 SectorQ로 다시 돌리려면 `PP_BIN=bin/pp_engine`을 준다. `e8`의 `--busy-window`는 기각하여 최종 소스에 없다. `inter_run*.sh`는 interactive 할당 안에서 `PP_JOB=<할당 번호> bash jobs/inter_runN.sh`로 실행한다.
 
-4.1–4.3절, 4.4절의 1–16 GPU 부분, 4.5–4.8절의 표와 그림 6–10, 13–15는 캠페인 g의 값이다. 위 표에서 이 절들을 가리키는 그 이전 스크립트(`inter_run4`–`inter_run6`, `e3`, `e4`, `e10`)의 값은 이전 엔진의 측정이며 이 문서의 표에는 더 쓰지 않는다. 4.4절의 16–128 GPU 부분(`e12`, `e13`)과 4.9–4.11절은 그 로그의 값 그대로이다. 캠페인 g의 실행 기록(`queue_g/done/`)과 로그(`logs/g/`)는 아직 저장소에 넣지 않았으며 Perlmutter의 작업 디렉터리에 있다. 전체 표는 `python3 analysis/campaign_g.py`로, 이 문서의 표는 `python3 analysis/readme_g.py`로 다시 만든다.
+4.1–4.3절, 4.4절의 1–16 GPU 부분, 4.5–4.8절의 표와 그림 6–10, 13–15는 캠페인 g의 값이다. 위 표에서 이 절들을 가리키는 앞선 스크립트(`inter_run4`–`inter_run6`, `e3`, `e4`, `e10`)의 값은 이 문서의 표에 더 쓰지 않는다. 4.4절의 16–128 GPU 부분(`e12`, `e13`)과 4.9–4.11절은 그 로그의 값 그대로이다. 캠페인 g의 실행 기록(`queue_g/done/`)과 로그(`logs/g/`)는 아직 저장소에 넣지 않았으며 Perlmutter의 작업 디렉터리에 있다. 전체 표는 `python3 analysis/campaign_g.py`로, 이 문서의 표는 `python3 analysis/readme_g.py`로 다시 만든다.
 
 `e12`와 `e13`은 같은 스크립트를 노드 수만 바꾸어 낸다(`sbatch -N <노드 수> -J pp_e13_g<GPU 수> jobs/e13_scaling.sh`, 16 노드부터는 `-q regular`). `e12`의 SectorQ 실행 시간은 쓰지 않는다. 그 판(`bin/pp_engine_scal`)은 행을 고르는 표본을 노드마다 20만 개씩 모아, 그 단계가 1 노드 0.4초에서 32 노드 15–45초로 늘었다. `e13`은 표본을 전체 20만 개로 되돌린 현재 소스(`bin/pp_engine_scal2`)로 다시 잰 것이다. `e12`의 cuPauliProp 실행과 기대값은 영향을 받지 않는다. 전체 표는 `python3 analysis/scaling_table.py`로 본다.
 

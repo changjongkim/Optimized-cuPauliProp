@@ -516,31 +516,6 @@ def b_ckpt():
     return table(["GPU", "끊지 않은 실행", "checkpoint 지점", "재개한 뒤의 시간", "끊지 않은 실행의 기대값", "재개한 실행의 기대값", ""], rows, ["---:", "---:", "---", "---:", "---", "---", "---"])
 
 
-def b_engine():
-    """The sweep runs measured with the engine before and after rows are chosen while the window runs."""
-    import json
-    old_dir = os.path.join(cg.Q, "done_g")
-    pairs = {}
-    for name in os.listdir(old_dir) if os.path.isdir(old_dir) else []:
-        try:
-            old = json.load(open(os.path.join(old_dir, name)))
-        except ValueError:
-            continue
-        new = state.get(name)
-        m = re.match(r"eng\.([a-z]+)\.([0-9.]+e-[0-9]+)\.g(\d+)$", name)
-        if m and ok(old) and ok(new):
-            pairs.setdefault((m.group(1), int(m.group(3))), []).append((facts(m.group(1), m.group(2))[0] or 0, old["wall"] / new["wall"], m.group(2)))
-    rows = []
-    bands = ((0, 1e6, "100만 항 미만"), (1e6, 3e7, "100만–3,000만 항"), (3e7, 1e12, "3,000만 항 이상"))
-    for g in (2, 4, 16):
-        row = [f"{g} GPU"]
-        for lo, hi, _ in bands:
-            v = [r for (c, gg), ps in pairs.items() if gg == g for n, r, x in ps if lo <= n < hi]
-            row.append(f"{min(v):.2f}–{max(v):.2f}배 ({len(v)}개 설정)" if v else "")
-        rows.append(row)
-    return table(["", *[b[2] for b in bands]], rows, ["---", "---:", "---:", "---:"])
-
-
 def b_conv():
     conv = sorted({i.split(".")[2] for i in ids if i.startswith("conv.eng.")}, key=lambda t: float(t[1:]))
     if not conv or not any(i.startswith("conv.") and i in state for i in ids):
@@ -586,7 +561,7 @@ def b_gain():
 BLOCKS = {"single": b_single, "gain": b_gain, "progress": b_progress, "agree": b_agree, "speed": b_speed, "single_node": b_single_node, "node_mult": b_node_mult,
           "multi_mult": b_multi_mult, "strong_sota": b_strong_sota, "same_error": b_same_error, "given": b_given,
           "threads": b_threads, "gpus": b_gpus, "reach": b_reach, "largest": b_largest, "strong": b_strong, "weak": b_weak, "parts": b_parts,
-          "base_parts": b_base_parts, "params": b_params, "vram": b_vram, "exact": b_exact, "ckpt": b_ckpt, "engine": b_engine, "conv": b_conv}
+          "base_parts": b_base_parts, "params": b_params, "vram": b_vram, "exact": b_exact, "ckpt": b_ckpt, "conv": b_conv}
 
 
 def main():
