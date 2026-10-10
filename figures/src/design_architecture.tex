@@ -1,10 +1,14 @@
 % Overall architecture of SectorQ (Section 3.1): one loop that runs for every window, at run time.
 %   top     one window on four nodes: every node keeps its sectors in host memory, its GPUs take them one
 %           at a time, and the output leaves the GPU already divided by the rows of the next window;
-%           nothing moves between nodes while the window runs
+%           no term crosses nodes while the window runs
 %   bottom  runtime re-sectoring: the rows and the number of sectors of the next window are decided from
-%           the live terms (a sample of them and their count) and the next gates, every window; the rows
-%           go back up to the GPUs; the exchange at the boundary puts every next sector on its node
+%           the live terms (a sample taken when the window starts, and their count) and the next gates,
+%           while the GPUs run the window; the rows are there before a GPU partitions its output (the
+%           workers waited 0.000 s for them in this run, logs/h1/h.h1.ki.1e-5.g16.out); the exchange at
+%           the boundary puts every next sector on its node
+% Order of the numbers: 1 sectors to the GPUs and 2 the sample of the live terms start together, 3 the rows
+% arrive, 4 the GPUs partition their output by them, 5 the exchange.
 % A sector has the color of the node that owns it (sector d lives on node d mod 4). The numbers are those
 % of window 9 of the 127-qubit kicked Ising run on 16 GPUs (logs/pp_e11-59488608.out): 158.9 million terms,
 % 127 rotations, generator rank 127, 127 valid rows, 6 rows chosen, 64 sectors, largest sector 1.01 times
@@ -17,7 +21,7 @@
   \node[frame, anchor=north west, minimum width=13.9cm, minimum height=4.72cm] at (0,0) {};
   \node[lttl, anchor=north west] at (0.1,-0.04) {Window 9};
   \node[note, anchor=north west] at (2.1,-0.08) {159 Million Terms in 64 Sectors};
-  \node[key, anchor=north east] at (13.8,-0.08) {No MPI While the Window Runs};
+  \node[key, anchor=north east] at (13.8,-0.08) {No Terms Cross Nodes While the Window Runs};
   \node[cttl] at (2.75,-0.92) {Sectors in Host DRAM};
   \node[cttl] at (7.2,-0.92) {GPUs: 127 Gates per Sector};
   \node[cttl] at (11.75,-0.92) {Output, by the Next Rows};
@@ -42,7 +46,7 @@
   \foreach \n in {0,1,2}
     \draw[black!55, dashed, line width=0.5pt] (0.1,{-1.83-0.76*\n}) -- (13.25,{-1.83-0.76*\n});
   \node[num] at (4.7,-1.13) {1};
-  \node[num] at (9.79,-1.13) {2};
+  \node[num] at (9.79,-1.13) {4};
   % the exchange at the end of the window, and the way back
   \draw[dfat, dblue] (13.55,-1.2) -- (13.55,-3.98);
   \node[inote, text=dblue, rotate=90] at (13.28,-2.59) {};
@@ -55,7 +59,7 @@
   % ================= runtime re-sectoring =================
   \node[draw=dred, line width=1.0pt, fill=peach, anchor=north west, minimum width=13.9cm, minimum height=2.3cm] at (0,-5.3) {};
   \node[lttl, anchor=north west] at (0.1,-5.34) {Runtime Re-Sectoring};
-  \node[key, anchor=north east] at (13.8,-5.38) {Every Window, from the Live Terms};
+  \node[key, anchor=north east] at (13.8,-5.38) {While the GPUs Run the Window};
   % inputs: the live terms and the next gates
   \foreach \i/\ff in {0/sa, 1/sb, 2/sc, 3/sd, 4/sb, 5/sa}
     \node[dot, fill=\ff] at ({0.3+0.2*\i},-6.25) {};
@@ -78,8 +82,9 @@
   \node[inote, anchor=north] at (9.15,-6.5) {Rows};
   \node[inote, anchor=north] at (11.25,-6.5) {from the Count};
   \node[inote, anchor=north] at (13.1,-6.5) {Node};
-  \node[num] at (2.33,-5.01) {3};
-  \node[num] at (9.37,-5.01) {4};
+  \node[num] at (2.33,-5.01) {2};
+  \node[num] at (9.37,-5.01) {3};
+  \node[key] at (6.9,-5.01) {GPUs Wait 0 s for the Rows};
   % ================= the loop between the two =================
   \draw[fat] (2.75,-4.72) -- (2.75,-5.3);
   \node[note, anchor=west] at (3.0,-5.01) {Live Terms};

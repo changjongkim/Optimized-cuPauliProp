@@ -5,8 +5,11 @@
 %       cut at run time right after a truncation (window 8 of job 59488608: 159 million of the 1.36 billion
 %       terms of the peak are moved)
 % Bottom rows: measured on the kicked Ising setting with 22.5 million terms on 4 GPUs
-% (collective calls per rank 119,785 against 51; data between GPUs 20.3 GB against 0.57 GB;
-% logs/pp_prof1-59470347.out and logs/pp_lo-59471256.out).
+% (collective calls per rank 119,785 against 208; data between GPUs 20.3 GB against 0.57 GB;
+% cuPauliProp: logs/pp_prof1-59470347.out; SectorQ: the engine with one GPU on each of four nodes, its MPI
+% calls counted by bin/libmpi_shim.so, logs/h1/shim.h4.comm.ki.1e-4.n4x1.{out,mpiprof}).
+% While a window runs the terms stay on their GPU; the main threads of the nodes exchange only the sample of
+% 200,000 terms and the rows of the next window.
 \begin{tikzpicture}[x=1cm, y=1cm, font=\rmfamily\footnotesize]
   \tikzset{tb/.style={draw=black!70, line width=0.3pt, anchor=west, inner sep=0pt, minimum width=0.3cm, minimum height=0.3cm},
            rc/.style={draw=black!70, line width=0.35pt, anchor=north west, inner sep=0pt, minimum height=0.42cm,
@@ -48,7 +51,7 @@
     \draw[sarr] ({\x+1.06},-1.93) arc[start angle=10, end angle=-190, x radius=0.34, y radius=0.1];
     \node[inote, inner sep=0.5pt] at ({\x+0.72},-2.2) {127 Gates};
   }
-  \node[key] at (10.55,-2.68) {0 MPI Calls While the Window Runs};
+  \node[key] at (10.55,-2.68) {No Terms Cross GPUs While the Window Runs};
   \node[draw=dblue, line width=0.9pt, fill=dblue!18, anchor=north west, minimum width=6.3cm, minimum height=0.95cm] at (7.4,-2.95) {};
   \node[cttl] at (10.55,-3.22) {Exchange at the Window Boundary};
   \node[note] at (10.55,-3.64) {Cut at Run Time: 159M of 1.36B Terms Move};
@@ -57,7 +60,7 @@
   \node[inote, anchor=west] at (8.78,-4.2) {A New Term Stays in Its Sector};
   % measured
   \node[rc, fill=black!10, minimum width=3.3cm] at (7.4,-4.55) {Collective Calls per GPU};
-  \node[rc, fill=white, minimum width=3.0cm, font=\rmfamily\bfseries\footnotesize] at (10.7,-4.55) {51\quad\textcolor{dred}{2,349$\times$ Fewer}};
+  \node[rc, fill=white, minimum width=3.0cm, font=\rmfamily\bfseries\footnotesize] at (10.7,-4.55) {208\quad\textcolor{dred}{576$\times$ Fewer}};
   \node[rc, fill=black!10, minimum width=3.3cm] at (7.4,-4.97) {Data Between GPUs};
   \node[rc, fill=white, minimum width=3.0cm, font=\rmfamily\bfseries\footnotesize] at (10.7,-4.97) {0.57 GB\quad\textcolor{dred}{36$\times$ Less}};
   \node[rc, fill=black!10, minimum width=3.3cm] at (7.4,-5.39) {Global Steps};

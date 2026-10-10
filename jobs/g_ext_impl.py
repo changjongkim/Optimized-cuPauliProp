@@ -51,8 +51,10 @@ def launch_engine(item, job, hosts):
     for name, binary, extra in item["variants"]:
         log = os.path.join(ROOT, "logs", tag, f"{name}.{item['id']}.out")
         cmd = ["timeout", "300", "srun", f"--jobid={job}", f"--nodelist={hosts}", "--overlap", "-N", str(nn), "-n", str(nn),
-               "--ntasks-per-node=1", "-c", "128", "--gpus-per-node=4", "--cpu-bind=none", "stdbuf", "-oL", "./bin/" + binary,
-               "--gpus", str(item["per"])] + (item["args"] + " " + extra).split()
+               "--ntasks-per-node=1", "-c", "128", "--gpus-per-node=4", "--cpu-bind=none"]
+        if item.get("prof"):                   # time the MPI calls of the engine (bin/libmpi_shim.so)
+            cmd.append(f"--export=ALL,LD_PRELOAD={ROOT}/bin/libmpi_shim.so,PP_MPIPROF_OUT={ROOT}/logs/{tag}/{name}.{item['id']}.mpiprof")
+        cmd += ["stdbuf", "-oL", "./bin/" + binary, "--gpus", str(item["per"])] + (item["args"] + " " + extra).split()
         with open(log, "w") as f:
             f.write(f"===== engine nodes={nn} gpus={nn * item['per']} args: {item['args']} {extra} --gpus {item['per']} binary={binary}\n")
             f.flush()

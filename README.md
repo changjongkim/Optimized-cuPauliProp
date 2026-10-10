@@ -74,7 +74,7 @@ SectorQ는 이 관찰에서 다음 규칙을 세운다.
 
 이 규칙은 1.2절의 세 가지 어려움에 하나씩 답한다.
 
-- **합친 뒤에 잘라야 한다 → sector 안에서 합친다.** 합쳐질 상대가 항상 같은 sector 안에 있다. gate마다 합치면서도 구간(kicked Ising에서는 rotation 127개)이 도는 동안 MPI 호출이 없다. 통신이 없어지는 것은 아니다. gate 2,540번마다 하던 것이 구간 20개의 경계로 모인다(communication-avoiding).
+- **합친 뒤에 잘라야 한다 → sector 안에서 합친다.** 합쳐질 상대가 항상 같은 sector 안에 있다. gate마다 합치면서도 구간(kicked Ising에서는 rotation 127개)이 도는 동안 항이 GPU 사이를 오가지 않는다. 통신이 없어지는 것은 아니다. gate 2,540번마다 하던 것이 구간 20개의 경계로 모인다(communication-avoiding).
 - **데이터가 실행 중에 정해진다 → 실행 중에 정한다.** 구간의 길이, 쓸 parity, sector 수를 구간마다 현재 항의 표본을 보고 정한다. 미리 세운 계획이 없다.
 - **용량이 GPU memory에 묶인다 → sector를 하나씩 올린다.** sector는 서로 독립이므로 host memory에 두고 GPU에는 처리 중인 것만 올린다. 구간 안에서 GPU보다 커진 sector는 parity를 하나 더 써서 그 자리에서 나눈다.
 
@@ -249,16 +249,16 @@ state-vector 시뮬레이터는 이 연구와 푸는 문제가 다르며 비교 
 
 ### 3.1 전체 구조
 
-SectorQ에는 미리 세운 계획이 없다. 하나의 고리가 구간마다 실행 중에 돈다. 구간의 gate가 보존하는 parity로 항을 sector로 나누고, 노드마다 sector를 GPU에 하나씩 올려 처리하고, 그사이에 살아 있는 항을 보고 다음 구간의 parity와 sector 수를 정한 뒤, 구간 경계에서 다음 구간의 sector로 다시 나누어 교환한다. 설계 규칙은 2.6절의 요구사항을 하나로 묶은 것이다.
+SectorQ에는 미리 세운 계획이 없다. 하나의 고리가 구간마다 실행 중에 돈다. 구간의 gate가 보존하는 parity로 항을 sector로 나누고, 노드마다 sector를 GPU에 하나씩 올려 처리한다. GPU가 구간을 계산하는 동안 살아 있는 항을 보고 다음 구간의 parity와 sector 수를 정하고, 구간 경계에서 다음 구간의 sector로 다시 나누어 교환한다. 설계 규칙은 2.6절의 요구사항을 하나로 묶은 것이다.
 
 > 항 집합을 지금 구간의 모든 gate가 보존하는 parity의 값으로 나눈다. 이렇게 나눈 sector는 그 구간 동안 항을 주고받지도 합쳐지지도 않는다. 따라서 sector마다 따로 merge하고 truncation해도 전체를 합쳐 계산한 것과 답이 같다. 구간, parity, sector 수는 실행 중에 정하고, 통신은 구간이 바뀔 때만 한다.
 
 <p align="center"><img src="figures/design_architecture.png" width="860"></p>
-<p align="center"><b>그림 2.</b> SectorQ의 전체 구조. 위: 구간 하나가 도는 동안 각 노드는 자기 sector만 처리한다. sector의 색은 그 sector를 맡은 노드이다. 아래: 런타임 sector 재구성. 살아 있는 항과 다음 gate로부터 다음 구간의 행과 sector 수를 구간마다 정해 GPU에 돌려준다. 숫자는 4 노드 16 GPU에서 도는 127-qubit kicked Ising 회로(cutoff 1e-5)의 구간 9의 것이다(<code>logs/pp_e11-59488608.out</code>).</p>
+<p align="center"><b>그림 2.</b> SectorQ의 전체 구조. 위: 구간 하나가 도는 동안 각 노드는 자기 sector만 처리한다. sector의 색은 그 sector를 맡은 노드이다. 아래: 런타임 sector 재구성. GPU가 구간을 계산하는 동안, 살아 있는 항과 다음 gate로부터 다음 구간의 행과 sector 수를 정해 GPU에 돌려준다. GPU가 이 결과를 기다린 시간은 0초이다. 숫자는 4 노드 16 GPU에서 도는 127-qubit kicked Ising 회로(cutoff 1e-5)의 구간 9의 것이다(<code>logs/pp_e11-59488608.out</code>, <code>logs/h1/h.h1.ki.1e-5.g16.out</code>).</p>
 
-**구간 실행.** 노드마다 프로세스 하나, GPU마다 worker 하나가 있다. sector d는 노드 (d mod 노드 수)의 host memory에 있다. (1) worker는 자기 노드의 sector를 하나 꺼내 GPU에 올리고, 구간의 gate를 적용하며 그 sector 안에서 merge와 truncation을 수행한다. (2) 출력은 GPU에서 다음 구간의 행으로 나뉘어 host memory에 내려온다(3.4절). 이 동안 노드 사이에 오가는 것은 없다. 구간 중간에 GPU보다 커진 sector는 그 자리에서 둘로 나눈다.
+**구간 실행.** 노드마다 프로세스 하나, GPU마다 worker 하나가 있다. sector d는 노드 (d mod 노드 수)의 host memory에 있다. (1) worker는 자기 노드의 sector를 하나 꺼내 GPU에 올리고, 구간의 gate를 적용하며 그 sector 안에서 merge와 truncation을 수행한다. (4) 출력은 GPU에서 다음 구간의 행으로 나뉘어 host memory에 내려온다(3.4절). 이 동안 항은 노드 사이를 오가지 않는다. 구간 중간에 GPU보다 커진 sector는 그 자리에서 둘로 나눈다.
 
-**런타임 sector 재구성.** 다음 구간을 어떻게 나눌지는 실행 중에, 살아 있는 항을 보고 정한다. (3) 살아 있는 항의 표본과 항 수를 본다. (4) 다음 gate들이 보존하는 행 가운데 표본을 고르게 나누는 것을 고르고, 항 수로 sector 수를 정해 모든 노드의 GPU에 돌려준다(3.2절). 그림의 구간에서는 항 1.59억 개를 행 6개로 64 sector로 나누었고, 가장 큰 sector는 평균의 1.01배이다. 구간의 끝도 실행 중에 정한다(3.3절).
+**런타임 sector 재구성.** 다음 구간을 어떻게 나눌지는 실행 중에, 살아 있는 항을 보고 정한다. 이 일은 GPU가 지금 구간을 계산하는 동안 노드의 main thread가 한다. (2) 구간이 시작할 때 살아 있는 항의 표본(20만 항)과 항 수를 뜬다. (3) 다음 gate들이 보존하는 행 가운데 표본을 고르게 나누는 것을 고르고, 항 수로 sector 수를 정해 모든 노드의 GPU에 돌려준다(3.2절). GPU는 출력을 나누기 직전에만 이 행을 필요로 하므로 기다리지 않는다. 16 GPU의 kicked Ising cutoff 1e-5에서 행을 고르는 데 0.33초가 들고 GPU가 기다린 시간은 0초이다. 구간이 짧을 때는 GPU마다 sector를 하나만 주어, 연산 호출의 고정 비용을 한 번만 낸다. 그림의 구간에서는 항 1.59억 개를 행 6개로 64 sector로 나누었고, 가장 큰 sector는 평균의 1.01배이다. 구간의 끝도 실행 중에 정한다(3.3절).
 
 **구간 경계.** 각 노드의 출력에는 다음 구간의 모든 sector의 조각이 섞여 있다. (5) 조각을 그 sector를 맡은 노드로 보낸다. 통신은 여기에서만 일어난다. 이 시점의 sector 집합을 checkpoint로 쓰고(3.6절) 다음 구간으로 넘어간다. 마지막 구간이 끝나면 초기 상태에 대한 기대값을 구한다.
 
@@ -304,13 +304,15 @@ SectorQ에는 미리 세운 계획이 없다. 하나의 고리가 구간마다 �
 
 **기존 방식.** cuPauliProp 분산 모드는 gate 하나를 적용할 때마다 모든 GPU가 전역 merge와 재분배에 참여한다. 새 항이 어느 GPU의 항과 합쳐질지 알 수 없기 때문이다. gate마다 rank당 22번의 전원 통신을 하고, 그동안 모든 GPU가 기다린다.
 
-**SectorQ.** 구간의 gate 127개가 각 GPU 안에서 자기 sector에만 적용된다. 새 항이 sector를 벗어나지 않으므로(3.2절) 구간이 도는 동안 MPI 호출이 없다. 구간이 끝날 때 한 번, 다음 구간의 sector로 다시 나누어 교환한다. kicked Ising에서 통신 시점은 gate 2,540번에서 구간 20개의 경계로 줄어든다.
+**SectorQ.** 구간의 gate 127개가 각 GPU 안에서 자기 sector에만 적용된다. 새 항이 sector를 벗어나지 않으므로(3.2절) 구간이 도는 동안 항은 GPU를 옮기지 않는다. 그동안 노드 사이를 오가는 것은 다음 구간의 행을 고르는 표본(20만 항)과 고른 행뿐이다. 구간이 끝날 때 한 번, 다음 구간의 sector로 다시 나누어 교환한다. kicked Ising에서 통신 시점은 gate 2,540번에서 구간 20개의 경계로 줄어든다.
 
 | 2,250만 항 설정, 4 GPU | cuPauliProp 분산 | SectorQ |
 |---|---:|---:|
-| GPU당 전원 통신 횟수 | 119,785회 | 51회 (2,349배 적다) |
+| GPU당 전원 통신 횟수 | 119,785회 | 208회 (576배 적다) |
 | GPU 사이를 오간 데이터 | 20.3 GB | 0.57 GB (36배 적다) |
 | 전역 단계 | gate마다 | 구간마다 |
+
+SectorQ의 값은 노드 넷에 GPU 하나씩을 둔 실행에서 MPI 호출을 가로채어 센 것이다(`logs/h1/shim.h4.comm.ki.1e-4.n4x1.mpiprof`). 208회는 구간 20개의 경계에서 하는 교환과, 표본과 행을 나누는 호출을 합친 수이다.
 
 **구간을 끊는 곳은 실행 중에 정한다.** SectorQ는 rotation 목록을 앞에서부터 읽으며 생성자가 만드는 공간을 GF(2) 소거로 추적한다(`gf2.hpp`). 생성자 공간이 d차원이면 유효한 행의 공간은 2n−d차원이다. 이 공간이 n차원 이상 남아 있는 동안 구간을 늘리고, truncation 직후에서 끊는다(`--snap`, 기본). 구간 안에서 항 수는 경계의 2.9–36배까지 늘었다가 truncation에서 줄어든다. 16 GPU 실행의 구간 8에서는 최대 13.6억 항이 끊는 곳에서 1.59억 항이다. 옮기는 양이 가장 적은 때이다. 회로마다 규칙을 넣지 않으며, 회로 7종에서 구간 6–45개가 자동으로 잡힌다.
 
@@ -375,6 +377,7 @@ Clifford gate와 Clifford 각도의 rotation은 항 수를 바꾸지 않고 bit�
 |---|---|
 | SectorQ 본체 | `src/engine/pp_engine.cpp` (1,600여 줄): 구간 결정, sector 저장소, GPU worker, 노드 사이 교환, 넘치는 sector의 분할, checkpoint, 검산, 기준 모드 |
 | 연속된 noise channel의 묶음 호출 | `src/engine/noise_fusion.hpp` (80줄): noise channel은 항을 늘리지도 합치지도 않으므로 최대 10개를 한 번의 호출로 적용한다. truncation과 구간 경계에서 묶음을 끊는다. cuPauliProp 기준선에도 같이 적용한다 |
+| 구간 계산과 겹친 행 고르기 | 구간이 시작할 때 표본만 뜨고 worker를 띄운 뒤, main thread가 표본을 모아 다음 구간의 행을 정한다. worker는 출력을 나누기 직전에만 행을 기다린다. 앞 구간이 0.5초보다 짧으면 GPU당 sector를 하나로 한다(`--long-window`) |
 | 회로와 Clifford frame | `src/engine/circuit.hpp` (451줄): 회로 7종, frame, 연산의 bit 변환 |
 | GF(2) 소거 | `src/engine/gf2.hpp` (87줄): 생성자 공간, 유효한 행의 공간 |
 | 행 계산과 분할 kernel | `src/proto/shuffle.cu` (125줄) |
@@ -644,7 +647,7 @@ gate 적용이 39–60%를 차지한다. 이 부분은 cuPauliProp의 단일 GPU
 | sector 통째 교환 | 0.55 GB 재분배 | 1.2–1.4초 → 0.06–0.09초 |
 | GPU당 sector 수 1 / 2 / 4 / 8 | kicked Ising cutoff 1e-5, 16 GPU | 16.0 / 15.5 / 16.5 / 18.7초. 기본값 2 |
 | 초반부터 노드마다 sector 하나 (`--early-per-node`) | 같은 노드에서 켬과 끔 (`logs/pp_e9-59483080.out`) | Kicked Ising cutoff 1e-5: 32 GPU 10.4 → 8.1초, 16 GPU 16.6 → 14.2초. 잡음 있는 kicked Ising 32 GPU 10.0 → 7.1초. 2,250만 항 설정은 1.31 → 1.37초로 같다. XXZ, QAOA, ansatz 같은 아주 작은 회로는 0.1–0.2초 늘어난다 |
-| 전원 통신 횟수 (프로토타입) | 2,250만 항 설정, rank당 | collective 51회. cuPauliProp은 allgather 119,785회 |
+| 전원 통신 횟수 | 2,250만 항 설정, 4 GPU, GPU당 | 엔진 208회(프로토타입 51회). cuPauliProp은 allgather 119,785회 |
 | 이동 데이터 (프로토타입) | 같은 설정, 4 GPU | 0.57 GB. cuPauliProp은 20.3 GB |
 
 구간을 어디에서 끝내는지가 재분배 비용을 정한다. 아래는 연산마다의 항 수를 기록하여(`--profile`) 계산한 것이다(`analysis/rekey_timing.py`).
@@ -741,13 +744,27 @@ sector를 나누고, host에 두고, 노드 사이에 옮기는 일은 통신을
 
 host memory는 더 쓴다(가장 바쁜 노드에서 kicked Ising 3e-6이 26 → 33 GiB, QAOA가 22 → 33 GiB). 묶음으로 만들고 미리 만든 chunk의 몫이다. 4.2–4.4절의 수치는 이 변경 이전의 SectorQ로 잰 값이다.
 
+**행 고르기를 구간 계산과 겹치기.** 위의 엔진은 다음 구간의 행을 구간 사이에 골랐고, 그 0.3–0.4초 동안 모든 GPU가 섰다. 크기와 무관한 비용이라 작은 operator에서 비중이 컸다(16 GPU, 233만 항에서 1.04초 가운데 0.27초). 지금은 구간이 시작할 때 표본만 뜨고, GPU가 구간을 계산하는 동안 main thread가 행을 고른다. 또 앞 구간이 0.5초보다 짧으면 GPU마다 sector를 하나만 준다. sector 하나는 구간마다 연산 호출의 고정 비용(연산당 약 0.15 ms)을 내기 때문이다. 같은 노드에서 두 엔진을 차례로 잰 값이다(`logs/h1/`, 설정마다 1회, 기대값 일치).
+
+| 회로 (항 수) | GPU 1장 | 16 GPU 이전 | 16 GPU 지금 | 1장 대비 16장 | 4 GPU 이전 → 지금 |
+|---|---:|---:|---:|---|---|
+| kicked Ising (3만) | 0.50초 | 0.38초 | 0.38초 | 같음 | 0.26 → 0.27초 |
+| kicked Ising (233만) | 1.72초 | 1.07초 | 0.82초 | 1.6배 → 2.1배 | 1.17 → 0.88초 |
+| kicked Ising (809만) | 6.42초 | 1.61초 | 1.10초 | 4.0배 → 5.9배 | 2.62 → 2.22초 |
+| noisy kicked Ising (1,030만) | 16.1초 | 3.16초 | 2.03초 | 5.1배 → 7.9배 | 7.38 → 4.82초 |
+| kicked Ising (2,070만) | 18.6초 | 2.65초 | 1.96초 | 7.0배 → 9.5배 | 5.63 → 5.18초 |
+| TFIM heavy-hex (3,170만) | 21.1초 | 3.64초 | 2.54초 | 5.8배 → 8.3배 | 6.65 → 5.82초 |
+| kicked Ising (1.6억) | 167.5초 | 12.65초 | 12.16초 | 13.2배 → 13.8배 | 44.1 → 44.6초 |
+
+남는 바닥은 rotation 2,540개를 호출 하나씩으로 적용하는 시간이다(약 0.4초). cuPauliProp 0.5.0은 rotation을 묶어 호출할 수 없다. 작은 operator를 노드에 늦게 나누는 변형(`--min-bucket-early 30000`)은 큰 크기에서 12.2초가 13.8초로 느려져 쓰지 않는다.
+
 **noise channel 묶음.** noisy kicked Ising에서 SectorQ는 4 GPU cutoff 1e-5가 35.1초에서 33.2초가 된다. 같은 호출을 쓴 cuPauliProp은 4 GPU cutoff 1e-4의 기본 모드가 34.4초에서 33.9초가 된다. 단일 GPU 기준은 2.11초에서 1.91초가 되며, 여기에는 구간마다 host를 거치지 않게 된 몫이 함께 들어 있다.
 
 ## 5. 한계
 
 - 측정은 32 노드 128 GPU까지이다. 256 GPU 이상에서는 돌리지 않았다. 구간당 sector 수의 상한(256개)은 GPU 수와 문제 크기에 맞추어 정해야 하는데 그 규칙이 아직 없다(4.4절).
 - 가장 강한 기준선(dedup을 미룬 cuPauliProp)과의 속도 차이는 한 GPU를 넘는 설정에서 2.0–3.8배이다. 이 기준선은 GPU가 늘어 메모리가 넉넉해질수록 dedup을 더 미룰 수 있다. SectorQ의 gate 적용은 cuPauliProp의 단일 GPU 연산이므로 그 시간이 하한이다(4.6절).
-- 구간이 도는 동안에는 통신이 없지만 구간이 바뀔 때마다 모든 항이 노드 사이를 이동한다. 통신이 없는 방식이 아니라 통신을 구간 경계로 모으는 방식이다.
+- 구간이 도는 동안에는 항이 노드 사이를 오가지 않지만 구간이 바뀔 때마다 모든 항이 노드 사이를 이동한다. 통신이 없는 방식이 아니라 통신을 구간 경계로 모으는 방식이다.
 - 모든 측정은 1회이다. 40 GB 노드와 80 GB 노드(36 GB로 제한)의 결과가 섞여 있고, 같은 설정의 시간이 노드 종류에 따라 최대 8% 다르다(4.4절).
 - 한 GPU에 들어가는 문제는 GPU를 늘려도 빨라지지 않는다(4.3절). 한 GPU를 넘는 문제도 작으면 일찍 포화한다(cutoff 1e-5는 32 GPU에서 64 GPU로 1.1–1.3배이고 128 GPU에서는 더 줄지 않는다, 4.4절). SectorQ는 항 수가 sector 목표보다 적은 동안 GPU 하나만 쓴다.
 - kicked Ising(θ=π/4, 20 step)의 값은 cutoff 1e-4, 1e-5, 3e-6, 1e-6에서 0.153, 0.229, 0.289, 0.322이며 수렴하지 않았다. cutoff 1e-6은 128 GPU에서 189초가 걸렸고 16 GPU에서는 25분 안에 끝나지 않았다. 참값으로의 수렴은 exact 값을 아는 30 qubit 회로에서만 보였다.
@@ -826,6 +843,7 @@ thrust 코드는 `-gencode arch=compute_80,code=sm_80`로 빌드한다. 실행�
 | `jobs/u2_exchange.sh` | 16 GPU에서 교환 시간의 분해(`bin/pp_engine_u2`), chunk를 예측해 미리 만든 판(`pp_engine_u3`, 기각) | `logs/u2/` | 4.9, 4.11 |
 | `jobs/u6_drive.sh` | 최종 판(`bin/pp_engine_u6`): 16 GPU, GPU 1장, kicked Ising 1e-5의 GPU 1장. `logs/u3`, `logs/u4`는 기각한 GPU 1장 규칙의 기록이다 | `logs/u6/` | 4.11 |
 | `jobs/u7_breakdown.sh` | 16 GPU의 시간 분해: SectorQ와 cuPauliProp 분산 모드(기본, dedup을 미룬 방식). cuPauliProp은 MPI 계측판과 호출별 timer, 모든 실행에 GPU 사용률 표본(`jobs/smi_sample.sh`). `bin/pp_engine_u7` = `bin/pp_engine` | `logs/u7/` | 3.3, 4.6 |
+| 캠페인 g의 큐 맨 앞 항목 (`queue_g/todo_00h1.jsonl`, `jobs/g_ext_impl.py`의 `launch_engine`) | 행 고르기를 구간 계산과 겹친 엔진(`bin/pp_engine_h`)과 그 이전 엔진(`bin/pp_engine_g0`)을 같은 노드에서 차례로: 4와 16 GPU, 일곱 설정, 변형 셋. 엔진의 MPI 호출 수(`bin/libmpi_shim.so`) | `logs/h1/` | 3.1, 3.3, 4.11 |
 
 작업은 `sbatch jobs/*.sh`로 낸다(`-A m5320_g -C gpu -q debug`). `e5`–`e10`은 측정 당시의 시험용 binary(`bin/pp_engine_dd*`)를 가리킨다. 최종 소스로 빌드한 SectorQ로 다시 돌리려면 `PP_BIN=bin/pp_engine`을 준다. `e8`의 `--busy-window`는 기각하여 최종 소스에 없다. `inter_run*.sh`는 interactive 할당 안에서 `PP_JOB=<할당 번호> bash jobs/inter_runN.sh`로 실행한다.
 

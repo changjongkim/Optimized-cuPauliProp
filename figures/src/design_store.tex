@@ -45,7 +45,8 @@
   \node[comp, anchor=north west, minimum width=6.0cm, minimum height=0.86cm] at (0.15,-4.22) {};
   \node[cttl, anchor=north west] at (0.2,-4.23) {Chunk Pool};
   \node[inote, anchor=north east] at (6.1,-4.25) {Pinned Once, Reused};
-  \foreach \i in {0,...,8}
+  \node[inote, anchor=west] at (2.5,-4.83) {Grown While the GPUs Work};
+  \foreach \i in {0,...,4}
     \node[ch, pattern=north east lines, pattern color=black!55] at ({0.3+0.4*\i},-4.83) {};
   % ================= one GPU =================
   \node[gpu, anchor=north west, minimum width=6.9cm, minimum height=5.2cm] at (7.0,0) {};
