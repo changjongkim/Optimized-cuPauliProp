@@ -10,6 +10,7 @@ import glob
 import os
 import re
 import sys
+from datetime import datetime
 
 import matplotlib
 matplotlib.use("Agg")
@@ -73,6 +74,17 @@ def parse(name):
         m = re.search(r"windows running=([\d.]+), waiting for the slowest node=([\d.]+)", line)
         if m:
             cur["parts"]["running"], cur["parts"]["waiting"] = float(m.group(1)), float(m.group(2))
+        m = re.match(r"solve_epoch=([\d.]+)\.\.([\d.]+)", line)
+        if m:
+            cur["epoch"] = (float(m.group(1)), float(m.group(2)))
+        if line.startswith("cupp phases"):
+            cur["phases"] = {k: (float(a), float(b)) for k, a, b in re.findall(r"(\w+)=([\d.]+) \(([\d.]+)\)", line)}
+        m = re.match(r"cupp mpi, seconds per rank: collective=([\d.]+) point_to_point=([\d.]+) total=([\d.]+)", line)
+        if m:
+            cur["mpi"] = {"collective": float(m.group(1)), "p2p": float(m.group(2)), "total": float(m.group(3))}
+        m = re.match(r"cupp mpi (\w+): calls/rank=(\d+) \(([\d.]+) per operation\) seconds/rank=([\d.]+) GB/rank=([\d.]+)", line)
+        if m:
+            cur.setdefault("mpi_kinds", {})[m.group(1)] = dict(calls=int(m.group(2)), per_op=float(m.group(3)), seconds=float(m.group(4)), gb=float(m.group(5)))
         m = re.match(r"max_terms_at_window_boundary=(\d+)", line)
         if m:
             cur["boundary"] = int(m.group(1))
@@ -473,7 +485,118 @@ def breakdown(big):
     return out
 
 
+# ---------------------------------------------------------------------------------------
+# where the time goes on 16 GPUs: SectorQ next to cuPauliProp's distributed mode (logs/u7, jobs/u7_breakdown.sh)
+# ---------------------------------------------------------------------------------------
+def gpu_busy(prefix, window):
+    """Mean GPU utilization (%) of all GPUs of all nodes inside the timed part of a run (nvidia-smi samples)."""
+    if not window:
+        return None
+    vals = []
+    for path in glob.glob(prefix + ".*.csv"):
+        for line in open(path, errors="replace"):
+            f = [x.strip() for x in line.split(",")]
+            try:
+                ts = datetime.strptime(f[0], "%Y/%m/%d %H:%M:%S.%f").timestamp()   # local time, as on the nodes
+                if window[0] <= ts <= window[1]:
+                    vals.append(float(f[2]))
+            except (ValueError, IndexError):
+                continue
+    return sum(vals) / len(vals) if vals else None
+
+
+def breakdown_base(folder="u7"):
+    """Stacked bars of the run time on 16 GPUs: SectorQ, cuPauliProp distributed (default), and cuPauliProp with
+    the deduplication deferred to the truncations. cuPauliProp: seconds per rank from the profiling plugin
+    (every MPI call of the library) and from timers around the library calls; the time inside the library calls
+    and outside MPI is split by the sampled GPU utilization into the part with a busy GPU and the rest."""
+    sets = [("ki.1e-4", "Kicked Ising, Cutoff 1e-4"), ("ki.1e-5", "Kicked Ising, Cutoff 1e-5"),
+            ("tfim.1e-5", "TFIM Heavy-Hex, Cutoff 1e-5"), ("noise.1e-5", "Noisy Kicked Ising, Cutoff 1e-5")]
+    parts = [("Gates on GPU", "gpu", OURS), ("Library on the Host, GPU Idle", "host", "#8E96A3"),
+             ("Collective Calls Among All GPUs", "collective", "#5B3A8C"), ("Moving Terms Between GPUs", "moving", "#C0432F"),
+             ("GPU-Host Copies and Partition", "copies", "#F5B553"), ("Idle or Waiting GPU", "idle", "#CFD3D9"),
+             ("Other", "other", "#ECEDEF")]
+
+    def one(kind, name):
+        runs = parse(os.path.join(folder, f"{kind}.{name}.out"))
+        r = runs[-1] if runs else None
+        if not ok(r):
+            return None
+        wall = r["wall"]
+        busy = gpu_busy(os.path.join(LOGS, folder, f"smi.{kind}.{name}"), r.get("epoch"))
+        if kind == "eng":
+            # time inside the single-GPU library calls of the workers: the GPU works for all of it (the sampled
+            # utilization agrees), so it is not split
+            p, n = r["parts"], r["parts"]["workers"]
+            sec = {"gpu": p.get("operations", 0.0) / n, "host": 0.0, "collective": 0.0, "moving": p.get("exchange", 0.0),
+                   "copies": (p.get("gpu->host", 0.0) + p.get("host->gpu", 0.0) + p.get("partition", 0.0)) / n,
+                   "idle": p.get("idle", 0.0) / n + p.get("waiting", 0.0)}
+        else:
+            if "phases" not in r or "mpi" not in r:
+                return None
+            inside = sum(a for a, _ in r["phases"].values())
+            local = inside - sum(b for _, b in r["phases"].values())      # inside the library calls, outside MPI
+            gpu = min(local, (busy or 0.0) / 100.0 * wall)
+            sec = {"gpu": gpu, "host": local - gpu, "collective": r["mpi"]["collective"], "moving": r["mpi"]["p2p"],
+                   "copies": 0.0, "idle": 0.0}
+        sec["other"] = max(0.0, wall - sum(sec.values()))
+        return dict(wall=wall, sec=sec, share={k: v / wall for k, v in sec.items()}, busy=busy, run=r)
+
+    rows = []           # (group title or None, label, data)
+    for name, title in sets:
+        group = [("SectorQ", one("eng", name)), ("cuPauliProp", one("cupp", name)),
+                 ("cuPauliProp, Merge Deferred", one("cupp", name + ".defer"))]
+        group = [(lab, d) for lab, d in group if d]
+        for j, (lab, d) in enumerate(group):
+            rows.append((title if j == 0 else None, lab, d))
+    if not rows:
+        return []
+    fig, ax = plt.subplots(figsize=(10.8, 0.52 * len(rows) + 0.5 * len(sets) + 1.3))
+    y, ticks, labels, out, seen = 0.0, [], [], [], set()
+    for title, lab, d in rows:
+        if title:
+            y += 0.75 if ticks else 0.0
+            ax.text(0, y - 0.62, title, ha="left", va="center", fontsize=12.5, fontweight="bold")
+        left = 0.0
+        for pname, key, col in parts:
+            v = d["share"][key] * 100
+            if v <= 0:
+                continue
+            ax.barh(y, v, left=left, color=col, height=0.62, label=pname if pname not in seen else None)
+            seen.add(pname)
+            if v >= 6:
+                ax.text(left + v / 2, y, f"{v:.0f}%", ha="center", va="center", fontsize=11.5,
+                        color="white" if key in ("gpu", "host", "collective", "moving") else INK)
+            left += v
+        ticks.append(y)
+        labels.append(f"{lab} ({secs(d['wall'])} s)")
+        out.append((title, lab, d))
+        y += 1.0
+    ax.set_yticks(ticks)
+    ax.set_yticklabels(labels)
+    ax.set_ylim(ticks[-1] + 0.55, ticks[0] - 1.0)
+    ax.set_xlim(0, 100)
+    ax.set_xlabel("Share of the Run Time (%)")
+    ax.tick_params(length=0)
+    handles, names = ax.get_legend_handles_labels()
+    order = [names.index(pn) for pn, _, _ in parts if pn in names]
+    ax.legend([handles[i] for i in order], [names[i] for i in order], loc="lower center", ncol=4, bbox_to_anchor=(0.40, 1.0),
+              fontsize=11.5, columnspacing=1.3, handlelength=1.2)
+    save(fig, "eval_breakdown_base.png")
+    return out
+
+
 def main():
+    if "--base-only" in sys.argv:
+        for title, lab, d in breakdown_base():
+            r = d["run"]
+            print(f"{title or '':32s} {lab:28s} {d['wall']:7.2f} s  " + "  ".join(f"{k}={v * 100:.0f}%" for k, v in d["share"].items())
+                  + (f"  gpu_busy={d['busy']:.0f}%" if d["busy"] is not None else ""))
+            for k, v in sorted(r.get("mpi_kinds", {}).items()):
+                print(f"{'':62s} mpi {k}: {v['per_op']:.2f} calls per operation, {v['seconds']:.2f} s, {v['gb']:.2f} GB per rank")
+            if "phases" in r:
+                print(f"{'':62s} phases: " + ", ".join(f"{k} {a:.2f} s ({b:.2f} in MPI)" for k, (a, b) in r["phases"].items()))
+        return
     run4, run5, e3 = parse("inter_run4.out"), parse("inter_run5.out"), parse("pp_e3-59475516.out")
     run6 = parse("inter_run6.out")
     big = parse(BIG_LOG)        # 16 and 32 GPUs of the same eight nodes: engine and both baselines
@@ -487,6 +610,7 @@ def main():
     base = scaling_baselines(e13, e12)
     accuracy()
     parts = breakdown(big)
+    breakdown_base()
     if "--print" in sys.argv:
         print("\n# speed, 16 GPUs: setting | engine | tuned | default | value")
         for label, coef, g, e, t, d in table:

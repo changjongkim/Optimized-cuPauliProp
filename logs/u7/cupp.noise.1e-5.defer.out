@@ -1,0 +1,16 @@
+===== cupp nodes=4 gpus=16 args: --circuit ki_noisy --noise 0.005 --coef 1e-5 --vram-frac 0.9 --cupp-tuned 1
+circuit: noisy kicked Ising, Eagle heavy-hex; 127 qubits; 7960 gates -> 7960 operations on the data (2540 branching rotations, 2880 Clifford, 2540 noise); 2880 Clifford gates deferred by the frame
+mode=cupp ranks=16 (one GPU each) coef=1e-05 weight=0 tuned: rank-local application, global deduplication before each truncation
+expectation=0.173318829841
+largest_local_expansion=81629027 terms
+wall=21.583 s
+noise channels applied in groups: 40576 operations in 4288 calls (summed over ranks)
+solve_epoch=1791610206.136..1791610227.719
+cupp phases, seconds per rank (of it inside MPI calls): prepare=1.373 (0.383) application=4.308 (0.306) deduplication=15.485 (10.056) truncation=0.393 (0.065) trace=0.008 (0.007); profiling plugin on
+cupp mpi, seconds per rank: collective=3.261 point_to_point=7.555 total=10.816
+cupp mpi wait: calls/rank=10842 (1.36 per operation) seconds/rank=6.348 GB/rank=0.000
+cupp mpi isend: calls/rank=5421 (0.68 per operation) seconds/rank=1.099 GB/rank=49.477
+cupp mpi irecv: calls/rank=5421 (0.68 per operation) seconds/rank=0.107 GB/rank=49.477
+cupp mpi allreduce: calls/rank=1 (0.00 per operation) seconds/rank=0.000 GB/rank=0.000
+cupp mpi allgather: calls/rank=17365 (2.18 per operation) seconds/rank=3.261 GB/rank=0.000
+exit=0

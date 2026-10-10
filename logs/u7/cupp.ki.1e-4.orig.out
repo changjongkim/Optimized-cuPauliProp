@@ -1,0 +1,9 @@
+===== cupp nodes=4 gpus=16 args: --circuit ki_lab --weight 0 --coef 1e-4 --vram-frac 0.9
+circuit: kicked Ising, Eagle heavy-hex; 127 qubits; 5420 gates -> 2541 operations on the data (2540 branching rotations, 1 Clifford, 0 noise); 2880 Clifford gates deferred by the frame
+mode=cupp ranks=16 (one GPU each) coef=0.0001 weight=0 default: global deduplication in every operation
+expectation=0.153108187591
+largest_local_expansion=1410321 terms
+wall=23.814 s
+solve_epoch=1791610236.170..1791610259.984
+cupp phases, seconds per rank (of it inside MPI calls): prepare=2.817 (0.000) application=20.981 (0.000) deduplication=0.000 (0.000) truncation=0.000 (0.000) trace=0.009 (0.000); profiling plugin off
+exit=0

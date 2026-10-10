@@ -1,0 +1,15 @@
+22:22:43 eng ki.1e-4 exit=0 wall=1.585 expectation=0.153108187591
+22:23:34 cupp ki.1e-4 exit=0 wall=28.437 expectation=0.153108187591
+22:23:48 cupp ki.1e-4.defer exit=0 wall=6.832 expectation=0.153108187591
+22:24:16 eng ki.1e-5 exit=0 wall=12.798 expectation=0.228607441423
+22:25:47 cupp ki.1e-5 exit=0 wall=51.590 expectation=0.228607441423
+22:25:59 cupp ki.1e-5.defer exit=255  
+22:26:30 eng tfim.1e-5 exit=0 wall=15.699 expectation=0.451392373925
+22:27:54 cupp tfim.1e-5 exit=0 wall=71.843 expectation=0.451392373925
+22:28:10 cupp tfim.1e-5.defer exit=255  
+22:28:39 eng noise.1e-5 exit=0 wall=10.229 expectation=0.173318829841
+22:29:59 cupp noise.1e-5 exit=0 wall=69.668 expectation=0.173318829841
+22:30:30 cupp noise.1e-5.defer exit=0 wall=21.583 expectation=0.173318829841
+22:31:11 cupp ki.1e-4.orig exit=0 wall=23.814 expectation=0.153108187591
+22:32:23 cupp ki.1e-5.orig exit=0 wall=54.876 expectation=0.228607441423
+done after 599s

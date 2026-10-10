@@ -1,0 +1,15 @@
+===== cupp nodes=4 gpus=16 args: --circuit tfim_hh --theta 0.2 --phi -0.3 --steps 20 --coef 1e-5 --vram-frac 0.9
+circuit: TFIM Trotter, Eagle heavy-hex; 127 qubits; 5420 gates -> 5420 operations on the data (5420 branching rotations, 0 Clifford, 0 noise); 0 Clifford gates deferred by the frame
+mode=cupp ranks=16 (one GPU each) coef=1e-05 weight=0 default: global deduplication in every operation
+expectation=0.451392373925
+largest_local_expansion=88419198 terms
+wall=71.843 s
+solve_epoch=1791609996.418..1791610068.262
+cupp phases, seconds per rank (of it inside MPI calls): prepare=5.983 (1.313) application=65.842 (26.963) deduplication=0.000 (0.000) truncation=0.000 (0.000) trace=0.001 (0.000); profiling plugin on
+cupp mpi, seconds per rank: collective=16.209 point_to_point=12.068 total=28.276
+cupp mpi wait: calls/rank=122040 (22.52 per operation) seconds/rank=10.881 GB/rank=0.000
+cupp mpi isend: calls/rank=61020 (11.26 per operation) seconds/rank=1.058 GB/rank=91.795
+cupp mpi irecv: calls/rank=61020 (11.26 per operation) seconds/rank=0.129 GB/rank=91.795
+cupp mpi allreduce: calls/rank=1 (0.00 per operation) seconds/rank=0.000 GB/rank=0.000
+cupp mpi allgather: calls/rank=119785 (22.10 per operation) seconds/rank=16.208 GB/rank=0.001
+exit=0

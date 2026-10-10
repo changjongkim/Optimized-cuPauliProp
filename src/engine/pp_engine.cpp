@@ -51,6 +51,8 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include <dlfcn.h>
+#include <sys/time.h>
 #include <unistd.h>
 
 #include "circuit.hpp"
@@ -78,6 +80,26 @@ static int g_rank = 0, g_R = 1;
 
 static double now() {
   return std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
+}
+// Wall-clock time of day, to line a run up with samples taken outside the process (GPU utilization).
+static double epochNow() { timeval tv; gettimeofday(&tv, nullptr); return (double)tv.tv_sec + 1e-6 * (double)tv.tv_usec; }
+
+// Counters of the profiling plugin (bin/libcupp_mpi_prof.so), when that is the library's communication plugin:
+// calls, seconds and bytes of every kind of MPI call that cuPauliProp's distributed mode makes on this rank.
+static const int CUPP_KINDS = 12;
+static const char* CUPP_KIND_NAMES[CUPP_KINDS] = {"barrier", "wait", "test", "send", "isend", "recv", "irecv",
+                                                  "bcast", "allreduce", "allreduce_min", "minloc", "allgather"};
+static const bool CUPP_KIND_COLLECTIVE[CUPP_KINDS] = {true, false, false, false, false, false, false, true, true, true, true, true};
+typedef void (*CuppSnapshotFn)(double*);
+static CuppSnapshotFn cuppProfiler() {
+  const char* lib = getenv("CUPAULIPROP_COMM_LIB");
+  if (!lib) return nullptr;
+  void* h = dlopen(lib, RTLD_NOW | RTLD_GLOBAL);
+  if (!h) return nullptr;
+  typedef int (*KindsFn)(void);
+  KindsFn kinds = (KindsFn)dlsym(h, "cuppprof_num_kinds");
+  CuppSnapshotFn snap = (CuppSnapshotFn)dlsym(h, "cuppprof_snapshot");
+  return (kinds && snap && kinds() == CUPP_KINDS) ? snap : nullptr;
 }
 
 struct Opts {
@@ -1089,7 +1111,20 @@ static int runCuppDistributed(const Opts& o, const Problem& P) {
   noiseFusion.init(handle, kNoiseGroup, true);
   bool merged = false;
   int sinceDedup = 0;
+  // Where the time of this rank goes: the library calls by phase, and inside them the MPI calls of the library
+  // (only with the profiling plugin).
+  const CuppSnapshotFn snapshot = cuppProfiler();
+  std::vector<double> snap(3 * CUPP_KINDS + 2, 0.0);
+  auto mpiSeconds = [&]() { if (!snapshot) return 0.0; snapshot(snap.data()); double t = 0; for (int k = 0; k < CUPP_KINDS; k++) t += snap[CUPP_KINDS + k]; return t; };
+  enum { PH_PREPARE = 0, PH_APPLY, PH_DEDUP, PH_TRUNC, PH_TRACE, PHASES };
+  double phase[PHASES] = {0, 0, 0, 0, 0}, phaseMpi[PHASES] = {0, 0, 0, 0, 0};
+  double phT = 0, phM = 0;
+  auto phaseBegin = [&]() { phM = mpiSeconds(); phT = MPI_Wtime(); };
+  auto phaseEnd = [&](int ph) { phase[ph] += MPI_Wtime() - phT; phaseMpi[ph] += mpiSeconds() - phM; };
   MPI_Barrier(MPI_COMM_WORLD);
+  const double mpiAtStart = mpiSeconds();
+  std::vector<double> snapStart = snap;
+  const double epochStart = epochNow();
   const double t0 = MPI_Wtime();
   int cur = 0;
   long maxLocal = 0;
@@ -1110,18 +1145,23 @@ static int runCuppDistributed(const Opts& o, const Problem& P) {
     int limit = kNoiseGroup;
     if (keepDup && o.cuppDedupEvery > 0) limit = std::min(limit, o.cuppDedupEvery - sinceDedup);
     const int group = (keepDup || merged) ? noiseFusionCount((int)k, (int)g_ops.size(), limit) : 1;
+    phaseBegin();
     if (group > 1) applied = noiseFusion.apply(v, ex[1 - cur], oper, (int)k, group, !keepDup, trunc, (long)capTerms, wsMem, dWs, stream);
+    if (applied >= 2) phaseEnd(PH_APPLY);
     if (applied < 2) {
       applied = 1;
       int64_t rp = 0, rc = 0;
+      phaseBegin();
       cupaulipropStatus_t sp = cupaulipropPauliExpansionViewPrepareOperatorApplication(
         handle, v, oper[k], CUPAULIPROP_SORT_ORDER_NONE, keepDup, nT, pT, wsMem, &rp, &rc, ws);
+      phaseEnd(PH_PREPARE);
       if (sp != CUPAULIPROP_STATUS_SUCCESS || rp > (int64_t)xzMem || rc > (int64_t)cfMem) {
         fprintf(stderr, "[rank %d] cuPauliProp distributed mode ran out of memory at operation %zu of %zu with %ld local terms (status %d)\n",
                 g_rank, k, g_ops.size(), (long)m, (int)sp);
         die("cuPauliProp distributed capacity", __LINE__);
       }
       CUPP(cupaulipropWorkspaceSetMemory(handle, ws, CUPAULIPROP_MEMSPACE_DEVICE, CUPAULIPROP_WORKSPACE_SCRATCH, dWs, wsMem));
+      phaseBegin();
       cupaulipropStatus_t sc = cupaulipropPauliExpansionViewComputeOperatorApplication(
         handle, v, ex[1 - cur], oper[k], 1, CUPAULIPROP_SORT_ORDER_NONE, keepDup, nT, pT, ws, stream);
       if (sc != CUPAULIPROP_STATUS_SUCCESS) {
@@ -1129,6 +1169,7 @@ static int runCuppDistributed(const Opts& o, const Problem& P) {
         die("cuPauliProp distributed application", __LINE__);
       }
       CUDA(cudaStreamSynchronize(stream));
+      phaseEnd(PH_APPLY);
       merged = !keepDup;
     }
     CUPP(cupaulipropDestroyPauliExpansionView(v));
@@ -1143,6 +1184,7 @@ static int runCuppDistributed(const Opts& o, const Problem& P) {
       CUPP(cupaulipropPauliExpansionGetNumTerms(handle, ex[cur], &m2));
       cupaulipropPauliExpansionView_t v2;
       CUPP(cupaulipropPauliExpansionGetContiguousRange(handle, ex[cur], 0, m2, &v2));
+      phaseBegin();
       cupaulipropStatus_t sd = cupaulipropPauliExpansionViewPrepareDeduplication(handle, v2, CUPAULIPROP_SORT_ORDER_NONE, wsMem, ws);
       if (sd == CUPAULIPROP_STATUS_SUCCESS) {
         CUPP(cupaulipropWorkspaceSetMemory(handle, ws, CUPAULIPROP_MEMSPACE_DEVICE, CUPAULIPROP_WORKSPACE_SCRATCH, dWs, wsMem));
@@ -1153,6 +1195,7 @@ static int runCuppDistributed(const Opts& o, const Problem& P) {
         die("cuPauliProp distributed deduplication", __LINE__);
       }
       CUDA(cudaStreamSynchronize(stream));
+      phaseEnd(PH_DEDUP);
       merged = true;
       CUPP(cupaulipropDestroyPauliExpansionView(v2));
       cur ^= 1;
@@ -1162,10 +1205,12 @@ static int runCuppDistributed(const Opts& o, const Problem& P) {
         CUPP(cupaulipropPauliExpansionGetNumTerms(handle, ex[cur], &m3));
         cupaulipropPauliExpansionView_t v3;
         CUPP(cupaulipropPauliExpansionGetContiguousRange(handle, ex[cur], 0, m3, &v3));
+        phaseBegin();
         CUPP(cupaulipropPauliExpansionViewPrepareTruncation(handle, v3, (int32_t)trunc.size(), trunc.data(), wsMem, ws));
         CUPP(cupaulipropWorkspaceSetMemory(handle, ws, CUPAULIPROP_MEMSPACE_DEVICE, CUPAULIPROP_WORKSPACE_SCRATCH, dWs, wsMem));
         CUPP(cupaulipropPauliExpansionViewExecuteTruncation(handle, v3, ex[1 - cur], (int32_t)trunc.size(), trunc.data(), ws, stream));
         CUDA(cudaStreamSynchronize(stream));
+        phaseEnd(PH_TRUNC);
         CUPP(cupaulipropDestroyPauliExpansionView(v3));
         cur ^= 1;
       }
@@ -1175,13 +1220,17 @@ static int runCuppDistributed(const Opts& o, const Problem& P) {
   CUPP(cupaulipropPauliExpansionGetNumTerms(handle, ex[cur], &m));
   cupaulipropPauliExpansionView_t v;
   CUPP(cupaulipropPauliExpansionGetContiguousRange(handle, ex[cur], 0, m, &v));
+  phaseBegin();
   CUPP(cupaulipropPauliExpansionViewPrepareTraceWithZeroState(handle, v, wsMem, ws));
   CUPP(cupaulipropWorkspaceSetMemory(handle, ws, CUPAULIPROP_MEMSPACE_DEVICE, CUPAULIPROP_WORKSPACE_SCRATCH, dWs, wsMem));
   double sig = 0, e2 = 0;
   CUPP(cupaulipropPauliExpansionViewComputeTraceWithZeroState(handle, v, &sig, &e2, ws, stream));
   CUDA(cudaStreamSynchronize(stream));
+  phaseEnd(PH_TRACE);
   MPI_Barrier(MPI_COMM_WORLD);
   const double wall = MPI_Wtime() - t0;
+  const double epochEnd = epochNow();
+  const double mpiTotal = mpiSeconds() - mpiAtStart;       // also fills `snap`
   long mx = 0;
   MPI_Allreduce(&maxLocal, &mx, 1, MPI_LONG, MPI_MAX, MPI_COMM_WORLD);
   if (g_rank == 0) {
@@ -1191,6 +1240,32 @@ static int runCuppDistributed(const Opts& o, const Problem& P) {
   { long local[2] = {noiseFusion.calls, noiseFusion.operations}, total[2] = {0, 0};
     MPI_Reduce(local, total, 2, MPI_LONG, MPI_SUM, 0, MPI_COMM_WORLD);
     if (g_rank == 0 && total[0] > 0) printf("noise channels applied in groups: %ld operations in %ld calls (summed over ranks)\n", total[1], total[0]); }
+  {
+    // Averages over the ranks. A rank that waits for another one inside a collective call counts that wait as
+    // MPI time of the call.
+    std::vector<double> local(2 * PHASES + 3 * CUPP_KINDS + 1, 0.0), sum(local.size(), 0.0);
+    for (int i = 0; i < PHASES; i++) { local[i] = phase[i]; local[PHASES + i] = phaseMpi[i]; }
+    for (int i = 0; i < 3 * CUPP_KINDS; i++) local[2 * PHASES + i] = snap[i] - snapStart[i];
+    local[2 * PHASES + 3 * CUPP_KINDS] = mpiTotal;
+    MPI_Reduce(local.data(), sum.data(), (int)local.size(), MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+    if (g_rank == 0) {
+      printf("solve_epoch=%.3f..%.3f\n", epochStart, epochEnd);
+      const char* names[PHASES] = {"prepare", "application", "deduplication", "truncation", "trace"};
+      printf("cupp phases, seconds per rank (of it inside MPI calls):");
+      for (int i = 0; i < PHASES; i++) printf(" %s=%.3f (%.3f)", names[i], sum[i] / g_R, sum[PHASES + i] / g_R);
+      printf("; profiling plugin %s\n", snapshot ? "on" : "off");
+      if (snapshot) {
+        double coll = 0, p2p = 0;
+        for (int k = 0; k < CUPP_KINDS; k++) (CUPP_KIND_COLLECTIVE[k] ? coll : p2p) += sum[2 * PHASES + CUPP_KINDS + k];
+        printf("cupp mpi, seconds per rank: collective=%.3f point_to_point=%.3f total=%.3f\n", coll / g_R, p2p / g_R, sum[2 * PHASES + 3 * CUPP_KINDS] / g_R);
+        for (int k = 0; k < CUPP_KINDS; k++)
+          if (sum[2 * PHASES + k] > 0)
+            printf("cupp mpi %s: calls/rank=%.0f (%.2f per operation) seconds/rank=%.3f GB/rank=%.3f\n", CUPP_KIND_NAMES[k],
+                   sum[2 * PHASES + k] / g_R, sum[2 * PHASES + k] / g_R / (double)g_ops.size(),
+                   sum[2 * PHASES + CUPP_KINDS + k] / g_R, sum[2 * PHASES + 2 * CUPP_KINDS + k] / g_R / 1e9);
+      }
+    }
+  }
   MPI_Finalize();
   return 0;
 }
@@ -1423,6 +1498,7 @@ int main(int argc, char** argv) {
   // node after it, and the part of the run with a single bucket (one GPU of one node works).
   double tRun = 0, tSync = 0, tSingle = 0, lastRunMax = 0;
   MPI_Barrier(MPI_COMM_WORLD);
+  const double epochBegin = epochNow();
   const double tBegin = now();
 
   std::vector<uint64_t> noSample;
@@ -1593,6 +1669,7 @@ int main(int argc, char** argv) {
   }
   MPI_Barrier(MPI_COMM_WORLD);
   const double wall = now() - tBegin;
+  if (g_rank == 0) printf("solve_epoch=%.3f..%.3f\n", epochBegin, epochNow());
 
   double loc[9] = {0, 0, 0, 0, 0, tExchange, bytesMoved, sh.expec, 0}, sum[9];
   for (auto& x : workers) { loc[0] += x.tOps; loc[1] += x.tPart; loc[2] += x.tH2D; loc[3] += x.tD2H; loc[4] += x.tIdle; loc[8] += x.tVerify; }

@@ -318,6 +318,17 @@ SectorQ에는 미리 세운 계획이 없다. 하나의 고리가 구간마다 �
 
 **교환.** 다른 노드가 맡은 sector의 조각은 구간 경계에서 한 번 보낸다. 노드 사이의 메시지는 이것뿐이다. 받은 메시지는 복사하지 않고 그 sector의 chunk로 삼는다. 회로 전체에서 유효한 행은 모든 항에서 값이 같아 분할에 쓸 수 없으므로(3.7절 성질 4) 재분배는 없앨 수 없다.
 
+**GPU 사이를 직접 잇지 않는 이유.** 한 노드의 GPU들은 NVLink로 이어져 있고(이 플랫폼은 GPU 쌍마다 링크 4개, 각 25 GB/s), GPU끼리 직접 주고받는 길(P2P)은 host를 거치는 길(26 GB/s, 내리고 올리는 두 번)보다 빠르다. 그래도 SectorQ는 GPU 사이의 직접 통신을 쓰지 않는다. 이유는 다음 순서로 따라온다.
+
+1. 직접 통신은 한 GPU의 계산이 다른 GPU의 데이터를 자주, 조금씩 필요로 할 때 값을 한다. 그 비용은 주고받는 횟수에 비례한다.
+2. SectorQ에는 구간 안에서 그런 순간이 없다. 합쳐질 항은 모두 같은 sector에 있고(3.2절), sector 하나는 GPU 하나가 구간 끝까지 처리한다. 어떤 GPU도 다른 GPU의 항을 읽지 않는다.
+3. 항이 GPU를 옮기는 때는 sector를 정하는 행이 바뀌는 구간 경계뿐이다. 이때는 모든 항을 한 번에 다시 나눈다. 상태 벡터 시뮬레이터가 global qubit을 local로 바꾸려고 한 번 크게 교환한 뒤 이어지는 gate를 통신 없이 적용하는 것과 같은 꼴이다.
+4. 이 교환은 드물고 작다. kicked Ising cutoff 1e-5에서 연산 2,541개 가운데 19번이고, operator가 가장 작은 truncation 직후에 일어난다. 실행 전체에서 GPU 밖으로 나가는 양은 60 GB이다. 같은 설정의 cuPauliProp 분산 모드는 연산마다 rank당 allgather 22번과 송신 15번을 하고, 16 rank가 모두 1,733 GB를 보낸다(29배, 4.6절).
+5. 드물게 한 번에 크게 옮기는 일의 비용은 지연이 아니라 처리량이 정하고, 그 몫이 이미 작다. 한 노드 4 GPU에서 GPU와 host 사이의 복사는 GPU 시간의 3.7%이다(gate 적용 89%). 링크가 몇 배 빨라져도 줄어드는 것은 이 3.7%이다.
+6. host memory를 거치면 대신 얻는 것이 있다. 용량이 GPU memory에 묶이지 않고(R5), 먼저 끝난 GPU가 다음 sector를 가져가며, 노드 안과 노드 사이가 같은 길을 쓴다. 직접 보내려면 받을 GPU를 미리 정하고 계산 중인 GPU에 받을 자리를 비워 두어야 한다.
+
+gate마다 통신하는 방식은 통신을 빠르게 만들어야 한다. SectorQ는 통신이 필요한 횟수를 없앴으므로 링크의 속도에 둔감하다.
+
 ### 3.4 Sector 단위 실행
 
 <p align="center"><img src="figures/design_store.png" width="860"></p>
@@ -602,6 +613,24 @@ gate 적용 시간은 414.2초에서 12.5초로 33배 줄어 GPU 수를 그대�
 
 gate 적용이 39–60%를 차지한다. 이 부분은 cuPauliProp의 단일 GPU 연산이며 14억 항 설정에서 GPU 1장일 때 143초이다. 따라서 이 연산을 그대로 쓰는 한 16 GPU에서의 하한은 9.0초, 32 GPU에서는 4.5초이다. 다음으로 큰 것은 노드 사이의 교환(8–26%)이다. 구간이 바뀔 때마다 모든 항이 한 번 이동하며, 지금은 노드마다 thread 하나가 보낸다. 구간이 많은 TFIM(45개)에서 비중이 가장 크다.
 
+<p align="center"><img src="figures/eval_breakdown_base.png" width="880"></p>
+<p align="center"><b>그림 12.</b> 16 GPU에서 실행 시간의 구성: SectorQ와 cuPauliProp 분산 모드(기본, dedup을 미룬 방식). cuPauliProp은 rank 평균이다(<code>logs/u7</code>).</p>
+
+**cuPauliProp 분산 모드의 시간 분해.** 같은 16 GPU에서 기준선의 시간이 어디로 가는지 재었다(`jobs/u7_breakdown.sh`, 설정마다 1회). MPI 호출의 시간은 MPI plugin을 감싼 계측판이 호출마다 잰다(`src/plugin/prof_mpi.c`). 라이브러리 호출의 시간은 호출 앞뒤의 timer로 잰다. 라이브러리 호출 안에서 MPI 밖에 있는 시간은, nvidia-smi로 0.2초마다 표본한 GPU 사용률로 GPU가 일한 부분과 나머지(host 쪽 작업)로 나누었다. 계측판을 쓴 실행과 원래 plugin의 실행은 28.4초 대 23.8초, 51.6초 대 54.9초로 방향이 일정하지 않아, 계측의 비용은 실행 간 편차 안에 있다.
+
+| 설정 (16 GPU, 기본 모드) | 전체 | GPU에서 gate | host 쪽 작업 (GPU는 쉼) | 전체 GPU의 collective 호출 | GPU 사이 항 이동 | 연산당 allgather / 송신 (rank당) | rank당 보낸 양 |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Kicked Ising, cutoff 1e-4 | 28.4초 | 3% | 44% | 44% | 9% | 22.1 / 11.9 | 1.1 GB |
+| Kicked Ising, cutoff 1e-5 | 51.6초 | 34% | 22% | 18% | 26% | 22.1 / 15.4 | 108 GB |
+| TFIM heavy-hex, cutoff 1e-5 | 71.8초 | 27% | 33% | 23% | 17% | 22.1 / 11.3 | 92 GB |
+| 잡음 있는 kicked Ising, cutoff 1e-5 | 69.7초 | 18% | 38% | 32% | 12% | 15.4 / 10.3 | 57 GB |
+
+- **GPU가 일하는 시간은 3–34%이다.** 나머지는 통신과 host 쪽 작업이다. 같은 설정의 SectorQ는 66–73%가 gate 적용이다(가장 작은 설정은 GPU 16장 가운데 대부분이 할 일이 없어 18%이다).
+- **작은 문제의 병목은 연산마다 붙는 고정 비용이다.** cutoff 1e-4에서는 allgather가 44%, host 쪽 작업이 44%이고 실제로 옮기는 항은 rank당 1.1 GB뿐이다. allgather는 연산마다 rank당 22번이며 항의 수와 무관하다.
+- **큰 문제에서는 항의 이동이 더해진다.** cutoff 1e-5에서는 rank당 57–108 GB를 보내며 항 이동이 12–26%가 된다. collective 호출 18–32%와 host 쪽 작업 22–38%는 남는다.
+- **dedup을 미룬 방식은 시간의 72–92%가 전역 dedup 호출 안에 있다.** gate 적용은 rank 안에서 끝나 6–20%로 줄지만, truncation 전마다 하는 전역 dedup이 통신과 GPU 작업을 함께 가져간다(kicked Ising 1e-5: 50.2초 가운데 46.2초). 이 설정과 TFIM은 dedup을 truncation 직전에만 하면 16 GPU에서 메모리가 부족하여 3개 연산마다 한 번 더 한다.
+- 통신의 합은 기본 모드에서 40–53%, dedup을 미룬 방식에서 38–65%이다. SectorQ는 5–11%이다.
+
 노드별로 재어 보니 이전 설정에서는 32 GPU의 10.4초 가운데 2.5초가 sector가 하나뿐인 초반 구간이었다. 그동안 GPU 한 장만 일하고 31장이 기다렸다. 초반부터 노드마다 sector를 하나씩 주도록 바꾼 뒤 이 구간은 0.4초가 되었다(4.7절).
 
 ### 4.7 설계 요소별 측정
@@ -795,7 +824,8 @@ thrust 코드는 `-gencode arch=compute_80,code=sm_80`로 빌드한다. 실행�
 
 | `jobs/u1_validate.sh` | GPU 1장의 자동 선택(첫 판)과 noise 묶음 호출: 새 binary와 캠페인 f의 binary(`bin/pp_engine_f`), 단일 GPU 기준과 cuPauliProp 분산 모드 | `logs/u1/` | 4.11 |
 | `jobs/u2_exchange.sh` | 16 GPU에서 교환 시간의 분해(`bin/pp_engine_u2`), chunk를 예측해 미리 만든 판(`pp_engine_u3`, 기각) | `logs/u2/` | 4.9, 4.11 |
-| `jobs/u6_drive.sh` | 최종 판(`bin/pp_engine_u6` = `bin/pp_engine`): 16 GPU, GPU 1장, kicked Ising 1e-5의 GPU 1장. `logs/u3`, `logs/u4`는 기각한 GPU 1장 규칙의 기록이다 | `logs/u6/` | 4.11 |
+| `jobs/u6_drive.sh` | 최종 판(`bin/pp_engine_u6`): 16 GPU, GPU 1장, kicked Ising 1e-5의 GPU 1장. `logs/u3`, `logs/u4`는 기각한 GPU 1장 규칙의 기록이다 | `logs/u6/` | 4.11 |
+| `jobs/u7_breakdown.sh` | 16 GPU의 시간 분해: SectorQ와 cuPauliProp 분산 모드(기본, dedup을 미룬 방식). cuPauliProp은 MPI 계측판과 호출별 timer, 모든 실행에 GPU 사용률 표본(`jobs/smi_sample.sh`). `bin/pp_engine_u7` = `bin/pp_engine` | `logs/u7/` | 3.3, 4.6 |
 
 작업은 `sbatch jobs/*.sh`로 낸다(`-A m5320_g -C gpu -q debug`). `e5`–`e10`은 측정 당시의 시험용 binary(`bin/pp_engine_dd*`)를 가리킨다. 최종 소스로 빌드한 SectorQ로 다시 돌리려면 `PP_BIN=bin/pp_engine`을 준다. `e8`의 `--busy-window`는 기각하여 최종 소스에 없다. `inter_run*.sh`는 interactive 할당 안에서 `PP_JOB=<할당 번호> bash jobs/inter_runN.sh`로 실행한다.
 
