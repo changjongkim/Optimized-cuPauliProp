@@ -786,20 +786,35 @@ def g_single_node(G, c="ki", title="Kicked Ising"):
 
 
 WEAK_S = {1: "6.2e-5", 2: "4.3e-5", 4: "3e-5", 8: "2.1e-5", 16: "1.5e-5"}
+# 32-256 GPUs: the scaling jobs e15 (logs/pp_e15_g*-*.out), one log per GPU count; the weak-scaling cutoffs continue the large load
+BIG_WEAK = {32: "3.4e-6", 64: "2.3e-6", 128: "1.6e-6", 256: "1.15e-6"}
+BIG_NAME = {"ki": "ki_lab", "tfim": "tfim_hh", "noise": "ki_noisy"}
 
 
-def g_weak(G):
-    """Weak scaling: the cutoff is lowered with the GPU count. One panel per circuit and load, one line per implementation."""
+def big_run(big, c, coef, g):
+    """SectorQ with its default settings on 32-256 GPUs."""
+    return default_run(big, BIG_NAME[c], float(coef), g)
+
+
+def g_weak(G, big=()):
+    """Weak scaling: the cutoff is lowered with the GPU count. One panel per circuit and load, one line per implementation.
+    The large load goes on to the GPU counts of the scaling jobs (SectorQ only: the other implementations were not run there)."""
     fig, axes = plt.subplots(2, 3, figsize=(15.6, 8.6), gridspec_kw={"wspace": 0.2, "hspace": 0.5})
     rows = []
+    more = [g for g in sorted(BIG_WEAK) if any(big_run(big, c, BIG_WEAK[g], g) for c, _ in G3)]
     for r, (load, cuts) in enumerate((("S", WEAK_S), ("L", WEAK_G))):
+        counts = list(GPUS_G) + (more if load == "L" else [])
+        cuts = {**cuts, **(BIG_WEAK if load == "L" else {})}
         for j, (c, title) in enumerate(G3):
             ax = axes[r][j]
             for kind in ("ours", "cupp", "defer", "orqa", "monoprop"):
                 pts, stop = [], None
-                for i, g in enumerate(GPUS_G):
+                for i, g in enumerate(counts):
                     x = cuts[g]
-                    if kind == "ours":
+                    if g > 16:
+                        b = big_run(big, c, x, g) if kind == "ours" else None
+                        s = dict(status="ok", wall=b["wall"]) if b else None
+                    elif kind == "ours":
                         s = G.get(f"weak{load}.{c}.{x}.g{g}") or G.get(f"eng.{c}.{x}.g{g}")
                     elif kind == "cupp":
                         s = G.get(f"weak{load}c.{c}.{x}.g{g}") or G.get(f"cupp.{c}.{x}.g{g}")
@@ -819,9 +834,9 @@ def g_weak(G):
                     if stop is not None and stop > pts[-1][0]:
                         ax.plot([stop], [pts[-1][1]], color=col, marker="x", markersize=11, markeredgewidth=2.6, linestyle="none", zorder=5)
             sq_axes(ax, "# of GPUs (Cutoff)", "Simulation Time (s)" if j == 0 else None)
-            ax.set_xticks(range(len(GPUS_G)))
-            ax.set_xticklabels([f"{g}\n({cuts[g]})" for g in GPUS_G])
-            ax.set_xlim(-0.35, len(GPUS_G) - 0.65)
+            ax.set_xticks(range(len(counts)))
+            ax.set_xticklabels([f"{g}\n({cuts[g]})" for g in counts], fontsize=13 if len(counts) <= 5 else 9.5)
+            ax.set_xlim(-0.35, len(counts) - 0.65)
             ax.set_ylim((1.5, 500) if load == "S" else (15, 1500))
             ax.set_title(f"({'abcdef'[3 * r + j]}) {title}, {'small' if load == 'S' else 'large'} load", fontsize=14.5, pad=8)
     sq_legend(fig, axes[0][0], 0.985, 6)
@@ -886,14 +901,19 @@ def g_circuits(G, g=16):
     return rows
 
 
-def g_scaleout(G, c="ki", title="Kicked Ising"):
-    """Scale-out of SectorQ: time against the problem size, one line per GPU count."""
+def g_scaleout(G, big=(), c="ki", title="Kicked Ising"):
+    """Scale-out of SectorQ: time against the problem size, one line per GPU count (1-16 GPUs: campaign g, more: jobs e15)."""
     cutoffs = [x for x in gladder(G, f"eng.{c}", "g16") if x not in ("15e-7", "12e-7")][4:]         # from cutoff 1e-4
-    colors = {1: "#1f77b4", 2: "#d62728", 4: "#FFA500", 8: "#5b4a8a", 16: "#2ca02c"}
+    colors = {1: "#1f77b4", 2: "#d62728", 4: "#FFA500", 8: "#5b4a8a", 16: "#2ca02c", 32: "#8c564b", 64: "#e377c2", 128: "#7f7f7f", 256: "#17becf"}
     fig, ax = plt.subplots(figsize=(10.4, 4.9))
     rows = []
-    for g in GPUS_G:
-        recs = [G.get(f"eng.{c}.{x}.g{g}") for x in cutoffs]
+    for g in list(GPUS_G) + sorted(BIG_WEAK):
+        if g > 16:
+            found = [big_run(big, c, x, g) or next((r for r in big if r["kind"] == "engine" and r["circuit"] == BIG_NAME[c] and r["gpus"] == g
+                                                    and abs(r["coef"] / float(x) - 1) < 1e-9 and ok(r)), None) for x in cutoffs]
+            recs = [dict(status="ok", wall=r["wall"]) if r else None for r in found]
+        else:
+            recs = [G.get(f"eng.{c}.{x}.g{g}") for x in cutoffs]
         pts = [(i, s["wall"]) for i, s in enumerate(recs) if gok(s)]
         if not pts:
             continue
@@ -907,7 +927,7 @@ def g_scaleout(G, c="ki", title="Kicked Ising"):
     ax.set_xticklabels(cut_ticks(G, c, cutoffs))
     ax.set_xlim(-0.4, len(cutoffs) - 0.6)
     ax.set_ylim(0.5, 4000)
-    sq_legend(fig, ax, 1.03, 6, extra=True, size=13)
+    sq_legend(fig, ax, 1.09 if len(rows) > 5 else 1.03, 5, extra=True, size=13)
     save(fig, "eval_scaleout.png")
     return rows
 
@@ -983,11 +1003,12 @@ def g_accuracy(G):
 
 def main_g():
     G = campaign_g()
+    big = many("pp_e15_g*-*.out")
     single = g_single_node(G)
-    weak = g_weak(G)
+    weak = g_weak(G, big)
     strong = g_strong(G)
     circuits = g_circuits(G)
-    scaleout = g_scaleout(G)
+    scaleout = g_scaleout(G, big)
     parts = g_breakdown(G)
     sizes = g_breakdown_sizes(G)
     g_accuracy(G)

@@ -8,6 +8,7 @@ A block of the README is the text between <!-- g:NAME --> and <!-- /g:NAME -->. 
 (out of memory), 시간 초과 (over the 40 minute limit, measured or predicted from the easier steps), – (not run: an
 easier step of the same ladder already failed), 측정 중 (not finished yet).
 """
+import glob
 import math
 import os
 import re
@@ -15,6 +16,8 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import campaign_g as cg
+sys.path.insert(0, os.path.join(cg.ROOT, "figures"))
+import make_eval_figures as mf                      # parse(): the logs of the scaling jobs, one log per GPU count
 
 ROOT = cg.ROOT
 GPUS = cg.GPUS
@@ -558,7 +561,94 @@ def b_gain():
     return table(["회로", "cutoff", "구간 경계의 항 수", "구간 안 최대 항 수", "GPU 1장", "16 GPU", "1장 대비"], rows, ["---", "---", "---:", "---:", "---:", "---:", "---:"])
 
 
-BLOCKS = {"single": b_single, "gain": b_gain, "progress": b_progress, "agree": b_agree, "speed": b_speed, "single_node": b_single_node, "node_mult": b_node_mult,
+# 32-256 GPUs: the scaling jobs (jobs/e15_scaling.sh), one log per GPU count
+BIG = (32, 64, 128, 256)
+BIG_WEAK = {32: "3.4e-6", 64: "2.3e-6", 128: "1.6e-6", 256: "1.15e-6"}
+CIRC = {"ki": "ki_lab", "tfim": "tfim_hh", "noise": "ki_noisy"}
+_big = {}
+
+
+def big_runs():
+    if not _big:
+        for path in sorted(glob.glob(os.path.join(ROOT, "logs", "pp_e15_g*-*.out"))):
+            for r in mf.parse(os.path.basename(path)):
+                _big.setdefault(r["gpus"], []).append(r)
+    return _big
+
+
+def big_run(kind, c, coef, g, tuned=False, gmax=None):
+    for r in big_runs().get(g, []):
+        if (r["kind"] == kind and r["circuit"] == CIRC[c] and abs(r["coef"] / float(coef) - 1) < 1e-9 and r["tuned"] == tuned
+                and r["opt"].get("--gmax") == gmax and "--chunk" not in r["opt"]):
+            return r
+    return None
+
+
+def big_cell(r, g, against=None):
+    if g not in big_runs():
+        return "대기 중"
+    if r is None:
+        return ""
+    if not mf.ok(r):
+        return "메모리 부족" if r["fatal"] else "시간 초과"
+    return sec(r["wall"]) + (f" ({mult(against / r['wall'] if against > r['wall'] else r['wall'] / against)})" if against else "")
+
+
+def b_large():
+    """32-256 GPUs: strong and weak scaling of SectorQ and the comparison with cuPauliProp's distributed mode."""
+    small = (1, 4, 16)
+    out = []
+    # strong scaling
+    rows = []
+    for c, x in (("ki", "3e-6"), ("tfim", "5e-6"), ("noise", "5e-6"), ("ki", "1e-5"), ("tfim", "1e-5"), ("noise", "1e-5")):
+        one = state.get(f"eng.{c}.{x}.g1")
+        t1 = one["wall"] if ok(one) else None
+        row = [f"{KO[c]}, cutoff {x} ({ko_terms(facts(c, x)[0])} 항)"]
+        for g in small:
+            s = state.get(f"eng.{c}.{x}.g{g}")
+            row.append(cell(f"eng.{c}.{x}.g{g}") + (f" ({mult(t1 / s['wall'])})" if t1 and ok(s) and g > 1 else ""))
+        for g in BIG:
+            r = big_run("engine", c, x, g)
+            row.append(big_cell(r, g, t1 if (r and mf.ok(r)) else None))
+        rows.append(row)
+    out.append("**Strong scaling.** 같은 문제를 GPU 수만 바꾸어 실행한 SectorQ의 시간이다. 괄호는 1 GPU 대비이다.\n\n"
+               + table(["문제"] + [f"{g} GPU" for g in small + BIG], rows))
+    # weak scaling, the large load
+    rows = [["cutoff"] + [cg.WEAK["L"][g] for g in small] + [BIG_WEAK[g] for g in BIG]]
+    for c in MAIN:
+        base, row = None, [KO[c]]
+        for g in small:
+            s, x = weak_run("L", c, g)
+            m = re.search(r"^integrity: (\d+) term checks", log_text(s), re.M) if ok(s) else None
+            rate = int(m.group(1)) / s["wall"] / g if m else None
+            base = rate if g == 1 else base
+            row.append(f"{sec(s['wall'])} ({100 * rate / base:.0f}%)" if rate and base else cell(s))
+        for g in BIG:
+            r = big_run("engine", c, BIG_WEAK[g], g)
+            if g in big_runs() and r and mf.ok(r) and r.get("checks") and base:
+                row.append(f"{sec(r['wall'])} ({100 * r['checks'] / r['wall'] / g / base:.0f}%)")
+            else:
+                row.append(big_cell(r, g))
+        rows.append(row)
+    out.append("**Weak scaling (큰 부하).** GPU 수에 맞추어 cutoff를 낮춘 SectorQ의 실행 시간이다. 괄호는 GPU 한 장이 1초에 처리한 항 수를 1 GPU와 비교한 것이다.\n\n"
+               + table(["회로"] + [f"{g} GPU" for g in small + BIG], rows))
+    # cuPauliProp on the same nodes, cutoff 1e-5
+    rows = []
+    for c in MAIN:
+        for g in (16,) + BIG:
+            if g == 16:
+                e = state.get(f"eng.{c}.1e-5.g16")
+                rows.append([KO[c], g, cell(e), deferred_cell(c, "1e-5", 16, e), cell(f"cupp.{c}.1e-5.g16", e)])
+            else:
+                e = big_run("engine", c, "1e-5", g)
+                t = e["wall"] if (e and mf.ok(e)) else None
+                rows.append(["", g, big_cell(e, g), big_cell(big_run("cupp", c, "1e-5", g, tuned=True), g, t), big_cell(big_run("cupp", c, "1e-5", g), g, t)])
+    out.append("**cuPauliProp 분산 모드와의 비교 (cutoff 1e-5, 같은 노드).** 괄호는 SectorQ 대비이다.\n\n"
+               + table(["회로", "GPU 수", "SectorQ", "cuPauliProp dedup 미룸", "cuPauliProp 기본"], rows, ["---", "---:", "---:", "---:", "---:"]))
+    return "\n\n".join(out)
+
+
+BLOCKS = {"large": b_large, "single": b_single, "gain": b_gain, "progress": b_progress, "agree": b_agree, "speed": b_speed, "single_node": b_single_node, "node_mult": b_node_mult,
           "multi_mult": b_multi_mult, "strong_sota": b_strong_sota, "same_error": b_same_error, "given": b_given,
           "threads": b_threads, "gpus": b_gpus, "reach": b_reach, "largest": b_largest, "strong": b_strong, "weak": b_weak, "parts": b_parts,
           "base_parts": b_base_parts, "params": b_params, "vram": b_vram, "exact": b_exact, "ckpt": b_ckpt, "conv": b_conv}
