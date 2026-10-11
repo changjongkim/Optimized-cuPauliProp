@@ -751,11 +751,45 @@ def b_acc():
     return "\n\n".join(parts)
 
 
+def b_var():
+    """Run-to-run variability: ten executions per setting (runs var.*, jobs/g_var_items.py)."""
+    def stat(kind, x, g):
+        runs = [state.get(f"var.{kind}.ki.{x}.g{g}.r{r:02d}") for r in range(1, mf.VAR_REPS + 1)]
+        t = [s["wall"] for s in runs if ok(s)]
+        vals = {value(s) for s in runs if ok(s)}
+        return (len(t), sum(t) / len(t), min(t), max(t), (max(t) - min(t)) / (sum(t) / len(t)), vals) if t else None
+
+    def cells(st):
+        if not st:
+            return ["메모리 부족", "", ""]
+        n, mean, lo, hi, spread, _ = st
+        return [sec(mean) + ("" if n == mf.VAR_REPS else f" ({n}회)"), f"{sec(lo)[:-1]}–{sec(hi)}", "%.1f%%" % (spread * 100)]
+
+    head = ["SectorQ 평균", "최소–최대", "변동 폭", "cuPauliProp 기본 평균", "최소–최대", "변동 폭", "평균의 비"]
+    out, values = [], []
+    for title, first, cols in (("**문제 크기별 (kicked Ising, 16 GPU, 설정마다 10회).**", "cutoff (구간 경계의 항 수)", [(x, 16) for x in mf.VAR_SIZES]),
+                               (f"**GPU 수별 (kicked Ising, cutoff {mf.VAR_AT}, 설정마다 10회).**", "GPU 수", [(mf.VAR_AT, g) for g in mf.VAR_GPUS])):
+        rows = []
+        for x, g in cols:
+            a, b = stat("eng", x, g), stat("cupp", x, g)
+            if not a and not b:
+                continue
+            name = f"{x} ({ko_terms(facts('ki', x)[0])})" if first.startswith("cutoff") else str(g)
+            rows.append([name] + cells(a) + (cells(b) if b or g < 4 else ["측정 중", "", ""]) + [mult(b[1] / a[1]) if a and b else ""])
+            values += [st[5] for st in (a, b) if st]
+        if rows:
+            out.append(title + " 변동 폭은 (최대 − 최소) / 평균이고, 평균의 비는 cuPauliProp의 평균을 SectorQ의 평균으로 나눈 값이다.\n\n" + table([first] + head, rows))
+    if not out:
+        return "측정 전이다."
+    same = all(len(v) == 1 for v in values)
+    return "\n\n".join(out) + "\n\n" + ("기대값은 모든 설정에서 10회가 12자리까지 같다." if same else "기대값이 반복마다 다른 설정이 있다.")
+
+
 BLOCKS = {"large": b_large, "single": b_single, "gain": b_gain, "progress": b_progress, "agree": b_agree, "speed": b_speed, "single_node": b_single_node, "node_mult": b_node_mult,
           "multi_mult": b_multi_mult, "strong_sota": b_strong_sota, "same_error": b_same_error, "given": b_given,
           "threads": b_threads, "gpus": b_gpus, "reach": b_reach, "largest": b_largest, "strong": b_strong, "weak": b_weak, "parts": b_parts,
           "base_parts": b_base_parts, "params": b_params, "vram": b_vram, "exact": b_exact, "ckpt": b_ckpt, "conv": b_conv,
-          "acc": b_acc, "qubits": b_qubits, "qubits_site": b_qubits_site, "depth": b_depth}
+          "acc": b_acc, "qubits": b_qubits, "qubits_site": b_qubits_site, "depth": b_depth, "var": b_var}
 
 
 def main():

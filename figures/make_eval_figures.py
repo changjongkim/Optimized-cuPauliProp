@@ -1180,6 +1180,85 @@ def g_accuracy_time(G, axes=None):
     save(fig, "eval_accuracy.png")
 
 
+VAR_SIZES = ("1e-4", "5e-5", "3e-5", "2e-5", "1e-5")
+VAR_AT = "3e-5"
+VAR_GPUS = (1, 2, 4, 8, 16)
+VAR_REPS = 10
+
+
+def var_runs(G, kind, x, g):
+    """Seconds of the repeated runs of one setting (runs var.*, jobs/g_var_items.py), None where a repeat is missing."""
+    return [G[i]["wall"] if gok(G.get(i)) else None for i in (f"var.{kind}.ki.{x}.g{g}.r{r:02d}" for r in range(1, VAR_REPS + 1))]
+
+
+def var_stat(t):
+    """(mean, min, max, (max - min) / mean) of the repeats that finished."""
+    v = [x for x in t if x is not None]
+    return (sum(v) / len(v), min(v), max(v), (max(v) - min(v)) / (sum(v) / len(v))) if v else None
+
+
+def g_variability(G):
+    """Run-to-run variability, ten executions per setting: heat maps as in the ScaleQsim paper (one cell per run).
+    Left: 16 GPUs over the problem size. Right: one problem over the GPU count. Under each column the spread
+    (max - min) / mean of its ten runs; OOM where cuPauliProp's distributed mode does not fit."""
+    import numpy as np
+    from matplotlib.colors import LogNorm
+    parts = [("Cutoff", [(x, 16) for x in VAR_SIZES], [x for x in VAR_SIZES]),
+             ("# of GPUs", [(VAR_AT, g) for g in VAR_GPUS], [str(g) for g in VAR_GPUS])]
+    if not any(v is not None for _, cols, _ in parts for x, g in cols for v in var_runs(G, "eng", x, g)):
+        return None
+    fig = plt.figure(figsize=(17.6, 5.0))
+    gs = fig.add_gridspec(1, 7, width_ratios=[1, 1, 0.055, 0.5, 1, 1, 0.055], wspace=0.07)
+    heads = ("(a) 16 GPUs, Problem Size Varied", f"(b) Cutoff {VAR_AT}, GPU Count Varied")
+    rows = []
+    for k, (xlabel, cols, names) in enumerate(parts):
+        data = {}
+        for kind, tag in (("ours", "eng"), ("cupp", "cupp")):
+            data[kind] = np.array([[np.nan if v is None else v for v in var_runs(G, tag, x, g)] for x, g in cols], dtype=float).T
+        seen = np.concatenate([d[np.isfinite(d)] for d in data.values()])
+        norm = LogNorm(vmin=seen.min() * 0.9, vmax=seen.max() * 1.1) if seen.size else LogNorm(vmin=1, vmax=10)   # a part not measured yet
+        im = None
+        for j, kind in enumerate(("ours", "cupp")):
+            ax = fig.add_subplot(gs[0, 4 * k + j])
+            d = data[kind]
+            cmap = plt.get_cmap("YlOrRd").copy()
+            cmap.set_bad("#E6E6E6")
+            im = ax.imshow(np.ma.masked_invalid(d), aspect="auto", cmap=cmap, norm=norm, interpolation="nearest")
+            ax.set_xticks(np.arange(-0.5, len(cols)), minor=True)
+            ax.set_yticks(np.arange(-0.5, VAR_REPS), minor=True)
+            ax.grid(which="minor", color="white", linewidth=1.2)
+            ax.tick_params(which="both", length=0)
+            ticks = []
+            for c, ((x, g), name) in enumerate(zip(cols, names)):
+                st = var_stat(list(d[:, c][np.isfinite(d[:, c])]))
+                oom = (G.get(f"{'eng' if kind == 'ours' else 'cupp'}.ki.{x}.g{g}") or {}).get("status") == "oom"     # the sweep's run of the setting
+                ticks.append(f"{name}\n({st[3] * 100:.1f}%)" if st else f"{name}\n(OOM)" if oom else f"{name}\n")
+                if st:
+                    rows.append((xlabel, SQ_NAME[kind], name, len(d[:, c][np.isfinite(d[:, c])])) + st)
+                elif oom:
+                    ax.text(c, (VAR_REPS - 1) / 2, "out of memory", ha="center", va="center", rotation=90, fontsize=12, color="#555555")
+            ax.set_xticks(range(len(cols)))
+            ax.set_xticklabels(ticks, fontsize=10.5)
+            ax.set_yticks(range(VAR_REPS))
+            ax.set_yticklabels([str(r) for r in range(1, VAR_REPS + 1)] if j == 0 else [], fontsize=12.5)
+            ax.set_xlabel(f"{xlabel} (Spread)", fontsize=15, fontweight="bold")
+            if j == 0:
+                ax.set_ylabel("Execution #", fontsize=15, fontweight="bold")
+            ax.set_title(SQ_NAME[kind], fontsize=15.5, fontweight="bold", pad=7)
+            if j == 0:                                   # one heading over the pair of panels
+                ax.text(1.03, 1.14, heads[k], transform=ax.transAxes, ha="center", va="bottom", fontsize=15)
+            for sp in ax.spines.values():
+                sp.set_visible(False)
+        cax = fig.add_subplot(gs[0, 4 * k + 2])
+        cb = fig.colorbar(im, cax=cax)
+        cb.set_label("Simulation Time (s)", fontsize=14, fontweight="bold")
+        cb.ax.tick_params(labelsize=12)
+        cb.ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:g}"))
+        cb.ax.yaxis.set_minor_formatter(FuncFormatter(lambda v, _: f"{v:g}" if f"{v:e}"[0] in "25" else ""))
+    save(fig, "eval_variability.png")
+    return rows
+
+
 def main_g():
     G = campaign_g()
     big = many("pp_e15_g*-*.out")
@@ -1193,6 +1272,7 @@ def main_g():
     g_qubits(G)
     g_depth(G)
     g_accuracy_time(G)
+    g_variability(G)
     if "--print" in sys.argv:
         f = lambda s: "-" if s is None else (secs(s["wall"]) if gok(s) else s["status"])
         show = lambda pts, stop: "  ".join(f"{x}: {secs(w)}" for x, w in pts) + (f"  | stops at {stop[0]} ({stop[1]})" if stop else "")
