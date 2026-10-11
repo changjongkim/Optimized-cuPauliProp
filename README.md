@@ -8,16 +8,20 @@ sector는 물리에서 보존량의 값으로 나뉘어 서로 섞이지 않는 
 
 - 코드: SectorQ [src/engine/](src/engine/), cuPauliProp 계측 [src/driver/](src/driver/)와 [src/plugin/](src/plugin/)
 - 원시 로그: [logs/](logs/) (실험별 대응은 6.3절)
-- 그림: 설계 그림은 `figures/src/*.tex`, 평가 그림은 `figures/make_eval_figures.py`가 로그를 읽어 그린다
+- 그림: 설계 그림과 개념 그림은 `figures/src/*.tex`, 평가 그림은 `figures/make_eval_figures.py`와 `figures/make_deck_figures.py`가 로그를 읽어 그린다
 - 논문 계획과 남은 실험: 8절
 
 목차: [1. 서론](#1-서론) | [2. 배경](#2-배경) | [3. 설계](#3-설계) |
 [4. 평가](#4-평가) | [5. 한계](#5-한계) | [6. 구성물과 재현](#6-구성물과-재현) |
 [7. 사용법](#7-사용법) | [8. 논문 계획](#8-논문-계획)
 
+**읽는 법.** 절마다 요지를 먼저 적고, 그림과 그림 설명, 표, 결과와 이유의 순서로 쓴다. 용어(항, cutoff, 행, sector, 구간)는 2.2절의 그림 7에 모았다. 수치는 측정값이며, 두 측정값으로 계산한 값은 그렇게 적었다. 비교에는 항상 상대와 조건을 함께 적는다.
+
 ## 1. 서론
 
 ### 1.1 연구의 필요성
+
+**요지.** Pauli propagation은 양자 상태 대신 관측량을 항의 목록으로 추적한다. 비용은 qubit 수가 아니라 유지하는 항의 수가 정하고, 유지하는 항이 많을수록 답이 정확하다. 이 연구의 문제는 그 항을 여러 GPU와 여러 노드에서 다루는 것이다.
 
 양자 프로세서는 100 qubit을 넘어섰다. 이 크기에서 고전 시뮬레이션은 세 가지 일을 한다.
 
@@ -27,20 +31,37 @@ sector는 물리에서 보존량의 값으로 나뉘어 서로 섞이지 않는 
 
 고전 시뮬레이션이 닿는 범위가 넓을수록 이 세 가지 일을 더 큰 회로에서 할 수 있다.
 
-100 qubit이 넘는 회로는 상태 벡터로 다룰 수 없다. amplitude가 2^n개이므로 가장 큰 슈퍼컴퓨터로도 50 qubit 안팎이 한계이다. Pauli propagation은 상태 대신 관측량을 다룬다. 관측량을 계수가 붙은 Pauli string의 합으로 두고, 회로의 gate를 뒤에서부터 적용하며, 계수가 작은 항을 버려(truncation) 기대값을 근사한다. 비용은 qubit 수가 아니라 유지하는 항의 수가 정한다.
+<p align="center"><img src="figures/deck/n01_overview.png" width="860"></p>
+<p align="center"><b>그림 1.</b> Pauli propagation이 계산하는 것.</p>
+
+**그림 설명.** 위는 왼쪽부터 양자 회로, 항의 목록으로 쓴 관측량, 계산 결과인 기대값 하나이다. 회로의 gate를 마지막 것부터 첫 것까지 관측량에 적용하고, 그 과정에서 계수가 작은 항을 버린다. 아래 표는 상태 벡터 시뮬레이터가 저장하는 것과 Pauli propagation이 저장하는 것을 비교한다.
+
+100 qubit이 넘는 회로는 상태 벡터로 다룰 수 없다. amplitude가 2^n개이므로 가장 큰 슈퍼컴퓨터로도 50 qubit 안팎이 한계이다. Pauli propagation은 상태 대신 관측량을 다룬다. 관측량을 계수가 붙은 Pauli string의 합으로 두고, 회로의 gate를 뒤에서부터 적용하며, 계수가 작은 항을 버려(truncation) 기대값을 근사한다. 버리는 기준이 cutoff이다. 계수의 크기가 cutoff 이하인 항을 버리므로, cutoff가 낮을수록 항을 더 많이 유지한다. 비용은 qubit 수가 아니라 유지하는 항의 수가 정한다.
 
 따라서 이 방법에서는 계산 자원이 곧 정확도이다. 유지하는 항이 많을수록 답이 정확해진다.
 
-| 측정 | 유지하는 항을 늘렸을 때 |
-|---|---|
-| 127-qubit kicked Ising의 기대값 (θ=π/4, 20 step) | cutoff 1e-4, 1e-5, 3e-6, 1e-6에서 0.153, 0.229, 0.289, 0.322. 항 수는 최대 2,250만, 14억, 126억, 1,001억이다 |
-| 30-qubit TFIM의 exact 값 대비 오차 (4 step) | cutoff 1e-3에서 1e-7로 낮추면 0.019에서 0.00007로 줄어든다. 이때 항 수는 최대 312억이다 |
+<p align="center"><img src="figures/deck/n02_accuracy_terms.png" width="860"></p>
+<p align="center"><b>그림 2.</b> 유지하는 항을 늘리면 답이 달라지고 오차가 줄어든다.</p>
 
-Pauli propagation이 풀 수 있는 문제의 범위는 얼마나 많은 항을 얼마나 빨리 다루는가로 정해진다. 127 qubit의 항 하나는 40 byte이고, 위 kicked Ising 회로의 cutoff 1e-5에서는 항이 14억 개(56 GB)이다. GPU 한 장에 담을 수 없다. 이 연구의 문제는 Pauli propagation을 여러 GPU와 여러 노드로 확장하는 것이다.
+**그림 설명.** (a) 127-qubit kicked Ising(θ=π/4, 20 step)의 기대값을 cutoff마다 그린 것이다. 가로축의 괄호는 그 cutoff에서 다룬 최대 항 수이다. (b) exact 값을 아는 30-qubit TFIM(4 step)에서 cutoff에 따른 오차이며, 세로는 로그 축이다.
+
+- **(a) 값이 cutoff를 따라 움직인다.** cutoff 1e-4, 1e-5, 3e-6, 1e-6에서 기대값은 0.153, 0.229, 0.289, 0.322이다. 최대 항 수는 2,250만, 14억, 126억, 1,001억이다. 값이 아직 움직이므로 이 회로를 풀려면 더 많은 항을 다루어야 한다(5절).
+- **(b) 항을 늘리면 오차가 줄어든다.** cutoff를 1e-3에서 1e-7로 낮추면 exact 값과의 오차가 0.019에서 0.00007로 줄어든다. 이때 최대 항 수는 312억이다.
+
+Pauli propagation이 풀 수 있는 문제의 범위는 얼마나 많은 항을 얼마나 빨리 다루는가로 정해진다. 127 qubit의 항 하나는 40 byte이고, 위 kicked Ising 회로의 cutoff 1e-5에서는 항이 14억 개(56 GB)이다. GPU 한 장에 담을 수 없다. 이 연구의 문제는 Pauli propagation을 여러 GPU와 여러 노드로 확장하는 것이다. 이때 지켜야 하는 조건은 답이다. 여러 GPU로 나누어 계산한 기대값이 장치 하나에서 계산한 값과 같아야 하며, 이 문서는 값을 12자리까지 비교한다.
 
 ### 1.2 문제: 갈라지고, 합치고, 잘라내는 계산은 나누기 어렵다
 
-Pauli propagation의 gate 하나는 세 가지 일을 한다. 항을 둘로 가르고(branch), 같은 Pauli string을 가진 항의 계수를 합치고(merge), 계수가 작은 항을 버린다(truncate). 이 계산을 여러 GPU로 나누는 데에는 세 가지 구조적인 어려움이 있다.
+**요지.** 같은 항이 서로 다른 GPU에서 생긴다. GPU마다 자기 조각을 따로 자르면 답이 틀리므로, 원칙적으로 gate마다 모든 GPU가 조율해야 한다.
+
+Pauli propagation의 gate 하나는 세 가지 일을 한다. 항을 둘로 가르고(branch), 같은 Pauli string을 가진 항의 계수를 합치고(merge), 계수가 작은 항을 버린다(truncate). 문제는 이 셋의 순서에서 나온다. 버리기 전에 합쳐야 한다.
+
+<p align="center"><img src="figures/deck/n03_merge_before_truncate.png" width="860"></p>
+<p align="center"><b>그림 3.</b> 합치기 전에 자르면 항을 잃는다.</p>
+
+**그림 설명.** 두 GPU가 같은 Pauli string(XZYI)의 조각을 하나씩 가지고 있고 cutoff는 1e-4이다. 경로 1에서는 GPU마다 자기 조각(0.7e-4와 0.6e-4)을 cutoff와 비교한다. 둘 다 cutoff 아래이므로 버려지고 항이 사라진다. 경로 2에서는 두 조각을 먼저 합친다. 합은 1.3e-4로 cutoff를 넘으므로 항이 남는다. 아래 표는 GPU 사이에서 전혀 합치지 않고 끝까지 계산한 실행의 측정값이다. 4개로 나누면 0.1675, 16개로 나누면 0.189가 나오고, 정답은 0.1531이다.
+
+이 계산을 여러 GPU로 나누는 데에는 세 가지 구조적인 어려움이 있다.
 
 1. **합친 뒤에 잘라야 한다.** truncation은 합쳐진 계수를 보아야 한다. 그런데 같은 항이 서로 다른 GPU에서 생긴다. 합치지 않고 GPU마다 따로 자르면 답이 틀린다(kicked Ising에서 0.1675–0.283, 정답 0.1531). 따라서 원칙적으로 gate마다 모든 GPU가 조율해야 한다.
 2. **데이터가 실행 중에 정해진다.** 어떤 항이 생기고 살아남는지는 실행해야 안다. 상태 벡터처럼 index로 위치를 미리 알 수 없다. 항 수는 한 층 안에서 2.9–36배로 늘었다가 줄어들고, 고정된 bit로 나누면 GPU 사이의 항 수가 1.4–4.9배 차이 난다.
@@ -51,6 +72,13 @@ Pauli propagation의 gate 하나는 세 가지 일을 한다. 항을 둘로 가�
 이 구조는 Pauli propagation에만 있는 것이 아니다. 갈라진 결과를 같은 key끼리 합쳐야 하는 계산은 같은 문제를 가진다. 양자 화학의 FCIQMC에서 walker의 소멸, database의 분산 집계가 그 예이다. 이런 계산은 보통 key를 hash로 프로세스에 나누고 step마다 교환한다.
 
 ### 1.3 기존 방법의 한계
+
+**요지.** 기존 방법은 통신과 메모리 가운데 하나를 내준다. gate마다 모든 GPU에 걸쳐 합치면 통신 비용이 들고, 합치기를 미루면 합쳐지지 않은 항이 GPU memory에 남는다.
+
+<p align="center"><img src="figures/deck/n07_tradeoff.png" width="860"></p>
+<p align="center"><b>그림 4.</b> 지금의 두 방식과 각각이 내주는 것.</p>
+
+**그림 설명.** 왼쪽 틀은 gate마다 모든 GPU에 걸쳐 합치는 방식이다(cuPauliProp 분산 모드의 기본). gate 하나가 끝날 때마다 모든 GPU가 전역 merge와 재분배를 기다린다. 틀 안의 표는 측정한 비용이다. rank마다 gate당 전원 통신이 22번이고, 2,250만 항 설정이 GPU 1장에서 2.9초, 16장에서 71초이다. 오른쪽 틀은 truncation 직전에만 합치는 방식이다. 빗금은 합쳐지지 않은 채 GPU memory에 남은 항이다. 회로 7종 가운데 둘이 16 GPU에 들어가지 않는다. 아래 띠는 SectorQ가 그 대신 하는 일이다. gate마다 합치되 sector 안에서 합치므로, 구간이 도는 동안 항이 GPU 사이를 옮기지 않는다.
 
 기존 방법은 위의 맞교환에서 한쪽을 고른다. 근거는 2.4절과 4절에 있다.
 
@@ -65,6 +93,13 @@ Pauli propagation의 gate 하나는 세 가지 일을 한다. 항을 둘로 가�
 통신도 메모리도 내주지 않는 분할은 조사한 범위에서 찾지 못하였다.
 
 ### 1.4 핵심 관찰과 접근
+
+**요지.** rotation은 원래 항에 정해진 벡터 Q를 XOR하여 새 항을 만든다. r(Q)=0인 parity r은 원래 항과 새 항에서 값이 같다. 이 parity의 값으로 항을 나누면, 나눈 묶음은 그 gate들이 이어지는 동안 닫혀 있다.
+
+<p align="center"><img src="figures/deck/n08_parity.png" width="860"></p>
+<p align="center"><b>그림 5.</b> rotation이 바꾸지 않는 parity.</p>
+
+**그림 설명.** qubit 3개의 예이다. 줄은 위에서부터 항 P, X rotation의 생성자 Q, 새 항 P⊕Q이다. 열은 Pauli string, x bit, z bit, 그리고 z bit의 parity인 행 r의 값이다. 이 rotation은 x bit 하나(빨간 칸)만 바꾸고 z bit는 그대로 둔다. 그래서 r(Q)=0이고 r(P⊕Q)=r(P)=1이다. 새 항은 원래 항과 같은 r 값을 가진다.
 
 gate가 항의 Pauli string을 바꾸는 방식에는 구조가 있다. rotation exp(-iθQ/2)는 항 P를 P와 P⊕Q로 만든다. 새 항의 bit 벡터는 원래 bit 벡터에 정해진 벡터 Q를 XOR한 것이다. 따라서 bit 벡터의 parity r 가운데 r(Q)=0인 것은 새 항에서도 값이 같다. r(P⊕Q)=r(P)이다. 예를 들어 X rotation은 x bit만 뒤집으므로, z bit로 만든 parity는 X rotation이 몇 개 이어져도 변하지 않는다.
 
@@ -90,31 +125,41 @@ SectorQ는 이 관찰에서 다음 규칙을 세운다.
 
 ### 1.5 주요 결과
 
-회로 7종(64–127 qubit), exact 값을 아는 30 qubit 회로, qubit 수를 36–1,024로 키운 정사각 격자, Perlmutter A100. 1–16 GPU는 모든 비교 대상과 함께 재었고(4.2–4.4절), 32 GPU 이상은 SectorQ와 cuPauliProp을 재었다(4.4절). 32, 64, 128, 256 GPU의 측정이 끝났다. 모든 구현에 같은 연산 목록을 주었고 측정은 설정마다 1회이다. 1–16 GPU의 측정은 모두 끝났다.
+**요지.** 같은 16 GPU에서 cuPauliProp 분산 모드의 시간은 SectorQ의 4.2–9.7배이다. SectorQ는 GPU를 256장까지 늘리면 큰 문제에서 GPU 1장의 79–130배 빨라지고, 16 GPU로 cuPauliProp의 75배 많은 항을 끝낸다.
+
+측정 조건은 다음과 같다. 회로 7종(64–127 qubit), exact 값을 아는 30 qubit 회로, qubit 수를 36–1,024로 키운 정사각 격자를 Perlmutter의 A100 노드에서 실행하였다. 1–16 GPU는 모든 비교 대상과 함께 재었고(4.2–4.4절), 32, 64, 128, 256 GPU는 SectorQ와 cuPauliProp을 재었다(4.4절). 모든 구현에 같은 연산 목록을 주었고 측정은 설정마다 1회이다.
+
+대표 결과는 셋이다.
+
+| 질문 | 결과 | 조건 |
+|---|---|---|
+| 같은 GPU 수에서 얼마나 빠른가 | cuPauliProp 분산 모드(기본)의 시간이 SectorQ의 **4.2–9.7배** | 16 GPU, 회로 7종, 기본 모드가 16 GPU로 끝내는 가장 큰 설정 |
+| GPU를 늘리면 빨라지는가 | 256 GPU의 SectorQ가 GPU 1장의 **79–130배** | 큰 문제 세 가지(cutoff 3e-6과 5e-6) |
+| 얼마나 큰 문제까지 가는가 | 16 GPU로 끝낸 항 수가 cuPauliProp의 **75배** | kicked Ising, 구간 경계의 항 119억 대 1.6억. 두 측정값으로 계산한 값이다 |
+
+방식별 결과이다. 주 비교 대상은 cuPauliProp 분산 모드의 기본이다. dedup을 미룬 cuPauliProp은 이 연구가 구성한 가장 강한 기준선이다. 연산을 rank 안에서만 적용하고 전역 dedup을 truncation 직전에만 수행한다(4절).
 
 | 항목 | cuPauliProp 분산 (기본) | cuPauliProp 분산 (dedup을 미룸) | SectorQ |
 |---|---:|---:|---:|
 | 기대값 | 기준 | 기준과 동일 | 실행이 둘 이상인 모든 설정에서 차이 5e-11 이하 (4.1절) |
 | 16 GPU, cuPauliProp이 GPU 1장으로 끝내는 가장 큰 설정 7종 | 12.6–49.1초 | 4.7–11.6초 | 0.68–1.64초 (기본의 18–52배, dedup을 미룬 것의 6.1–10배) |
 | 16 GPU, cuPauliProp 분산이 16 GPU로 끝내는 가장 큰 설정 7종 (최대 2.6억 항) | 17.3–71.3초 | 9.2–56.9초, 2종은 메모리 부족 | 2.7–14.8초 (기본의 4.2–9.7배, dedup을 미룬 것의 2.2–4.6배) |
-| 32 / 64 / 128 GPU, cutoff 1e-5의 3종 | 34.8–86.8초 | 15.2–27.8초 | 2.9–8.8초 (기본의 7.3–25배, dedup을 미룬 것의 3.2–5.4배) |
+| 32–256 GPU, cutoff 1e-5의 3종 | 34.8–86.8초 | 12.0–27.8초 | 2.9–8.8초 (기본의 7.3–25배, dedup을 미룬 것의 3.2–5.4배) |
 | Strong scaling, 1 → 16 GPU (cutoff 3e-6, 3종) | 메모리 부족 | 메모리 부족 | 14–15배 (kicked Ising: 1,741초 → 122초) |
-| Strong scaling, 1 → 64 GPU (cutoff 3e-6과 5e-6, 3종) | 3e-6은 64 GPU에서도 메모리 부족 | 같음 | 45–52배 (kicked Ising 3e-6: 1,741초 → 33.2초) |
-| Strong scaling, 1 → 128 GPU (같은 3종) | 3e-6은 128 GPU에서도 메모리 부족 | 같음 | 62–92배 (kicked Ising 3e-6: 1,741초 → 18.9초) |
-| Strong scaling, 1 → 256 GPU (같은 3종) | cutoff 1e-5에서 39.1–77.9초 | 12.0–18.2초 | 79–130배 (kicked Ising 3e-6: 1,741초 → 13.4초) |
-| Weak scaling, GPU당 처리율 | 메모리 부족 | 메모리 부족 | 16 GPU에서 1 GPU의 79–87%, 64 GPU에서 72–80%, 128 GPU에서 50–77%, 256 GPU에서 26–60% |
+| Strong scaling, 1 → 64 / 128 / 256 GPU (cutoff 3e-6과 5e-6, 3종) | cutoff 3e-6은 64, 128 GPU에서 메모리 부족, 256 GPU에서 78.4초 | 메모리 부족 | 45–52 / 62–92 / 79–130배 (kicked Ising 3e-6: 1,741초 → 33.2 / 18.9 / 13.4초) |
+| Weak scaling, GPU당 처리율 (GPU 1장 대비) | 큰 부하는 모든 GPU 수에서 메모리 부족 | 같음 | 16 / 64 / 128 / 256 GPU에서 79–87 / 72–80 / 50–77 / 26–60% |
 | Kicked Ising cutoff 1e-5(1.6억 항)를 끝내는 데 필요한 GPU 수 | 16 | 16 | 1 |
-| 같은 설정의 1 / 2 / 4 / 8 / 16 / 32 / 64 / 128 GPU 시간 | 16 / 32 / 64 / 128장 54.3 / 47.8 / 46.7 / 34.8초 | 16 / 32 / 64 / 128장 48.8 / 25.8 / 18.7 / 15.7초 | 168 / 85.3 / 46.7 / 23.2 / 12.2 / 6.5 / 4.1 / 2.9초 |
-| Kicked Ising cutoff 3e-6 (15억 항) | 메모리 부족 (16, 64, 128 GPU), 256 GPU에서 78.4초 | 메모리 부족 | 1 / 4 / 16 / 64 / 128 / 256 GPU에서 1,741 / 436 / 122 / 33.2 / 18.9 / 13.4초 |
-| Kicked Ising cutoff 1e-6 (119억 항) | cutoff 5e-6부터 메모리 부족 | 같음 | 16 GPU 1,625초, 128 GPU 221초, 256 GPU 95.6초 |
+| 같은 설정의 GPU 수별 시간 | 16 / 32 / 64 / 128 / 256장 54.3 / 47.8 / 46.7 / 34.8 / 39.1초 | 16 / 32 / 64 / 128 / 256장 48.8 / 25.8 / 18.7 / 15.7 / 12.0초 | 1 / 4 / 16 / 32 / 64 / 128 / 256장 168 / 46.7 / 12.2 / 6.5 / 4.1 / 2.9 / 3.0초 |
+| Kicked Ising cutoff 3e-6 (15억 항) | 16, 64, 128 GPU에서 메모리 부족, 256 GPU에서 78.4초 | 메모리 부족 | 1 / 4 / 16 / 64 / 128 / 256 GPU에서 1,741 / 436 / 122 / 33.2 / 18.9 / 13.4초 |
+| Kicked Ising cutoff 1e-6 (119억 항) | 16 GPU는 cutoff 5e-6부터 메모리 부족 | 같음 | 16 GPU 1,625초, 128 GPU 221초, 256 GPU 95.6초 |
 | 40분 안에 끝낸 가장 큰 크기 (kicked Ising, 구간 경계의 항 수) | 16 GPU로 1.6억 | 16 GPU로 1.6억 | GPU 1장으로 15억, 16 GPU로 119억 |
 | 16 GPU의 GPU 사용률 (cutoff 1e-5, 3종) | 20–32% | 33–49% | 71–75% |
-| 연산마다의 전원 통신 | rank마다 연산당 allgather 22회 | 연산당 2.2–3.9회 | 없음. 구간마다 표본과 행을 나누고, 구간이 바뀔 때 항을 교환한다 |
+| 연산마다의 전원 통신 | rank마다 연산당 allgather 22회 | 연산당 2.2–8.6회 | 없음. 구간마다 표본과 행을 나누고, 구간이 바뀔 때 항을 교환한다 |
 | 1,024 qubit의 전체 자화 (2D TFIM 32×32, cutoff 1e-3), 16 GPU | 366초 | 131초 | 90.7초 (기본의 4.0배, dedup을 미룬 것의 1.4배) |
 | 같은 격자의 cutoff 1e-4에서 16 GPU로 끝낸 가장 큰 qubit 수 | 121 | 121 | 529 (778초) |
 | exact 값 대비 가장 작은 오차 (30 qubit, 4 step) | 단일 GPU는 cutoff 3e-5까지 끝낸다 (가장 작은 오차 0.0059) | 측정하지 않음 | 0.00007 (cutoff 1e-7, 16 GPU로 31.6초) |
 
-dedup을 미룬 cuPauliProp은 이 연구가 구성한 가장 강한 기준선이다. 연산을 rank 안에서만 적용하고 전역 dedup을 truncation 직전에만 수행한다(4절).
+표를 읽는 법은 다음과 같다. 위의 넷은 같은 GPU 수에서의 속도이다. 가운데는 GPU 수를 늘렸을 때의 변화와 문제를 끝내는 데 필요한 GPU 수이다. 아래는 도달 범위와 그 이유(GPU 사용률, 통신 횟수), 그리고 회로 크기와 정확도이다. cuPauliProp의 칸이 "메모리 부족"인 설정에서는 배수를 적지 않았다.
 
 다른 구현과의 비교이다(4.2–4.3절). 각 구현을 그 구현이 쓸 수 있는 자원에서 돌렸고 SectorQ는 같은 노드의 GPU를 썼다. 값은 두 구현이 모두 끝낸 가장 큰 설정에서 그 구현의 시간을 SectorQ의 시간으로 나눈 것이다.
 
@@ -128,7 +173,12 @@ dedup을 미룬 cuPauliProp은 이 연구가 구성한 가장 강한 기준선�
 | Qiskit pauli-prop | thread 1개 | 1,800배 이상 느리다 | 같음. cutoff 2e-4–3e-4에서 40분 제한에 걸린다 |
 | SPD | GPU 1장 | 0.3–1.7배 | GPU 1장 안에서는 SPD가 최대 2.9배 빠르다. cutoff 1e-5부터 메모리 부족 |
 
-어떤 요소가 어떤 이득을 내는지를 kicked Ising 16 GPU에서 단계별로 나누면 다음과 같다. 아래로 갈수록 요소를 하나씩 더한다.
+어떤 요소가 어떤 이득을 내는지를 kicked Ising 16 GPU에서 단계별로 나누었다.
+
+<p align="center"><img src="figures/deck/n14_staircase.png" width="860"></p>
+<p align="center"><b>그림 6.</b> 요소를 하나씩 더했을 때의 실행 시간(kicked Ising, 16 GPU).</p>
+
+**그림 설명.** 두 cutoff에서 잰 실행 시간이며 세로는 로그 축이다. 왼쪽부터 점마다 요소를 하나씩 더한다. 원래 회로의 cuPauliProp 분산 모드, Clifford gate를 데이터에 적용하지 않는 것, 전역 dedup을 truncation 직전에만 하는 것, 보존 parity sector로 나누는 것(SectorQ)의 순서이다. 점의 모양과 색은 그 단계의 구현이다. 마지막 단계가 이 연구의 핵심이며, 앞의 두 단계는 비교에서 기준선에도 준다.
 
 | 단계 | cutoff 1e-4 (최대 2,250만 항) | cutoff 1e-5 (최대 14억 항) | 요소의 출처 |
 |---|---:|---:|---|
@@ -138,7 +188,12 @@ dedup을 미룬 cuPauliProp은 이 연구가 구성한 가장 강한 기준선�
 | + **보존 parity sector로 나눈다 (SectorQ)** | **0.81초** | **12.2초** | 이 연구의 핵심 |
 | SectorQ, 1 GPU | 1.72초 | 168초 | sector를 GPU에 하나씩 올린다 |
 
+- **큰 문제(cutoff 1e-5)에서는 마지막 단계가 가장 크다.** dedup을 미루어도 54.3초가 48.8초가 되는 데 그친다. 합쳐지지 않은 항이 메모리를 채워 3개 연산마다 dedup을 한 번 더 해야 하기 때문이다(4.6절). sector로 나누면 12.2초가 된다.
+- **작은 문제(cutoff 1e-4)에서는 dedup을 미루는 것만으로 28.3초가 6.5초가 된다.** 전원 통신이 줄어서이다. sector로 나누면 0.81초가 된다.
+
 ### 1.6 기여와 적용 범위
+
+**요지.** 기여는 지금 방식의 측정, 원리, 그 원리로 만든 실행 엔진, 평가의 넷이다. 이득이 나는 범위는 문제가 GPU 한 장보다 큰 경우이다.
 
 기여는 다음과 같다.
 
@@ -163,6 +218,8 @@ dedup을 미룬 cuPauliProp은 이 연구가 구성한 가장 강한 기준선�
 
 ### 2.1 100 qubit 이상의 고전 시뮬레이션
 
+**요지.** 100 qubit이 넘는 회로의 기대값을 구하는 방법 가운데 Pauli propagation은 비용을 qubit 수가 아니라 유지하는 항 수가 정한다. 그래서 이 연구가 확장하는 축은 qubit 수가 아니라 항 수이다.
+
 | 방법 | 저장하는 것 | 비용을 정하는 것 | 100 qubit 이상에서 |
 |---|---|---|---|
 | State vector | amplitude 2^n개 | qubit 수 | 쓸 수 없다. 50 qubit 안팎이 한계이다 |
@@ -175,17 +232,37 @@ Pauli propagation은 기대값을 구하는 문제에 맞는다. 관측량이 �
 
 ### 2.2 Pauli propagation의 연산
 
-관측량을 Pauli string의 합으로 두고 회로의 gate를 뒤에서부터 하나씩 적용한다. 마지막에 초기 상태에 대한 기대값을 구한다. 저장하는 것은 항의 목록이다.
+**요지.** 저장하는 것은 항의 목록이다. rotation은 항을 둘로 가르고, merge는 같은 항을 합치고, truncation은 작은 항을 버린다. 정확성 조건은 하나이다. truncation은 합친 계수를 보아야 한다.
 
-- **항(term).** Pauli string 하나와 계수이다. Pauli string은 bit 벡터 (x | z)로 저장한다. qubit마다 I=(0,0), X=(1,0), Z=(0,1), Y=(1,1)이다. 127 qubit이면 254 bit이다.
-- **Rotation (branch).** exp(-iθQ/2)는 생성자 Q와 commute하는 항을 그대로 두고, anticommute하는 항 P를 P와 P⊕Q 두 항으로 만든다. ⊕는 bit 벡터의 XOR이다. 예를 들어 Z에 X rotation을 적용하면 cos θ·Z + sin θ·Y가 된다. Z=(0,1)에 X=(1,0)을 XOR한 것이 Y=(1,1)이다.
-- **Merge (dedup).** 서로 다른 항에서 같은 Pauli string이 만들어지면 계수를 더해 한 항으로 만든다.
+관측량을 Pauli string의 합으로 두고 회로의 gate를 뒤에서부터 하나씩 적용한다. 마지막에 초기 상태에 대한 기대값을 구한다. 저장하는 것은 항의 목록이다. 먼저 용어를 정한다.
+
+<p align="center"><img src="figures/deck/n05_term_bits.png" width="860"></p>
+<p align="center"><b>그림 7.</b> 이 문서에서 쓰는 용어: 항, 행, sector, 구간.</p>
+
+**그림 설명.** (1) 항은 계수와 Pauli string이다. Pauli string은 qubit마다 x bit와 z bit를 두어 bit 벡터 (x | z)로 저장한다. 오른쪽 위의 표가 그 대응이다(I=00, X=10, Z=01, Y=11). 그림의 항 XIZ는 x=100, z=001이다. (2) 행 r은 mask가 고른 bit들의 parity이다. 그림에서는 z bit 셋을 골랐고 그 가운데 1이 하나이므로 r=1이다. (3) sector는 고른 행들의 값이 같은 항의 모음이다. 행이 둘이면 sector는 00, 01, 10, 11의 넷이다. (4) 구간은 그 행들을 바꾸지 않는 연속된 gate들이다.
+
+- **항(term).** Pauli string 하나와 계수이다. Pauli string은 bit 벡터 (x | z)로 저장한다. qubit마다 I=(0,0), X=(1,0), Z=(0,1), Y=(1,1)이다. 127 qubit이면 254 bit이고, 계수를 합쳐 항 하나가 40 byte이다.
+- **cutoff.** 계수의 크기가 이 값 이하인 항을 버린다. 정확도와 항 수를 정한다.
+- **행(row), sector, 구간(window).** 설계에서 쓰는 말이다(3.2절). 행은 bit 벡터의 parity 함수 하나이다. sector는 행 g개의 값이 같은 항들이며 최대 2^g개이다. 구간은 같은 행을 쓰는 연속된 연산들이다. 코드와 로그에서는 sector를 bucket이라고 부른다.
+- **rank.** 분산 실행의 프로세스 하나이다. cuPauliProp 분산 모드에서는 rank 하나가 GPU 하나를 쓴다.
+
+gate가 항의 목록에 하는 일은 셋이다.
+
+<p align="center"><img src="figures/deck/n06_ops.png" width="860"></p>
+<p align="center"><b>그림 8.</b> gate 하나가 하는 세 가지 일.</p>
+
+**그림 설명.** gate가 동작하는 순서대로 놓은 세 칸이다. (1) Branch: 항 P에 생성자 Q의 rotation을 적용하면 cos θ가 붙은 P와 sin θ가 붙은 P⊕Q의 두 항이 된다. 아래 식은 Z에 X rotation을 적용한 예이다. (2) Merge: Pauli string이 같은 두 항(XZ)의 계수 0.20과 0.15를 더해 한 항 0.35로 만든다. (3) Truncate: cutoff가 0.01이면 계수 0.004인 항을 버린다.
+
+- **Rotation (branch).** exp(-iθQ/2)는 생성자 Q와 commute하는 항을 그대로 두고, anticommute하는 항 P를 P와 P⊕Q 두 항으로 만든다. ⊕는 bit 벡터의 XOR이다. 예를 들어 Z에 X rotation을 적용하면 cos θ·Z + sin θ·Y가 된다. Z=(0,1)에 X=(1,0)을 XOR한 것이 Y=(1,1)이다. 가지치는 gate마다 항 수는 최대 두 배가 된다.
+- **Merge (dedup).** 서로 다른 항에서 같은 Pauli string이 만들어지면 계수를 더해 한 항으로 만든다. 항 수가 줄어드는 곳이다.
 - **Truncation.** 계수의 크기가 cutoff 이하인 항을 버린다. cutoff가 정확도와 항 수를 정한다.
 - **Clifford gate.** Pauli string 하나를 다른 Pauli string 하나로 바꾼다. bit 벡터의 선형 변환이며 항 수가 변하지 않는다.
 
-정확성 조건은 하나이다. truncation은 merge한 계수를 보아야 한다. 같은 항이 조각으로 나뉘어 있으면 조각마다 cutoff 아래로 떨어져 버려질 수 있다. kicked Ising 2,250만 항 설정에서 merge하지 않고 truncation하면 기대값이 0.194–0.283으로 나온다(정답 0.1531). 이 문서에서 "답이 같다"는 전부 합친 뒤 자른 단일 장치 실행과 기대값이 같다는 뜻이다.
+정확성 조건은 하나이다. truncation은 merge한 계수를 보아야 한다. 같은 항이 조각으로 나뉘어 있으면 조각마다 cutoff 아래로 떨어져 버려질 수 있다(그림 3). kicked Ising 2,250만 항 설정에서 merge하지 않고 truncation하면 기대값이 0.194–0.283으로 나온다(정답 0.1531). 이 문서에서 "답이 같다"는 전부 합친 뒤 자른 단일 장치 실행과 기대값이 같다는 뜻이다.
 
 ### 2.3 분산 실행의 구조적 어려움
+
+**요지.** 새 항이 어느 프로세스의 항과 합쳐질지는 원래 항이 놓인 곳과 무관하다. 그래서 gate마다 통신하거나, 합치기를 미루고 메모리를 내주어야 한다(그림 4).
 
 상태 벡터의 분산과 비교하면 어려움의 성격이 드러난다.
 
@@ -205,6 +282,8 @@ Pauli propagation에서 새 항 P⊕Q가 어느 프로세스의 항과 합쳐질
 
 ### 2.4 최신 GPU 구현의 측정
 
+**요지.** cuPauliProp v0.5.0의 분산 모드를 gate 단위로 계측하였다. GPU를 늘릴수록 느려지고, GPU 한 장이 담는 항은 GPU 수와 무관하게 약 1억 개이다.
+
 대상은 cuPauliProp v0.5.0(cuQuantum 26.09)이다. 분산 모드에서는 MPI rank마다 GPU 하나를 쓰고, 통신은 공개된 MPI plugin을 통해 이루어진다. 라이브러리 내부는 공개되어 있지 않다. 계측으로 본 동작은 다음과 같다. 연산 하나를 적용할 때마다 각 rank가 자기 항에 gate를 적용하고, 이어서 모든 rank가 전역 merge와 재분배에 참여한다.
 
 플랫폼은 NERSC Perlmutter의 GPU 노드이다(노드당 A100 4장, 40 GB 또는 80 GB, Cray MPICH). 계측은 두 가지로 하였다. MPI plugin을 호출 횟수, 시간, byte 수를 세는 판으로 바꾸었고(`src/plugin/prof_mpi.c`), gate별 시간과 항 수는 driver에서 재었다(`src/driver/ki_prof.cpp`). 실험 회로는 127-qubit kicked Ising(IBM Eagle heavy-hex, θ=π/4, 20 step, 관측량 Z_62)이다.
@@ -217,7 +296,11 @@ Pauli propagation에서 새 항 P⊕Q가 어느 프로세스의 항과 합쳐질
 | cutoff 3e-6 설정 | 3e-6 | 없음 | 구간 경계에서 15억 |
 
 <p align="center"><img src="figures/bg_scaling.png" width="32%"> <img src="figures/bg_gatecost.png" width="32%"> <img src="figures/bg_capacity.png" width="32%"></p>
-<p align="center"><b>그림 1.</b> cuPauliProp v0.5.0 분산 모드의 측정(세로는 로그 축). (a) 2,250만 항 설정의 실행 시간. GPU를 늘릴수록 느려진다. (b) gate 하나에 드는 고정 비용. (c) 메모리 부족으로 멈춘 지점의 GPU당 항 수. GPU 수와 무관하게 약 1억이다.</p>
+<p align="center"><b>그림 9.</b> cuPauliProp v0.5.0 분산 모드의 측정.</p>
+
+**그림 설명.** 막대 하나가 GPU 수 하나이고 세로는 로그 축이다. (a) 2,250만 항 설정의 실행 시간이다. GPU를 늘릴수록 느려진다. (b) gate 하나에 드는 고정 비용이다. 항 수와 무관하게 gate마다 내는 시간이며 GPU 수와 함께 커진다. (c) 메모리 부족으로 멈춘 지점의 GPU당 항 수이다. GPU 수와 무관하게 약 1억이다.
+
+측정에서 나온 성질이다. 앞의 넷은 속도, 그다음 둘은 원인, 마지막 둘은 용량과 조정의 한계이다.
 
 | 성질 | 측정값 |
 |---|---|
@@ -235,6 +318,13 @@ Pauli propagation에서 새 항 P⊕Q가 어느 프로세스의 항과 합쳐질
 이 측정은 2.3절의 어려움이 최신 구현에서 그대로 나타남을 보인다. gate마다 합치는 방식은 GPU 수와 함께 느려지고, GPU 한 장이 담는 항은 약 1억 개이다.
 
 ### 2.5 선행 연구
+
+**요지.** 기존 구현은 장치 하나에 머무르거나, CPU에서 돌거나, gate마다 모든 GPU에 걸쳐 합친다. 여러 GPU에 걸친 Pauli propagation을 다룬 시스템 논문은 조사한 범위에서 찾지 못하였다.
+
+<p align="center"><img src="figures/deck/n04_positioning.png" width="860"></p>
+<p align="center"><b>그림 10.</b> 기존 구현이 하는 것과 이 연구가 더하는 것.</p>
+
+**그림 설명.** 줄 하나가 구현 하나이다. 왼쪽 두 열(GPU에서 도는가, 여러 노드에서 도는가)은 기존 연구와 이 연구가 함께 가진 것이다. 오른쪽 세 열은 이 연구가 더하는 것이다. 항이 프로세스 사이를 옮기는 때, GPU memory보다 많은 항을 다루는가, 분할을 실행 중에 정하는가이다. 줄표(—)는 여기서 쓴 자료에 그 내용이 없다는 뜻이다. 아래 표는 같은 연구들을 하는 일과 다루지 않는 것으로 정리한 것이다.
 
 | 연구 | 하는 일 | 다루지 않는 것 |
 |---|---|---|
@@ -255,6 +345,8 @@ state-vector 시뮬레이터는 이 연구와 푸는 문제가 다르며 비교 
 
 ### 2.6 설계 요구사항
 
+**요지.** 앞의 측정에서 요구사항 여섯 가지가 나온다. 표의 가운데 열은 그 요구사항의 근거가 된 측정이고, 오른쪽 열은 SectorQ의 답이다. R1–R3은 "합쳐질 상대가 같은 sector 안에 있다"는 한 가지 성질로 함께 만족된다.
+
 | # | 요구사항 | 근거 | SectorQ의 답 |
 |---|---|---|---|
 | R1 | truncation 전에 같은 항은 모두 합쳐져 있어야 한다 | 합치지 않으면 답이 틀린다(2.2절, 2.4절) | 합쳐질 상대가 같은 sector 안에 있도록 나눈다(3.2절) |
@@ -268,12 +360,16 @@ state-vector 시뮬레이터는 이 연구와 푸는 문제가 다르며 비교 
 
 ### 3.1 전체 구조
 
-SectorQ에는 미리 세운 계획이 없다. 하나의 고리가 구간마다 실행 중에 돈다. 구간의 gate가 보존하는 parity로 항을 sector로 나누고, 노드마다 sector를 GPU에 하나씩 올려 처리한다. GPU가 구간을 계산하는 동안 살아 있는 항을 보고 다음 구간의 parity와 sector 수를 정하고, 구간 경계에서 다음 구간의 sector로 다시 나누어 교환한다. 설계 규칙은 2.6절의 요구사항을 하나로 묶은 것이다.
+**요지.** 미리 세운 계획이 없다. 구간 동안 GPU가 sector를 처리하고, 같은 시간에 살아 있는 항을 보고 다음 구간의 행과 sector 수를 정한다. 항은 구간 경계에서만 노드 사이를 옮긴다.
+
+하나의 고리가 구간마다 실행 중에 돈다. 구간의 gate가 보존하는 parity로 항을 sector로 나누고, 노드마다 sector를 GPU에 하나씩 올려 처리한다. GPU가 구간을 계산하는 동안 살아 있는 항을 보고 다음 구간의 parity와 sector 수를 정하고, 구간 경계에서 다음 구간의 sector로 다시 나누어 교환한다. 설계 규칙은 2.6절의 요구사항을 하나로 묶은 것이다.
 
 > 항 집합을 지금 구간의 모든 gate가 보존하는 parity의 값으로 나눈다. 이렇게 나눈 sector는 그 구간 동안 항을 주고받지도 합쳐지지도 않는다. 따라서 sector마다 따로 merge하고 truncation해도 전체를 합쳐 계산한 것과 답이 같다. 구간, parity, sector 수는 실행 중에 정하고, 항의 교환은 구간이 바뀔 때만 한다.
 
 <p align="center"><img src="figures/design_architecture.png" width="860"></p>
-<p align="center"><b>그림 2.</b> SectorQ의 전체 구조. 위: 구간 하나가 도는 동안 각 노드는 자기 sector만 처리한다. sector의 색은 그 sector를 맡은 노드이다. 아래: 런타임 sector 재구성. GPU가 구간을 계산하는 동안, 살아 있는 항과 다음 gate로부터 다음 구간의 행과 sector 수를 정해 GPU에 돌려준다. GPU가 이 결과를 기다린 시간은 0초이다. 숫자는 4 노드 16 GPU에서 도는 127-qubit kicked Ising 회로(cutoff 1e-5)의 구간 9의 것이다(<code>logs/pp_e11-59488608.out</code>, <code>logs/h1/h.h1.ki.1e-5.g16.out</code>).</p>
+<p align="center"><b>그림 11.</b> SectorQ의 전체 구조.</p>
+
+**그림 설명.** 위는 구간 하나가 도는 동안의 모습이다. 각 노드는 자기 sector만 처리하며, sector의 색은 그 sector를 맡은 노드이다. 아래는 런타임 sector 재구성이다. GPU가 구간을 계산하는 동안, 살아 있는 항과 다음 gate로부터 다음 구간의 행과 sector 수를 정해 GPU에 돌려준다. GPU가 이 결과를 기다린 시간은 0초이다. 원 안의 번호는 아래 본문의 (1)–(5)이다. 숫자는 4 노드 16 GPU에서 도는 127-qubit kicked Ising 회로(cutoff 1e-5)의 구간 9의 것이다(`logs/pp_e11-59488608.out`, `logs/h1/h.h1.ki.1e-5.g16.out`).
 
 **구간 실행.** 노드마다 프로세스 하나, GPU마다 worker 하나가 있다. sector d는 노드 (d mod 노드 수)의 host memory에 있다. (1) worker는 자기 노드의 sector를 하나 꺼내 GPU에 올리고, 구간의 gate를 적용하며 그 sector 안에서 merge와 truncation을 수행한다. (4) 출력은 GPU에서 다음 구간의 행으로 나뉘어 host memory에 내려온다(3.4절). 이 동안 항은 노드 사이를 오가지 않는다. 구간 중간에 GPU보다 커진 sector는 그 자리에서 둘로 나눈다.
 
@@ -291,14 +387,18 @@ SectorQ에는 미리 세운 계획이 없다. 하나의 고리가 구간마다 �
 
 ### 3.2 런타임 sector 재구성
 
+**요지.** 어떤 행이 유효한지는 다음 gate가 정하고, 유효한 행 가운데 어떤 행이 항을 고르게 나누는지는 살아 있는 항이 정한다. 둘 다 실행 중에만 알 수 있다. 이렇게 고른 행으로 나눈 sector는 구간 동안 닫혀 있다.
+
 <p align="center"><img src="figures/design_sectors.png" width="860"></p>
-<p align="center"><b>그림 3.</b> 구간 하나의 sector를 실행 중에 정하는 과정. qubit 3개의 예이며 bit 벡터는 (x | z)이다. 살아 있는 항과 다음 gate가 한 결정에서 만난다. 아래 줄은 127-qubit kicked Ising 실행의 구간 9에서의 같은 결정이다.</p>
+<p align="center"><b>그림 12.</b> 구간 하나의 sector를 실행 중에 정하는 과정.</p>
+
+**그림 설명.** qubit 3개의 예이며 bit 벡터는 (x | z)이다. 번호 (1)–(5)의 순서로 읽는다. 살아 있는 항 (1)과 다음 gate (2)가 한 결정에서 만나 다음 구간의 행 (3)이 정해진다. 그 행이 항을 sector로 나누고 (4), sector 안에서 gate를 적용한다 (5). 아래 줄은 127-qubit kicked Ising 실행의 구간 9에서의 같은 결정이다.
 
 - **행(row).** bit 벡터에 대한 parity 함수 하나이다. r(P)는 P와 mask를 AND한 결과에서 1의 개수의 홀짝이다.
 - **Sector.** 행 g개의 값이 같은 항들의 모음이다. 최대 2^g개이다.
 - **구간(window).** 같은 행을 쓰는 연속된 연산들이다.
 
-**입력.** (1) 지금 살아 있는 항이다. 어떤 항이 살아 있는지는 실행해야 안다. (2) 다음 gate들이다. 그림 3에서는 X rotation 셋이며 생성자의 x bit 하나만 1이다.
+**입력.** (1) 지금 살아 있는 항이다. 어떤 항이 살아 있는지는 실행해야 안다. (2) 다음 gate들이다. 그림 12에서는 X rotation 셋이며 생성자의 x bit 하나만 1이다.
 
 **유효한 행.** 다음 gate의 생성자를 GF(2)로 소거하면 rank가 3이다. 모든 생성자 Q에 대해 r(Q)=0인 행의 공간은 6−3=3차원이다. 이 예에서는 z bit만 보는 행이 모두 유효하다.
 
@@ -312,14 +412,25 @@ SectorQ에는 미리 세운 계획이 없다. 하나의 고리가 구간마다 �
 2. 구간의 모든 생성자 Q에 대해 r(Q)=0인 행으로 sector를 정하면 새 항은 원래 항과 같은 sector에 놓인다. 같은 Pauli string은 행의 값이 같으므로, 합쳐질 상대도 같은 sector에 있다.
 3. 따라서 sector 안에서 merge하고 truncation한 결과는 전체를 merge하고 truncation한 결과와 같다.
 
-이 성질이 R1, R2, R3을 함께 만족시킨다. sector 안에서 gate마다 합치므로 truncation은 항상 합쳐진 계수를 본다(R1). 다른 sector와 주고받을 것이 없으므로 구간 동안 항이 GPU를 옮기지 않는다(R2). 합치기를 미루지 않으므로 합쳐지지 않은 항이 쌓이지 않는다(R3). hash 분할과의 차이는 무엇을 key로 삼는가에 있다. hash는 Pauli string 전체를 key로 삼아, gate가 string을 바꾸면 배정도 바뀐다. sector는 string 가운데 구간의 gate가 바꾸지 않는 부분만 key로 삼는다.
+이 성질이 R1, R2, R3을 함께 만족시킨다. sector 안에서 gate마다 합치므로 truncation은 항상 합쳐진 계수를 본다(R1). 다른 sector와 주고받을 것이 없으므로 구간 동안 항이 GPU를 옮기지 않는다(R2). 합치기를 미루지 않으므로 합쳐지지 않은 항이 쌓이지 않는다(R3).
+
+**hash 분할과의 차이.** 차이는 무엇을 key로 삼는가에 있다. hash는 Pauli string 전체를 key로 삼아, gate가 string을 바꾸면 배정도 바뀐다. sector는 string 가운데 구간의 gate가 바꾸지 않는 부분만 key로 삼는다.
+
+<p align="center"><img src="figures/deck/n09_keys.png" width="860"></p>
+<p align="center"><b>그림 13.</b> 분할의 key: Pauli string 전체의 hash와 구간이 보존하는 parity.</p>
+
+**그림 설명.** 두 틀 모두 GPU 4장에 가지치는 gate 하나(생성자 Q)를 적용한다. 왼쪽은 Pauli string 전체의 hash를 key로 쓴다. gate가 string을 바꾸면 hash가 바뀌므로, GPU 1의 항 P에서 생긴 새 항 P⊕Q는 GPU 3에 놓인다. 가지치는 gate마다 새 항을 보내야 한다. 오른쪽은 구간의 gate가 보존하는 parity를 key로 쓴다. 새 항 P⊕Q와 그것이 합쳐질 상대가 P와 같은 sector에 있으므로, 구간 동안 어떤 항도 자기 sector를 떠나지 않는다.
 
 **Sector 수.** 살아 있는 항의 수와 지난 구간의 증가율로 정한다. 구간이 시작될 때의 항 수를 sector당 목표 항 수(`--target`)로 나누며, 구간 하나에 최대 256개이다(`--gmax`로 4,096개까지 올릴 수 있다). 항이 아주 적은 동안은 sector 하나, GPU 하나로 돈다(R6). sector 하나가 2,000항을 넘을 만큼 되면 노드마다 sector를 하나씩 준다(`--early-per-node`). 초반 구간은 항 수가 가장 빠르게 늘어나는 곳이어서, sector 하나로 두면 GPU 한 장이 일하는 동안 나머지가 기다린다(4.6절). GPU가 한 장뿐이면 sector를 받아 줄 다른 GPU가 없으므로 목표 항 수 규칙만 쓴다. 이때 구간과 다음 구간이 모두 sector 하나이면 결과를 나누지도 host로 내리지도 않고 GPU에 그대로 둔다(4.11절).
 
 ### 3.3 통신을 구간 경계로 모으기
 
+**요지.** 구간의 gate는 각 GPU 안에서 자기 sector에만 적용한다. kicked Ising에서 gate 2,540번마다 하던 통신이 구간 20개의 경계로 모인다. 통신을 없앤 것이 아니라 필요한 횟수를 줄인 것이다.
+
 <p align="center"><img src="figures/design_comm.png" width="860"></p>
-<p align="center"><b>그림 4.</b> 같은 네 GPU가 두 방식에서 하는 일. 왼쪽: cuPauliProp 분산 모드는 gate마다 모든 GPU가 전역으로 합치고 다시 나눈다. 오른쪽: SectorQ는 구간의 gate 127개를 각 GPU 안에서 자기 sector에 적용하고, 구간이 끝날 때 한 번 교환한다. 아래 표는 kicked Ising 2,250만 항 설정을 4 GPU에서 잰 값이다.</p>
+<p align="center"><b>그림 14.</b> 같은 네 GPU가 두 방식에서 하는 일.</p>
+
+**그림 설명.** 왼쪽은 cuPauliProp 분산 모드이다. gate마다 모든 GPU가 전역으로 합치고 다시 나눈다. 오른쪽은 SectorQ이다. 구간의 gate 127개를 각 GPU 안에서 자기 sector에 적용하고, 구간이 끝날 때 한 번 교환한다. 그림 아래의 표는 kicked Ising 2,250만 항 설정을 4 GPU에서 잰 값이다.
 
 **기존 방식.** cuPauliProp 분산 모드는 gate 하나를 적용할 때마다 모든 GPU가 전역 merge와 재분배에 참여한다. 새 항이 어느 GPU의 항과 합쳐질지 알 수 없기 때문이다. gate마다 rank당 22번의 전원 통신을 하고, 그동안 모든 GPU가 기다린다.
 
@@ -327,13 +438,18 @@ SectorQ에는 미리 세운 계획이 없다. 하나의 고리가 구간마다 �
 
 | 2,250만 항 설정, 4 GPU | cuPauliProp 분산 | SectorQ |
 |---|---:|---:|
-| GPU당 전원 통신 횟수 | 119,785회 | 208회 (576배 적다) |
-| GPU 사이를 오간 데이터 | 20.3 GB | 0.57 GB (36배 적다) |
+| GPU당 전원 통신 횟수 | 119,785회 (SectorQ의 576배) | 208회 |
+| GPU 사이를 오간 데이터 | 20.3 GB (SectorQ의 36배) | 0.57 GB |
 | 전역 단계 | gate마다 | 구간마다 |
 
 SectorQ의 값은 노드 넷에 GPU 하나씩을 둔 실행에서 MPI 호출을 가로채어 센 것이다(`logs/h1/shim.h4.comm.ki.1e-4.n4x1.mpiprof`). 208회는 구간 20개의 경계에서 하는 교환과, 표본과 행을 나누는 호출을 합친 수이다.
 
 **구간을 끊는 곳은 실행 중에 정한다.** SectorQ는 rotation 목록을 앞에서부터 읽으며 생성자가 만드는 공간을 GF(2) 소거로 추적한다(`gf2.hpp`). 생성자 공간이 d차원이면 유효한 행의 공간은 2n−d차원이다. 이 공간이 n차원 이상 남아 있는 동안 구간을 늘리고, truncation 직후에서 끊는다(`--snap`, 기본). 구간 안에서 항 수는 경계의 2.9–36배까지 늘었다가 truncation에서 줄어든다. 16 GPU 실행의 구간 8에서는 최대 13.6억 항이 끊는 곳에서 1.59억 항이다. 옮기는 양이 가장 적은 때이다. 회로마다 규칙을 넣지 않으며, 회로 7종에서 구간 6–45개가 자동으로 잡힌다.
+
+<p align="center"><img src="figures/deck/n11_window_terms.png" width="860"></p>
+<p align="center"><b>그림 15.</b> 구간이 시작할 때의 항 수(kicked Ising cutoff 1e-5, 16 GPU).</p>
+
+**그림 설명.** 선은 구간 20개 각각이 시작할 때의 항 수이며 세로는 로그 축이다. 가로축의 괄호는 그 구간에서 쓴 sector 수이다. 파선은 구간 안에서 닿은 가장 큰 항 수(14.1억)이다. 구간 경계의 항 수는 최대 1.59억으로, 구간 안 최대의 약 9분의 1이다. 교환은 이 경계에서 하므로 옮기는 항이 가장 적다. sector 수는 항 수를 따라간다. 처음 다섯 구간은 sector 1개이고, 이어서 4, 16, 64, 128개, 그 뒤로는 32–64개이다.
 
 **재분배(re-key).** 층이 바뀌면 보존되는 parity가 달라진다. X rotation 층은 z bit의 parity를, ZZ rotation 층은 x bit의 parity를 보존한다. 따라서 한 가지 분할을 끝까지 쓸 수 없다. GPU는 sector의 출력에서 항마다 다음 구간의 행을 계산한다. 그 값이 다음 sector의 번호이고, sector d는 노드 (d mod 노드 수)가 맡는다. 출력을 다음 sector별로 모아(`shuffle.cu`), 자기 노드가 맡은 sector의 조각은 host memory의 chunk 목록 끝에 붙인다.
 
@@ -352,8 +468,12 @@ gate마다 통신하는 방식은 통신을 빠르게 만들어야 한다. Secto
 
 ### 3.4 Sector 단위 실행
 
+**요지.** sector는 서로 독립이므로 처리 중인 sector만 GPU에 있으면 된다. 담을 수 있는 항 수는 GPU memory가 아니라 모든 노드의 host memory가 정한다.
+
 <p align="center"><img src="figures/design_store.png" width="860"></p>
-<p align="center"><b>그림 5.</b> 한 노드의 host memory와 GPU 한 장이 구간 동안 하는 일. sector는 고정 크기 chunk의 목록이다. GPU memory는 입력 버퍼, 출력 버퍼, 작업 공간으로 나뉜다. 다음 gate의 출력이 버퍼에 들어가지 않으면 sector를 행 하나로 둘로 나누어 host로 돌려보낸다.</p>
+<p align="center"><b>그림 16.</b> 한 노드의 host memory와 GPU 한 장이 구간 동안 하는 일.</p>
+
+**그림 설명.** 왼쪽은 노드 하나의 host memory이다. sector는 고정 크기 chunk의 목록이다. 오른쪽은 GPU 한 장이며 GPU memory는 입력 버퍼, 출력 버퍼, 작업 공간으로 나뉜다. 번호 (1)–(4)는 sector를 올리기, 구간의 gate 적용, 다음 gate의 출력이 버퍼에 들어가지 않을 때 sector를 행 하나로 둘로 나누어 host로 돌려보내기, 다음 구간의 행으로 나누어 내리기이다.
 
 sector는 서로 독립이므로 하나씩 따로 처리할 수 있다. 이것이 GPU memory의 한계를 없앤다(R5).
 
@@ -365,19 +485,30 @@ sector는 서로 독립이므로 하나씩 따로 처리할 수 있다. 이것�
 
 **다음 구간으로.** (4) 구간이 끝난 sector의 출력을 다음 구간의 행으로 나누어, 다음 sector의 chunk 끝에 붙인다. 다른 노드가 맡은 sector의 조각은 구간 경계에서 sector 통째로 보낸다.
 
-**용량.** GPU에는 처리 중인 sector만 올라간다. 담을 수 있는 항 수는 GPU memory가 아니라 모든 노드의 host memory가 정한다. 16 GPU에서 구간 경계의 항 119억 개(구간 안에서 최대 1,001억 개)를 다루었다(4.4절).
+**용량.** GPU에는 처리 중인 sector만 올라간다. 담을 수 있는 항 수는 GPU memory가 아니라 모든 노드의 host memory가 정한다. 16 GPU에서 구간 경계의 항 119억 개(구간 안에서 최대 1,001억 개)를 다루었고, 이때 4 노드의 host memory 1,024 GiB 가운데 788 GiB를 썼다. 그다음 cutoff(7e-7)는 host memory가 부족하다(4.4절).
 
 ### 3.5 Clifford frame
 
-Clifford gate와 Clifford 각도의 rotation은 항 수를 바꾸지 않고 bit만 바꾼다. 그런데도 데이터에 적용하면 모든 항을 한 번 훑어야 한다. SectorQ는 이 연산을 데이터에 적용하지 않고 frame에 모은다. 뒤따르는 rotation은 생성자를 frame으로 변환하여(부호 포함) 적용한다. frame은 noise 연산 앞과 회로 끝에서만 데이터에 적용하고, frame에 Pauli gate만 남아 있으면 단일 qubit Pauli gate로 적용한다. kicked Ising은 gate 5,420개가 데이터 연산 2,540개가 된다. 임의의 H, S, CZ, Pauli gate와 π/2 rotation을 지원한다(`circuit.hpp`). 이 방법은 parity sector와 독립이며, 평가에서는 기준선에도 같은 연산 목록을 준다.
+**요지.** Clifford gate는 항의 표기만 바꾸고 항 수는 바꾸지 않는다. 이런 gate는 데이터에 적용하지 않고 뒤따르는 rotation의 생성자에 흡수한다.
+
+<p align="center"><img src="figures/deck/n12_frame.png" width="860"></p>
+<p align="center"><b>그림 17.</b> Clifford frame: kicked Ising의 한 step.</p>
+
+**그림 설명.** 왼쪽은 kicked Ising 회로의 한 step이다. X rotation 층(주황)과 Clifford인 ZZ 층(빗금)이 이어진다. 오른쪽은 항에 실제로 적용하는 것이다. Clifford 층은 사라지고, 뒤따르는 rotation의 생성자가 X에서 ZXZ처럼 여러 qubit에 걸친 Pauli string으로 바뀐다. 아래 표는 회로 전체(20 step)의 수이다. gate 5,420개 가운데 Clifford gate 2,880개가 흡수되어, 항에 적용하는 연산은 2,541개이다(rotation 2,540개와 truncation만 싣는 연산 1개).
+
+Clifford gate와 Clifford 각도의 rotation은 항 수를 바꾸지 않고 bit만 바꾼다. 그런데도 데이터에 적용하면 모든 항을 한 번 훑어야 한다. SectorQ는 이 연산을 데이터에 적용하지 않고 frame에 모은다. 뒤따르는 rotation은 생성자를 frame으로 변환하여(부호 포함) 적용한다. frame은 noise 연산 앞과 회로 끝에서만 데이터에 적용하고, frame에 Pauli gate만 남아 있으면 단일 qubit Pauli gate로 적용한다. kicked Ising은 gate 5,420개가 데이터 연산 2,541개가 된다(그 가운데 rotation이 2,540개). 임의의 H, S, CZ, Pauli gate와 π/2 rotation을 지원한다(`circuit.hpp`). 이 방법은 parity sector와 독립이며, 평가에서는 기준선에도 같은 연산 목록을 준다.
 
 ### 3.6 Checkpoint와 검산
+
+**요지.** 구간 경계의 sector 집합은 그대로 checkpoint가 된다. 회로 전체가 보존하는 parity는 분할에는 쓸 수 없지만 모든 항의 검산에 쓴다.
 
 - **Checkpoint.** 구간 경계에서 sector 집합과 그 구간의 행을 노드별 파일로 쓴다. 이 시점은 항 수가 가장 적은 때이다(3.3절). 같은 노드 수 또는 한 노드로 재개한다.
 - **보존 parity 검산.** 회로의 모든 생성자에 대해 r(Q)=0인 행은 모든 항에서 값이 같아야 한다. heavy-hex kicked Ising에는 이런 행이 19개 있고 SectorQ는 그 가운데 8개를 쓴다. sector를 GPU에 올릴 때마다 모든 항을 이 행으로 검사한다(`--verify`, 기본).
 - **기준 모드.** 같은 연산 목록을 sector 하나와 GPU 하나로(`--mode ref`), 또는 cuPauliProp 분산 모드로(`--mode cupp`) 실행하여 답과 시간을 대조한다.
 
 ### 3.7 보장과 한계
+
+**요지.** 원리에서 여섯 가지 성질이 따라 나온다. 어떤 회로에서도 항을 주고받지 않고 도는 구간이 존재하고, 구간을 길게 잡는 것이 최적이며, 구간 경계의 재분배는 피할 수 없다.
 
 원리에서 따라 나오는 성질이다. 1–4는 증명할 수 있고, 5–6은 측정으로 확인하였다.
 
@@ -391,6 +522,8 @@ Clifford gate와 Clifford 각도의 rotation은 항 수를 바꾸지 않고 bit�
 | 6 | **쌍은 같은 sector에 있다.** rotation은 {P, P⊕Q} 쌍 위의 2×2 회전이고, 쌍의 두 항은 같은 sector에 있다 | 정렬, dedup, 출력 버퍼 없이 제자리에서 갱신할 수 있다. 구현하지 않았다 |
 
 ### 3.8 구현
+
+**요지.** SectorQ는 gate 적용, merge, truncation에 cuPauliProp의 단일 GPU 연산을 그대로 호출하고, 그 위의 분할, 배치, 통신을 구현한다.
 
 | 구성 요소 | 위치 |
 |---|---|
@@ -406,16 +539,27 @@ Clifford gate와 Clifford 각도의 rotation은 항 수를 바꾸지 않고 bit�
 
 ## 4. 평가
 
+**요지.** 모든 실행은 NERSC Perlmutter의 GPU 노드에서 하였다. 모든 구현이 같은 연산 목록과 같은 시간 제한을 받았고, 설정마다 한 번 실행하였다. 문제의 크기는 cutoff로 바꾼다.
+
+<p align="center"><img src="figures/deck/n15_setup.png" width="860"></p>
+<p align="center"><b>그림 18.</b> 평가 설정.</p>
+
+**그림 설명.** 왼쪽은 노드 하나이다(A100 4장, host memory 256 GiB, CPU 64 코어). 오른쪽 위는 모든 비교 대상을 함께 잰 1–4 노드(1–16 GPU)의 측정이고, 오른쪽 아래는 SectorQ와 cuPauliProp 분산 모드를 잰 8–64 노드(32–256 GPU)의 측정이다. 아래 두 줄은 회로와 규칙이다.
+
 플랫폼은 Perlmutter GPU 노드이다(노드당 A100 4장, CPU 64 코어, DRAM 256 GiB). 평가는 두 묶음의 측정으로 이루어진다.
 
 - **1–16 GPU.** 40 GB 노드 1–4대에서 GPU당 36 GB로(`--vram-frac 0.9`) SectorQ와 모든 비교 대상을 재었다(캠페인 g, 6.3절). 4.1–4.3절, 4.4절의 앞부분, 4.5–4.8절이 이 측정이다. 모든 방식에 실행당 40분의 제한을 같게 두었다. 회로 크기와 정확도의 실험(4.4절의 회로 크기, 4.5절)은 실행당 20분이다. cutoff는 쉬운 설정에서 시작하여 낮추어 가고, 한 방식이 메모리 부족이나 시간 초과로 실패하면 그 방식의 더 낮은 cutoff는 돌리지 않았다.
 - **32–256 GPU.** 4.4절의 뒷부분이다. 40 GB 노드 8–64대에서 SectorQ와 cuPauliProp 분산 모드의 두 가지를 재었다. 32, 64, 128, 256 GPU의 측정이 끝났다.
+
+**문제 크기를 정하는 법.** Pauli propagation은 항 수를 직접 정할 수 없다. cutoff를 낮추면 유지하는 항이 늘어 문제가 커진다. 그래서 그림의 가로축은 대부분 cutoff이며, 그 아래에 그 cutoff에서 구간 경계의 항 수와 그 크기(GB)를 함께 적었다. 구간 안에서는 항 수가 경계의 2.9–36배까지 늘어난다(3.3절).
 
 측정은 설정마다 1회이며 반복하지 않았다. 기대값은 12자리까지 출력하여 비교하였다. 표에서 "메모리 부족"과 "시간 초과"는 그 실행이 실패한 이유이다. "–"는 같은 방식이 더 쉬운 설정에서 이미 실패하여 돌리지 않은 칸이고, "측정 중"은 아직 끝나지 않은 칸이다. "지원 안 함"은 그 구현이 그 qubit 수를 받지 않는 칸이다.
 
 <!-- g:progress -->
 실행 3,109건 가운데 3,109건이 끝났다(완료 1,695, 메모리 부족 143, 시간 초과 54, 더 쉬운 칸에서 실패하여 돌리지 않음 683, qubit 수의 상한에 걸림 43, 캠페인 f에서 가져온 기준선 실행 474).
 <!-- /g:progress -->
+
+회로는 일곱 가지이다. 연결 구조, gate 구성, 관측량이 서로 다르게 골랐다.
 
 | # | 회로 | 1–16 GPU 측정의 설정 | gate 구성 | 시험하는 것 | `--circuit` 이름 |
 |---|---|---|---|---|---|
@@ -426,6 +570,8 @@ Clifford gate와 Clifford 각도의 rotation은 항 수를 바꾸지 않고 bit�
 | 5 | QAOA MaxCut | 3-regular 무작위 그래프 100 qubit, p=4 | H + ZZ rotation + X rotation | 격자가 아닌 연결. 관측량이 edge의 합 | `qaoa` |
 | 6 | Hardware-efficient ansatz | 선형 배치 100 qubit, 16층 | 층마다 RY, RZ + CZ | 한 층이 구간 둘. Clifford 얽힘 층 | `hea` |
 | 7 | 잡음 있는 kicked Ising | 1번에 qubit마다 depolarizing 잡음 0.005 | 1번 + 잡음 | unitary가 아닌 연산 | `ki_noisy` |
+
+비교 대상은 아홉 가지이다. 각 구현을 그 구현이 쓸 수 있는 자원에서 실행하였다.
 
 | 비교 대상 | 구성 | 준 자원 |
 |---|---|---|
@@ -442,6 +588,8 @@ Clifford gate와 Clifford 각도의 rotation은 항 수를 바꾸지 않고 bit�
 모든 구현이 Clifford frame으로 줄인 같은 연산 목록을 받는다. cuPauliProp에 가장 유리한 입력이다. 외부 구현은 SectorQ가 내보낸 연산 목록을 각 구현의 형식으로 바꾸어 읽는다(`jobs/g_ext_impl.py`). Qiskit addon의 OBP도 실행하였으나 오차 예산 안에서 회로의 일부만 역전파하고 멈추어(15분 제한, 상태 `partial_backpropagation`) 기대값이 없으므로 비교에서 뺐다.
 
 ### 4.1 답의 일치
+
+**요지.** truncation 규칙이 같은 구현은 같은 설정에서 같은 값을 낸다. 실행이 둘 이상 끝난 설정 68개 모두에서 기대값의 최대 차이가 4.9e-11이다. SectorQ는 GPU 수, sector 수, 구간을 잡는 규칙을 바꾸어도 같은 값을 낸다.
 
 SectorQ의 기대값은 회로 7종 모두에서 단일 GPU 기준과 12자리까지 같다. 아래는 한 GPU에 들어가는 설정이며, SectorQ 쪽은 sector를 작게 잡아 분할과 재분배가 실제로 일어나게 하였다.
 
@@ -480,10 +628,14 @@ MonoProp은 truncation 규칙이 달라 이 대조에 넣지 않았다(4.3절).
 
 ### 4.2 단일 노드 성능: 다른 구현과의 비교
 
+**요지.** 한 노드에서 10억 항이 넘는 문제를 끝내는 것은 SectorQ뿐이다. cuPauliProp 분산 모드는 한 노드 안에서도 자신의 GPU 1장 실행보다 느리다. GPU 1장 안에서는 다른 연산을 쓰는 SPD가 더 빠른 설정이 있다.
+
 한 노드(A100 4장, CPU 64 코어)에서 모든 구현을 그 구현이 쓸 수 있는 자원으로 실행하였다. 대표 회로는 kicked Ising이다. 같은 truncation 규칙을 쓰는 구현의 기대값은 완료한 모든 실행에서 SectorQ와 같다(4.1절).
 
 <p align="center"><img src="figures/eval_single_node.png" width="980"></p>
-<p align="center"><b>그림 6.</b> 한 노드에서 cutoff에 따른 실행 시간(kicked Ising, 로그 축). 가로축의 첫째 괄호는 그 cutoff에서 구간 경계의 항 수이고 둘째 괄호는 그 항들의 크기이다(127 qubit에서 항 하나는 Pauli 문자열 32 byte와 계수 8 byte). 오른쪽으로 갈수록 문제가 크다. 실선은 4 GPU 또는 64 코어, 점선은 GPU 1장이다. ×는 그 구현이 다음 cutoff에서 메모리 부족이나 시간 초과(40분)로 멈춘 곳이다.</p>
+<p align="center"><b>그림 19.</b> 한 노드에서 cutoff에 따른 실행 시간(kicked Ising).</p>
+
+**그림 설명.** 세로는 실행 시간이며 로그 축이다. 가로축은 cutoff이고 오른쪽으로 갈수록 문제가 크다. 첫째 괄호는 그 cutoff에서 구간 경계의 항 수이고 둘째 괄호는 그 항들의 크기이다(127 qubit에서 항 하나는 Pauli string 32 byte와 계수 8 byte). 실선은 4 GPU 또는 64 코어, 점선은 GPU 1장이다. ×는 그 구현이 다음 cutoff에서 메모리 부족이나 시간 초과(40분)로 멈춘 곳이다. 선이 아래에 있을수록 빠르고, 오른쪽으로 길수록 더 큰 문제를 끝낸 것이다.
 
 <!-- g:single_node -->
 **Kicked Ising** (한 노드, 실행 시간)
@@ -549,8 +701,10 @@ MonoProp은 truncation 규칙이 달라 이 대조에 넣지 않았다(4.3절).
 | 잡음 있는 kicked Ising | 4.8배 (2e-5) | 1.5배 (2e-5) | 18배 (1e-5) |  | 161배 (2e-5) | 525배 (5e-5) |  |  |
 <!-- /g:node_mult -->
 
-- **한 노드에서 10억 항이 넘는 문제를 끝내는 것은 SectorQ뿐이다.** kicked Ising에서 cuPauliProp은 4 GPU로 cutoff 3e-5(2,067만 항)까지, GPU 1장으로 5e-5까지 끝낸다. SPD와 ORQA 재현은 3e-5, MonoProp은 1e-5(1.6억 항)가 끝이다. SectorQ는 4 GPU로 2e-6(32억 항), GPU 1장으로 3e-6(15억 항)을 끝낸다.
-- **cuPauliProp 분산 모드는 한 노드 안에서도 GPU 1장보다 느리다.** 4 GPU의 기본 모드는 가장 작은 설정에서도 16초가 걸린다(GPU 1장 0.24초). SectorQ는 같은 4 GPU에서 0.27초이고, 두 구현이 모두 끝낸 가장 큰 설정에서 2.6–7.1배 빠르다.
+**결과와 이유.**
+
+- **한 노드에서 10억 항이 넘는 문제를 끝내는 것은 SectorQ뿐이다.** kicked Ising에서 cuPauliProp은 4 GPU로 cutoff 3e-5(2,067만 항)까지, GPU 1장으로 5e-5까지 끝낸다. SPD와 ORQA 재현은 3e-5, MonoProp은 1e-5(1.6억 항)가 끝이다. SectorQ는 4 GPU로 2e-6(32억 항), GPU 1장으로 3e-6(15억 항)을 끝낸다. 다른 GPU 구현이 담는 항 수는 GPU memory가 정하고, SectorQ는 sector를 host memory에 두고 GPU에 하나씩 올리기 때문이다(3.4절).
+- **cuPauliProp 분산 모드는 한 노드 안에서도 GPU 1장보다 느리다.** 4 GPU의 기본 모드는 가장 작은 설정에서도 16초가 걸린다(GPU 1장 0.24초). gate마다 모든 GPU가 조율하는 고정 비용이 항 수와 무관하게 들기 때문이다(2.4절). SectorQ는 같은 4 GPU에서 0.27초이고, 두 구현이 모두 끝낸 가장 큰 설정에서 2.6–7.1배 빠르다.
 - **CPU 구현.** SectorQ의 4 GPU는 같은 노드의 64 코어를 쓰는 ORQA 재현보다 18–71배, PauliPropagation.jl보다 108–269배, ppvm보다 157–755배, thread 하나를 쓰는 Qiskit pauli-prop보다 1,800배 이상 빠르다. MonoProp보다는 2.3–12배 빠르며, 2초 안에 끝나는 작은 설정에서는 MonoProp이 더 빠르다(cutoff 1e-3: 0.09초 대 0.27초). ORQA는 저자의 구현이 아니라 재현본과의 비교이다.
 - **SPD.** GPU 1장 안에서는 SPD가 더 빠른 설정이 있다. kicked Ising cutoff 3e-5에서 SPD 7.32초, GPU 1장의 SectorQ 18.6초이다. SPD는 자체 연산을 쓰고 SectorQ의 gate 적용은 cuPauliProp의 연산이다. SPD는 그다음 cutoff(1e-5)에서 메모리가 부족하다. sector 분할은 gate를 적용하는 연산과 독립이며, 연산 자체를 빠르게 하는 일은 이 연구의 범위가 아니다(3.8절).
 
@@ -614,12 +768,16 @@ cuPauliProp이 GPU 1장으로 끝내는 가장 큰 설정에서 SectorQ의 시�
 
 ### 4.3 다중 노드 확장성
 
+**요지.** 문제를 GPU 수에 맞추어 키우면 SectorQ의 시간은 거의 평평하다(weak scaling, 16 GPU에서 GPU당 처리율이 GPU 1장의 79–87%). GPU 수를 고정하고 문제를 키우면 모든 GPU 수에서 SectorQ가 가장 큰 문제까지 간다(strong scaling). cuPauliProp은 GPU를 늘릴수록 느려진다.
+
 1, 2, 4 노드(4, 8, 16 GPU)에서 여러 노드로 도는 구현을 비교하였다. SectorQ, cuPauliProp 분산 모드의 두 가지, CPU 분산 구현인 ORQA 재현과 MonoProp이다. CPU 구현은 SectorQ와 같은 수의 노드를 쓴다.
 
 #### Weak scaling
 
 <p align="center"><img src="figures/eval_weak.png" width="980"></p>
-<p align="center"><b>그림 7.</b> Weak scaling(로그 축). GPU 수에 맞추어 cutoff를 낮추어 문제를 키웠다. 가로축의 괄호는 그 GPU 수에서의 cutoff이다. 왼쪽: 작은 부하(1–16 GPU). 오른쪽: 큰 부하(SectorQ는 256 GPU까지, 4.4절). 큰 부하에서 cuPauliProp의 두 분산 모드는 모든 GPU 수에서 메모리가 부족하여 선이 없다. 선이 평평할수록 좋다. ×는 그 구현이 다음 GPU 수의 문제를 끝내지 못한 곳이다.</p>
+<p align="center"><b>그림 20.</b> Weak scaling.</p>
+
+**그림 설명.** 행 하나가 회로 하나이다. 왼쪽 열은 작은 부하(1–16 GPU, 모든 방식)이고 오른쪽 열은 큰 부하이다(SectorQ는 256 GPU까지, 4.4절). 가로축은 GPU 수이고 괄호는 그 GPU 수에서의 cutoff이다. GPU 수에 맞추어 cutoff를 낮추어 문제를 키웠다. 세로는 실행 시간이며 로그 축이다. 선이 평평할수록 좋다. 큰 부하에서 cuPauliProp의 두 분산 모드는 모든 GPU 수에서 메모리가 부족하여 선이 없다. ×는 그 구현이 다음 GPU 수의 문제를 끝내지 못한 곳이다.
 
 Pauli propagation은 문제 크기를 직접 정할 수 없으므로 cutoff를 낮추어 일의 양을 늘렸다. cutoff는 4 GPU의 값에 (G/4)^(−0.52)를 곱한 것이다(일의 양을 구간 경계의 항 수를 모든 구간에 대해 더한 값으로 잡으면 kicked Ising에서 cutoff 1e-5에서 3e-6으로 갈 때 10.0배가 되며, 지수 −0.52는 이 관계에서 얻었다). 부하는 둘이다. 작은 부하는 4 GPU에서 cutoff 3e-5이고 큰 부하는 4 GPU에서 cutoff 1e-5이다.
 
@@ -665,14 +823,18 @@ Pauli propagation은 문제 크기를 직접 정할 수 없으므로 cutoff를 �
 | ORQA (재현), 잡음 있는 kicked Ising | 260초 | 356초 | 574초 | 602초 | 626초 |
 <!-- /g:weak -->
 
+**결과와 이유.**
+
 - **SectorQ의 시간은 GPU 수가 늘어도 거의 평평하다.** 큰 부하에서 1 GPU의 32.7–46.6초가 16 GPU에서 31.1–56.2초이다. GPU 한 장의 처리율은 1 GPU의 79–87%이다. 작은 부하에서는 4.0–5.1초가 4.8–7.1초가 되고 처리율은 65–70%이다. 실행이 짧아 연산마다의 고정 비용과 교환의 몫이 크기 때문이다.
-- **cuPauliProp은 GPU를 늘릴수록 느려진다.** 작은 부하에서 기본 모드는 GPU 1장의 3.9–4.2초에서 16장의 36.5–57.3초가 된다. 큰 부하의 cutoff는 어느 GPU 수에서도 끝내지 못한다.
+- **cuPauliProp은 GPU를 늘릴수록 느려진다.** 작은 부하에서 기본 모드는 GPU 1장의 3.9–4.2초에서 16장의 36.5–57.3초가 된다. gate당 고정 비용이 GPU 수와 함께 커지기 때문이다(2.4절). 큰 부하의 cutoff는 어느 GPU 수에서도 끝내지 못한다. GPU당 약 1억 항의 한계에 걸린다.
 - **CPU 분산 구현.** ORQA 재현은 SectorQ의 7.4–21배, MonoProp은 3.3–7.4배의 시간이 걸린다. 큰 부하의 kicked Ising과 TFIM은 ORQA 재현이 4 GPU 자리부터 메모리 부족이다.
 
 #### Strong scaling
 
 <p align="center"><img src="figures/eval_strong.png" width="860"></p>
-<p align="center"><b>그림 8.</b> GPU 수를 고정하고 문제를 키웠을 때의 실행 시간(kicked Ising, 로그 축). 가로축의 괄호는 같은 GPU에서 cuPauliProp 분산 모드(기본) 대비 SectorQ의 배수이고, OOM은 cuPauliProp이 메모리 부족으로 끝내지 못한 설정이다. ×는 그 구현이 다음 cutoff에서 멈춘 곳이다.</p>
+<p align="center"><b>그림 21.</b> GPU 수를 고정하고 문제를 키웠을 때의 실행 시간(kicked Ising).</p>
+
+**그림 설명.** 패널 하나가 GPU 수 하나이다(4, 8, 16 GPU). 가로축은 cutoff이고 세로는 실행 시간이며 로그 축이다. 가로축의 괄호는 같은 GPU에서 cuPauliProp 분산 모드(기본)의 시간이 SectorQ의 몇 배인지이고, OOM은 cuPauliProp이 메모리 부족으로 끝내지 못한 설정이다. ×는 그 구현이 다음 cutoff에서 멈춘 곳이다.
 
 대표 회로인 kicked Ising을 GPU 수마다 cutoff를 낮추어 가며 실행하였다.
 
@@ -708,8 +870,10 @@ Pauli propagation은 문제 크기를 직접 정할 수 없으므로 cutoff를 �
 | MonoProp | 0.49초 (0.6배) | 5.44초 (2.6배) | 58.7초 (4.8배) | 247초 (5.4배) | 메모리 부족 | – | – |
 <!-- /g:strong_sota -->
 
+**결과와 이유.**
+
 - **모든 GPU 수에서 SectorQ가 가장 큰 문제까지 간다.** 16 GPU에서 cuPauliProp의 두 모드와 ORQA 재현은 cutoff 1e-5(1.6억 항), MonoProp은 5e-6(5.8억 항)이 끝이다. SectorQ는 1e-6(119억 항)까지 끝낸다.
-- **GPU가 늘면 차이가 벌어진다.** cutoff 3e-5에서 cuPauliProp 기본 모드 대비 SectorQ의 배수는 4 GPU의 4.4배에서 16 GPU의 13배가 된다. cuPauliProp의 시간은 23.2초에서 27.2초로 늘고 SectorQ의 시간은 5.25초에서 2.06초로 준다.
+- **GPU가 늘면 차이가 벌어진다.** cutoff 3e-5에서 cuPauliProp 기본 모드 대비 SectorQ의 배수는 4 GPU의 4.4배에서 16 GPU의 13배가 된다. cuPauliProp의 시간은 23.2초에서 27.2초로 늘고 SectorQ의 시간은 5.25초에서 2.06초로 준다. cuPauliProp은 GPU가 늘면 조율 비용이 커지고, SectorQ는 구간이 도는 동안 조율이 없어 GPU 수만큼 일을 나눈다.
 - **MonoProp.** 4 노드에서 SectorQ(16 GPU)가 2.6–5.4배 빠르다. 1초 안에 끝나는 cutoff 1e-4에서는 MonoProp이 빠르다(0.49초 대 0.81초).
 
 같은 문제를 GPU 수만 바꾸어 실행한 SectorQ의 시간이다. 괄호는 1 GPU 대비이다.
@@ -762,8 +926,12 @@ Pauli propagation은 문제 크기를 직접 정할 수 없으므로 cutoff를 �
 
 #### 여러 회로 (16 GPU)
 
+**요지.** cuPauliProp 분산 모드가 16 GPU로 끝내는 가장 큰 설정에서 그 시간은 SectorQ의 4.2–9.7배이고, dedup을 미룬 방식은 2.2–4.6배이다. SectorQ는 회로 7종 모두에서 더 낮은 cutoff까지 간다.
+
 <p align="center"><img src="figures/eval_circuits.png" width="980"></p>
-<p align="center"><b>그림 9.</b> 16 GPU에서 회로 7종의 cutoff에 따른 실행 시간(로그 축). 가로축의 괄호는 cuPauliProp 분산 모드(기본) 대비 SectorQ의 배수이고, OOM은 cuPauliProp이 메모리 부족으로 끝내지 못한 cutoff이다. ×는 그 구현이 다음 cutoff에서 멈춘 곳이다.</p>
+<p align="center"><b>그림 22.</b> 16 GPU에서 회로 7종의 cutoff에 따른 실행 시간.</p>
+
+**그림 설명.** 패널 하나가 회로 하나이다. 가로축은 cutoff이고 세로는 실행 시간이며 로그 축이다. 가로축의 괄호는 cuPauliProp 분산 모드(기본)의 시간이 SectorQ의 몇 배인지이고, OOM은 cuPauliProp이 메모리 부족으로 끝내지 못한 cutoff이다. ×는 그 구현이 다음 cutoff에서 멈춘 곳이다. 작은 설정에서 cuPauliProp의 선이 평평한 것은 문제가 작아도 연산마다의 조율 비용이 남기 때문이다(4.6절).
 
 회로 7종을 16 GPU에서 cuPauliProp 분산 모드의 두 가지와 비교하였다. 아래 표는 회로마다 두 크기를 고른 것이다. 하나는 cuPauliProp이 GPU 1장으로 끝내는 가장 큰 설정이고, 다른 하나는 cuPauliProp 분산 모드(기본)가 16 GPU로 끝내는 가장 큰 설정이다. 기준선이 끝낸 설정만 고르므로 기준선이 실패한 설정은 이 표에 들어 있지 않다.
 
@@ -793,18 +961,24 @@ Pauli propagation은 문제 크기를 직접 정할 수 없으므로 cutoff를 �
 | 잡음 있는 kicked Ising | 1e-5 | 7,241만 | 0.173318829841 | 9.14초 | 21.5초 (2.3배) | 63.9초 (7.0배) |
 <!-- /g:speed -->
 
+**결과와 이유.**
+
 - **GPU 1장에 들어가는 크기.** SectorQ는 기본 모드의 18–52배, dedup을 미룬 방식의 6.1–10배 빠르다. 이 크기에서 분산 모드는 자신의 단일 GPU 실행(1.7–6.1초)보다 느리다. SectorQ는 16 GPU에서 0.68–1.64초이다.
 - **16 GPU가 있어야 들어가는 크기.** SectorQ는 기본 모드의 4.2–9.7배, dedup을 미룬 방식의 2.2–4.6배 빠르다. dedup을 미룬 방식은 일곱 설정 가운데 둘에서 메모리가 부족하다. 미루는 동안 합쳐지지 않은 항을 들고 있어야 하기 때문이다.
-- **그보다 큰 크기.** cuPauliProp의 두 모드는 16 GPU에서 이보다 낮은 cutoff를 끝내지 못한다. SectorQ는 회로 7종 모두에서 더 낮은 cutoff까지 간다(그림 9).
+- **그보다 큰 크기.** cuPauliProp의 두 모드는 16 GPU에서 이보다 낮은 cutoff를 끝내지 못한다. SectorQ는 회로 7종 모두에서 더 낮은 cutoff까지 간다(그림 22).
 
 #### 회로 크기: qubit 수와 깊이
+
+**요지.** cutoff를 고정하고 회로를 키웠다. 전체 자화의 1,024 qubit(cutoff 1e-3)을 SectorQ는 16 GPU로 90.7초에 끝내고, cuPauliProp 기본 모드의 시간은 그 4.0배이다. 60 step의 회로에서는 22배이다.
 
 앞의 실험은 회로를 고정하고 cutoff로 문제 크기를 바꾸었다. 여기서는 cutoff를 고정하고 회로를 키운다. 실행당 제한은 20분이다.
 
 **qubit 수.** L×L 정사각 격자의 TFIM(θ=0.2π, ZZ −0.3π, 10 step)을 L = 6, 8, 11, 16, 23, 32(36–1,024 qubit)로 키웠다. 관측량은 전체 자화, 곧 모든 자리의 Z의 합이다(`--obs-all 1`). 관측량의 항이 qubit 수만큼이므로 일의 양이 qubit 수를 따라 늘어난다. 3×3 격자에서 이 관측량의 값은 자리마다 따로 실행한 아홉 값의 합과 같다(7.20241697047).
 
 <p align="center"><img src="figures/eval_qubits.png" width="980"></p>
-<p align="center"><b>그림 10.</b> qubit 수에 따른 실행 시간(2D TFIM의 전체 자화, 10 step, 로그 축). 실선은 16 GPU 또는 4 노드, 파선은 4 GPU, 점선은 GPU 1장이다. ×는 그 구현이 다음 크기에서 멈춘 곳이다(메모리 부족, 20분 초과, 또는 그 qubit 수를 받지 않음).</p>
+<p align="center"><b>그림 23.</b> qubit 수에 따른 실행 시간(2D TFIM의 전체 자화, 10 step).</p>
+
+**그림 설명.** 왼쪽은 cutoff 1e-3, 오른쪽은 cutoff 1e-4이다. 가로축은 qubit 수(36–1,024)이고 세로는 실행 시간이며 로그 축이다. 실선은 16 GPU 또는 4 노드, 파선은 4 GPU, 점선은 GPU 1장이다. ×는 그 구현이 다음 크기에서 멈춘 곳이다(메모리 부족, 20분 초과, 또는 그 qubit 수를 받지 않음).
 
 괄호는 같은 자원의 SectorQ 대비이다(16 GPU와 4 노드는 SectorQ 16 GPU, 4 GPU와 64 thread는 SectorQ 4 GPU, GPU 1장은 SectorQ GPU 1장).
 
@@ -847,6 +1021,8 @@ Pauli propagation은 문제 크기를 직접 정할 수 없으므로 cutoff를 �
 | PauliPropagation.jl | 64 thread | 719초 (79배) | 시간 초과 | – | – | – | – |
 | ppvm | 64 thread | 시간 초과 | – | – | – | – | – |
 <!-- /g:qubits -->
+
+**결과와 이유.**
 
 - **cutoff 1e-3.** SectorQ는 1,024 qubit을 16 GPU로 90.7초에 끝낸다. cuPauliProp 분산 모드는 기본이 366초(4.0배), dedup을 미룬 방식이 131초(1.4배)이다. GPU 1장만 쓰는 cuPauliProp과 SPD는 1,024 qubit에서 메모리가 부족하고, SectorQ는 GPU 1장으로도 1,071초에 끝낸다(1 → 16 GPU에서 12배).
 - **cutoff 1e-4.** cuPauliProp의 두 분산 모드는 16 GPU에서 256 qubit부터 메모리가 부족하다. SectorQ는 16 GPU로 256 qubit을 115초, 529 qubit을 778초에 끝낸다(구간 경계에서 15억 항). 1,024 qubit은 20분 안에 끝나지 않았다. 모두가 끝낸 121 qubit에서 SectorQ는 cuPauliProp 기본의 3.1배, dedup을 미룬 방식의 1.8배, MonoProp(4 노드)의 4.0배, ORQA 재현(4 노드)의 13배 빠르다.
@@ -897,7 +1073,9 @@ cutoff 1e-4의 1,024 qubit에서 SectorQ는 16 GPU로 9.06초이고 cuPauliProp 
 **깊이.** kicked Ising(127 qubit, cutoff 3e-5)의 step 수를 4에서 60까지 늘렸다. step 수는 4의 배수로 두었다. 그래야 Clifford frame을 거친 연산 목록에 rotation만 남아 모든 구현이 같은 목록을 받는다.
 
 <p align="center"><img src="figures/eval_depth.png" width="760"></p>
-<p align="center"><b>그림 11.</b> step 수에 따른 실행 시간(kicked Ising 127 qubit, cutoff 3e-5, 로그 축). 선의 종류는 그림 10과 같다.</p>
+<p align="center"><b>그림 24.</b> step 수에 따른 실행 시간(kicked Ising 127 qubit, cutoff 3e-5).</p>
+
+**그림 설명.** 가로축은 Trotter step 수(4–60)이고 세로는 실행 시간이며 로그 축이다. 선의 종류는 그림 23과 같다. ×는 그 구현이 다음 깊이에서 메모리 부족이 되는 곳이다.
 
 <!-- g:depth -->
 | 구현 | 자원 | 4 step | 8 step | 12 step | 16 step | 20 step | 28 step | 40 step | 60 step |
@@ -916,14 +1094,20 @@ cutoff 1e-4의 1,024 qubit에서 SectorQ는 16 GPU로 9.06초이고 cuPauliProp 
 | PauliPropagation.jl | 64 thread | 2.99초 (36배) | 90.4초 (67배) | 271초 (85배) | 396초 (95배) | 550초 (105배) | 660초 (111배) | 672초 (101배) | 720초 (102배) |
 <!-- /g:depth -->
 
+**결과와 이유.**
+
 - 60 step에서 SectorQ는 16 GPU로 3.18초이다. cuPauliProp 기본의 22배, dedup을 미룬 방식의 5.5배, ORQA 재현(4 노드)의 19배, MonoProp(4 노드)의 3.9배 빠르다. cuPauliProp 단일 GPU는 8 step부터 메모리가 부족하다.
 - 시간은 20 step 뒤로는 천천히 늘어난다(SectorQ 16 GPU: 20 step 2.06초, 60 step 3.18초). cutoff가 고정이어서 항 수가 계속 늘지 않기 때문이다. 60 step 실행에서 구간 경계의 항 수는 2,067만까지 늘었다가 1,045만, 347만, 114만으로 줄어든다.
 - SPD는 GPU 1장으로 60 step을 8.04초에 끝낸다. SectorQ의 GPU 1장(22.5초)보다 2.8배 빠르고 4 GPU(7.03초)와 비슷하다.
 
 #### Scale-out과 도달 범위
 
+**요지.** GPU를 늘리면 같은 문제가 빨라지고 더 큰 문제까지 간다. SectorQ가 담는 항 수는 host memory가 정하므로, GPU 1장의 SectorQ가 16장의 cuPauliProp보다 9배 많은 항을 끝낸다. 16 GPU에서 SectorQ의 한계는 4 노드의 host memory이다.
+
 <p align="center"><img src="figures/eval_scaleout.png" width="760"></p>
-<p align="center"><b>그림 12.</b> GPU 수에 따른 SectorQ의 실행 시간(kicked Ising, 로그 축, 1–256 GPU). 가로축의 괄호는 그림 6과 같이 구간 경계의 항 수와 그 크기이다. 128 GPU의 cutoff 1e-6은 sector 수의 상한을 1,024개로 둔 실행이다. GPU를 늘리면 같은 문제가 빨라지고 더 큰 문제까지 간다. ×는 40분 안에 끝내지 못했거나 메모리가 부족한 곳이다.</p>
+<p align="center"><b>그림 25.</b> GPU 수에 따른 SectorQ의 실행 시간(kicked Ising, 1–256 GPU).</p>
+
+**그림 설명.** 선 하나가 GPU 수 하나이다. 가로축은 cutoff이고, 괄호는 그림 19와 같이 구간 경계의 항 수와 그 크기이다. 세로는 실행 시간이며 로그 축이다. 같은 cutoff에서 아래에 있는 선일수록 빠르고, 오른쪽으로 긴 선일수록 큰 문제까지 간 것이다. ×는 40분 안에 끝내지 못했거나 메모리가 부족한 곳이다. 128 GPU와 256 GPU의 cutoff 1e-6은 sector 수의 상한을 1,024개로 둔 실행이다.
 
 세 회로를 1–16 GPU에서 세 방식으로 실행하였다. 괄호는 SectorQ 대비이다.
 
@@ -970,6 +1154,8 @@ cutoff 1e-4의 1,024 qubit에서 SectorQ는 16 GPU로 9.06초이고 cuPauliProp 
 |  | cuPauliProp dedup 미룸 |  | – | – | – | – |
 |  | cuPauliProp 기본 | – | – | – | – | – |
 <!-- /g:gpus -->
+
+**결과와 이유.**
 
 - **SectorQ는 GPU 1장부터 돈다.** 세 cutoff 모두 GPU 수와 무관하게 같은 기대값을 낸다.
 - **cuPauliProp은 GPU를 늘려도 빨라지지 않는다.** kicked Ising cutoff 3e-5의 기본 모드는 4 / 8 / 16 GPU에서 23.2 / 24.6 / 27.2초이다. 같은 설정의 SectorQ는 4 GPU의 5.25초에서 16 GPU의 2.06초로 준다.
@@ -1023,6 +1209,11 @@ kicked Ising cutoff 1e-6은 구간 경계에서 119억 항, 구간 안에서 최
 
 **작은 문제에서의 GPU 수.** 문제가 작을수록 GPU를 늘려 얻는 것이 적다.
 
+<p align="center"><img src="figures/deck/n16_gain_by_size.png" width="860"></p>
+<p align="center"><b>그림 26.</b> 문제 크기에 따른 GPU 수의 이득(kicked Ising, SectorQ).</p>
+
+**그림 설명.** 세로는 같은 문제에서 GPU 1장의 SectorQ 시간을 2, 4, 8, 16 GPU의 시간으로 나눈 값이다. 가로축은 cutoff이고 괄호는 구간 경계의 항 수와 그 크기이다. 파선은 이상적인 값 2, 4, 8, 16이다. 항이 수백만 개인 왼쪽에서는 선들이 1–2 근처에 모여 있고, 1억 개를 넘는 오른쪽에서 파선에 가까워진다.
+
 <!-- g:gain -->
 | 회로 | cutoff | 구간 경계의 항 수 | 구간 안 최대 항 수 | GPU 1장 | 16 GPU | 1장 대비 |
 |---|---|---:|---:|---:|---:|---:|
@@ -1046,6 +1237,8 @@ kicked Ising cutoff 1e-6은 구간 경계에서 119억 항, 구간 안에서 최
 1억 항이 넘는 설정은 16 GPU에서 13–15배 빨라지고, 수백만 항의 설정은 1.4–2.1배에 그친다. sector를 나누어도 각 sector는 구간의 gate를 모두 적용해야 하고, 연산 하나에는 항 수와 무관한 고정 비용이 있다. 작은 설정은 이 고정 비용이 시간의 대부분이다. 또 항 수는 1에서 시작하므로 처음 구간들은 나눌 만큼의 항이 없다. 남는 바닥은 rotation 2,540개를 호출 하나씩으로 적용하는 시간(약 0.4초)이다(4.11절). 같은 작은 설정에서 cuPauliProp 분산 모드는 GPU를 늘릴수록 느려진다(kicked Ising cutoff 1e-4: 1 GPU 1.83초, 16 GPU 28.3초).
 
 #### 32–256 GPU
+
+**요지.** 큰 문제 세 가지는 256 GPU에서 GPU 1장의 79–130배 빨라진다. cuPauliProp 기본 모드와의 차이는 GPU가 늘수록 벌어져 256 GPU에서 13–23배이다. 32 GPU부터는 지금까지 잰 문제가 host memory를 다 쓰지 않으며, 메모리 한계까지의 측정은 job이 대기 중이다.
 
 32, 64, 128, 256 GPU(8–64 노드)에서 SectorQ와 cuPauliProp 분산 모드의 두 가지를 재었다(`jobs/e15_scaling.sh`, GPU 수마다 job 하나, 40 GB 노드에서 GPU당 36 GB). 1–16 GPU의 값은 4.3절의 것이다.
 
@@ -1091,8 +1284,10 @@ kicked Ising cutoff 1e-6은 구간 경계에서 119억 항, 구간 안에서 최
 |  | 256 | 3.43초 | 15.1초 (4.4배) | 77.9초 (23배) |
 <!-- /g:large -->
 
-- **Strong scaling.** 큰 문제 세 가지는 1 GPU에서 64 GPU로 45–52배, 128 GPU로 62–92배, 256 GPU로 79–130배 빨라진다(kicked Ising cutoff 3e-6: 1,741초 → 33.2초 → 18.9초 → 13.4초). 작은 문제(cutoff 1e-5)는 128 GPU의 38–58배에서 멈추고 256 GPU에서 더 줄지 않는다(3.0–3.8초).
-- **Weak scaling.** 일의 양을 GPU 수만큼 늘린 실행에서 GPU 한 장의 처리율은 64 GPU에서 1 GPU의 72–80%, 128 GPU에서 50–77%, 256 GPU에서 26–60%이다(그림 7의 오른쪽 열). kicked Ising이 128 GPU에서 50%, 256 GPU에서 26%로 떨어지는 것은 구간당 sector 수의 상한 때문이다. 기본값 256개로는 sector가 GPU 버퍼에 들어가지 않아 다시 나뉜다(128 GPU에서 3,146번). 상한을 1,024개로 올리면(`--gmax 10`) 128 GPU는 80.0초가 61.6초(65%)가 되고 256 GPU는 147초가 76.5초(50%)가 된다.
+**결과와 이유.**
+
+- **Strong scaling.** 큰 문제 세 가지는 1 GPU에서 64 GPU로 45–52배, 128 GPU로 62–92배, 256 GPU로 79–130배 빨라진다(kicked Ising cutoff 3e-6: 1,741초 → 33.2초 → 18.9초 → 13.4초). 작은 문제(cutoff 1e-5)는 128 GPU의 38–58배에서 멈추고 256 GPU에서 더 줄지 않는다(3.0–3.8초). 256 GPU에서는 구간 경계의 항이 GPU당 62만 개(1.59억 / 256)로 줄어, 위의 작은 문제와 같은 상태가 된다.
+- **Weak scaling.** 일의 양을 GPU 수만큼 늘린 실행에서 GPU 한 장의 처리율은 64 GPU에서 1 GPU의 72–80%, 128 GPU에서 50–77%, 256 GPU에서 26–60%이다(그림 20의 오른쪽 열). kicked Ising이 128 GPU에서 50%, 256 GPU에서 26%로 떨어지는 것은 구간당 sector 수의 상한 때문이다. 기본값 256개로는 sector가 GPU 버퍼에 들어가지 않아 다시 나뉜다(128 GPU에서 3,146번). 상한을 1,024개로 올리면(`--gmax 10`) 128 GPU는 80.0초가 61.6초(65%)가 되고 256 GPU는 147초가 76.5초(50%)가 된다.
 - **cuPauliProp과의 차이는 GPU가 늘수록 벌어진다.** cutoff 1e-5에서 기본 모드 대비 SectorQ의 배수는 16 GPU의 4.5–7.0배에서 32 GPU의 7.3–14배, 64 GPU의 12–25배, 128 GPU의 12–20배, 256 GPU의 13–23배가 된다. 기본 모드의 시간은 GPU를 늘려도 조금만 줄어든다(kicked Ising: 54.3 / 47.8 / 46.7 / 34.8 / 39.1초). dedup을 미룬 방식과의 차이는 32–256 GPU에서 3.2–5.4배이다.
 - **cuPauliProp은 kicked Ising cutoff 3e-6을 64 GPU와 128 GPU로도 끝내지 못한다.** 64 GPU에서는 938번째 연산에서 GPU당 9,522만 항으로, 128 GPU에서는 1,084번째 연산에서 GPU당 9,832만 항으로 메모리가 부족해진다. 256 GPU에서는 기본 모드가 이 문제를 78.4초에 끝낸다. SectorQ는 같은 문제를 64 GPU로 33.2초, 128 GPU로 18.9초, 256 GPU로 13.4초에 끝내고(256 GPU에서 기본 모드의 시간은 SectorQ의 5.9배이다) GPU 1장으로도 1,741초에 끝낸다.
 - **도달 범위.** kicked Ising cutoff 1e-6(구간 경계에서 119억 항, 구간 안에서 최대 1,001억 항)은 16 GPU로 1,625초, 128 GPU로 221초, 256 GPU로 95.6초이다(sector 상한 1,024개).
@@ -1101,12 +1296,16 @@ kicked Ising cutoff 1e-6은 구간 경계에서 119억 항, 구간 안에서 최
 
 ### 4.5 exact 값과의 대조
 
+**요지.** exact 값을 아는 30-qubit 회로의 4 step에서 cutoff 1e-7까지 끝낸 구현은 SectorQ뿐이며 오차는 0.00007이다. 오차는 cutoff에 따라 단조롭게 줄지 않으므로, cutoff를 낮추어 가며 값이 모이는지 보아야 한다.
+
 5×6 정사각 격자 TFIM(30 qubit, θ=0.2π, ZZ −0.3π, 가운데 qubit의 Z)의 exact 값을 cuStateVec 상태 벡터로 구하였다(`analysis/exact_sv.py`). 이 스크립트는 3×3과 4×3 격자에서 truncation 없는 Pauli propagation과 12자리까지 일치한다.
 
 이 회로를 깊이 4 step과 6 step에서 cutoff 1e-3–1e-7로 모든 구현에 돌려 exact 값과의 오차와 시간을 재었다(실행당 20분). truncation 규칙이 같은 구현은 같은 cutoff에서 같은 값을 내므로 오차가 같고 시간만 다르다. MonoProp은 규칙이 달라 오차를 따로 적었다.
 
 <p align="center"><img src="figures/eval_accuracy.png" width="980"></p>
-<p align="center"><b>그림 13.</b> exact 값을 아는 30 qubit TFIM에서 cutoff에 따른 실행 시간(로그 축). 가로축의 괄호는 그 cutoff에서 exact 값과의 오차이다(MonoProp 제외). ×는 그 구현이 다음 cutoff에서 멈춘 곳이다.</p>
+<p align="center"><b>그림 27.</b> exact 값을 아는 30-qubit TFIM에서 cutoff에 따른 실행 시간.</p>
+
+**그림 설명.** 왼쪽은 4 step, 오른쪽은 6 step이다. 가로축은 cutoff이고 괄호는 그 cutoff에서 exact 값과의 오차이다. truncation 규칙이 같은 구현은 같은 cutoff에서 같은 값을 내므로 오차가 하나이다(MonoProp은 규칙이 달라 제외). 세로는 실행 시간이며 로그 축이다. ×는 그 구현이 다음 cutoff에서 멈춘 곳이다. 오른쪽으로 갈수록 더 낮은 cutoff의 답이고, 그 답을 내는 데 든 시간을 구현별로 읽는다.
 
 <!-- g:acc -->
 **4 step** (exact 0.802867).
@@ -1139,6 +1338,8 @@ kicked Ising cutoff 1e-6은 구간 경계에서 119억 항, 구간 안에서 최
 | MonoProp (자체 truncation) | 4 노드 | 0.03초 (오차 4.8e-2) | 0.06초 (오차 3.3e-2) | 0.24초 (오차 3.2e-2) | 2.42초 (오차 1.7e-3) | 20.8초 (오차 1.6e-2) | 메모리 부족 | – | – | – |
 | MonoProp (자체 truncation) | 1 노드 | 0.03초 (오차 4.8e-2) | 0.13초 (오차 3.3e-2) | 0.90초 (오차 3.2e-2) | 10.7초 (오차 1.7e-3) | 90.0초 (오차 1.6e-2) | 메모리 부족 | – | – | – |
 <!-- /g:acc -->
+
+**결과와 이유.**
 
 - **4 step.** cutoff 1e-7까지 끝낸 구현은 SectorQ뿐이며 오차는 0.00007이다(16 GPU 31.6초, 4 GPU 126초, GPU 1장 494초). 다른 구현이 메모리 부족 전에 닿은 가장 작은 오차는 MonoProp 0.00045(4 노드, 57.0초), ORQA 재현과 PauliPropagation.jl 0.00048(cutoff 3e-6), SPD 0.0038, cuPauliProp 단일 GPU 0.0059이다(cutoff 3e-4. 끝낸 가장 작은 cutoff 3e-5에서는 0.010). 같은 cutoff 1e-6에서 SectorQ는 16 GPU로 3.35초, ORQA 재현은 4 노드로 71.7초이다(21배).
 - **오차는 cutoff에 단조가 아니다.** 4 step의 오차는 cutoff 3e-6에서 0.00048, 1e-6에서 0.0013, 3e-7에서 0.00035이다. cutoff 하나의 값으로 오차를 가늠할 수 없으며 cutoff를 낮추어 가며 값이 모이는지 보아야 한다.
@@ -1188,6 +1389,8 @@ kicked Ising cutoff 1e-6은 구간 경계에서 119억 항, 구간 안에서 최
 | 0.45π | 3e-5 (282초) | 1e-5 (179초) | 3e-4 (1.96초) | 1e-4 (27.6초) |
 <!-- /g:conv -->
 
+**결과와 이유.**
+
 - **수렴하는 각도.** cutoff 1e-5 아래에서 0.05π는 값의 차이가 0.0001보다 작고(0.9873), 0.1π는 0.0005보다 작다(0.910).
 - **수렴하지 않는 각도.** 0.15π와 0.2π는 cutoff 1e-6까지 값이 계속 움직인다. 0.2π는 0.47에서 0.38로 내려갔다가 0.70까지 올라간다. 0.3π와 0.35π는 값이 작고 cutoff를 낮출수록 조금씩 커진다.
 - **0.4π와 0.45π.** 끝낸 모든 cutoff에서 값이 소수 다섯째 자리까지 0이다.
@@ -1197,8 +1400,12 @@ kicked Ising cutoff 1e-6은 구간 경계에서 119억 항, 구간 안에서 최
 
 ### 4.6 시간 분해
 
+**요지.** 큰 문제에서 SectorQ의 시간은 대부분 gate 적용이다(16 GPU에서 69–89%). sector가 구간 동안 서로 독립이어서 gate 적용에 조율 비용이 없기 때문이다. 같은 설정의 cuPauliProp 기본 모드는 시간의 40–46%를 MPI 호출 안에서 보내고, GPU는 20–32%만 일한다.
+
 <p align="center"><img src="figures/eval_breakdown.png" width="980"></p>
-<p align="center"><b>그림 14.</b> 16 GPU에서 SectorQ의 실행 시간 구성. 세로는 cutoff(괄호는 실행 시간)이며 아래로 갈수록 문제가 크다. gate 적용은 worker가 라이브러리 호출 안에 있던 시간이다.</p>
+<p align="center"><b>그림 28.</b> 16 GPU에서 SectorQ의 실행 시간 구성.</p>
+
+**그림 설명.** 막대 하나가 실행 하나이며, 실행 시간을 비율로 나눈 것이다. 묶음 하나가 회로 하나이다. 세로는 cutoff(괄호는 실행 시간)이며 아래로 갈수록 문제가 크다. 초록은 gate 적용(worker가 라이브러리 호출 안에 있던 시간), 빨강은 노드 사이의 교환, 주황은 GPU와 host 사이의 복사, 옅은 초록은 sector 재분할, 회색 계열은 쉬는 GPU와 다른 노드를 기다린 시간이다. 문제가 커질수록 초록이 길어진다.
 
 SectorQ의 시간을 문제 크기와 GPU 수에 따라 나누었다. GPU worker 전체에 대해 더한 시간(gate 적용, 복사, 분할, GPU 대기)은 worker 수로 나누었다.
 
@@ -1234,15 +1441,19 @@ SectorQ의 시간을 문제 크기와 GPU 수에 따라 나누었다. GPU worker
 | 잡음 있는 kicked Ising | 1e-6 | 44억 | 16 | 581초 | 87% | 5% | 4% | 1% | 1% | 1% | 1% |
 <!-- /g:parts -->
 
+**결과와 이유.**
+
 - **큰 문제에서는 gate 적용이 시간의 대부분이다.** 1억 항이 넘는 설정에서 gate 적용은 4 GPU(한 노드)일 때 84–94%, 16 GPU일 때 69–89%이다. 이 부분은 cuPauliProp의 단일 GPU 연산이다. 이 연산을 그대로 쓰는 한 SectorQ가 더 줄일 수 있는 몫은 나머지 6–31%이다.
 - **노드를 넘으면 교환이 더해진다.** 16 GPU에서 구간 경계의 교환은 4–13%이다. 구간이 많은 TFIM(45개)에서 가장 크다. 한 노드 안에서는 교환이 없다.
 - **작은 문제에서는 GPU가 기다린다.** cutoff 1e-4(135만–316만 항)에서는 16 GPU의 gate 적용이 20–27%이고 GPU 대기가 41–53%이다. 항이 적은 초반 구간에는 나눌 만큼의 항이 없고, 연산마다의 고정 비용이 항 수와 무관하기 때문이다(4.4절).
 - **host를 거치는 비용은 작다.** GPU와 host 사이의 복사는 10% 이하, 분할은 5% 이하이다. 복사가 가장 큰 것은 가장 큰 실행(kicked Ising cutoff 1e-6, 119억 항)의 10%이다.
 
 <p align="center"><img src="figures/eval_breakdown_base.png" width="880"></p>
-<p align="center"><b>그림 15.</b> 16 GPU에서 큰 설정(cutoff 1e-5)의 실행 시간 구성: SectorQ와 cuPauliProp 분산 모드(기본, dedup을 미룬 방식). 제목의 괄호는 구간 경계의 항 수와 그 크기이다. cuPauliProp은 rank 평균이다. 세 방식 모두 라이브러리 호출 안의 시간을 nvidia-smi 표본 사용률로 GPU가 일한 부분(Gates on GPU)과 나머지(Library on the Host)로 나누었다.</p>
+<p align="center"><b>그림 29.</b> 16 GPU에서 큰 설정(cutoff 1e-5)의 실행 시간 구성: SectorQ와 cuPauliProp 분산 모드.</p>
 
-**세 방식의 시간 분해.** 같은 16 GPU에서 세 방식의 시간이 어디로 가는지 재었다. 그림 15는 cuPauliProp 분산 모드가 16 GPU로 끝내는 가장 큰 설정(cutoff 1e-5)의 두 회로이고, 아래 표에는 잡음 있는 회로와 더 작은 설정(cutoff 3e-5, 1e-4)이 함께 있다. MPI 호출의 시간은 MPI plugin을 감싼 계측판이 호출마다 잰다(`src/plugin/prof_mpi.c`). GPU 사용률은 nvidia-smi로 0.2초마다 표본한 값의 평균이다. 그림에서는 라이브러리 호출 안에서 MPI 밖에 있는 시간을 이 사용률로 GPU가 일한 부분과 나머지(host 쪽 작업)로 나누었고, SectorQ의 라이브러리 호출 시간도 같은 규칙으로 나누었다. dedup을 미룬 방식은 cutoff 1e-5의 kicked Ising과 TFIM에서 3개 연산마다 dedup을 한 번 더 해야 메모리에 들어가며, 그 설정으로 재었다.
+**그림 설명.** 묶음 하나가 회로 하나이고, 제목의 괄호는 구간 경계의 항 수와 그 크기이다. 막대는 방식별 실행 하나를 비율로 나눈 것이며 이름 옆의 괄호는 실행 시간이다. cuPauliProp은 rank 평균이다. 초록은 GPU가 gate를 적용한 시간(Gates on GPU), 회색은 라이브러리 안에 있으나 GPU가 쉰 시간(Library on the Host), 보라는 모든 GPU가 참여하는 호출, 빨강은 항을 GPU 사이로 옮긴 시간, 주황은 GPU와 host 사이의 복사와 분할이다. 세 방식 모두 라이브러리 호출 안의 시간을 nvidia-smi 표본 사용률로 GPU가 일한 부분과 나머지로 나누었다.
+
+**세 방식의 시간 분해.** 같은 16 GPU에서 세 방식의 시간이 어디로 가는지 재었다. 그림 29는 cuPauliProp 분산 모드가 16 GPU로 끝내는 가장 큰 설정(cutoff 1e-5)의 두 회로이고, 아래 표에는 잡음 있는 회로와 더 작은 설정(cutoff 3e-5, 1e-4)이 함께 있다. MPI 호출의 시간은 MPI plugin을 감싼 계측판이 호출마다 잰다(`src/plugin/prof_mpi.c`). GPU 사용률은 nvidia-smi로 0.2초마다 표본한 값의 평균이다. 그림에서는 라이브러리 호출 안에서 MPI 밖에 있는 시간을 이 사용률로 GPU가 일한 부분과 나머지(host 쪽 작업)로 나누었고, SectorQ의 라이브러리 호출 시간도 같은 규칙으로 나누었다. dedup을 미룬 방식은 cutoff 1e-5의 kicked Ising과 TFIM에서 3개 연산마다 dedup을 한 번 더 해야 메모리에 들어가며, 그 설정으로 재었다.
 
 <!-- g:base_parts -->
 | 회로 | cutoff | 방식 | 전체 | GPU 사용률 (nvidia-smi 표본) | 라이브러리 호출 안의 시간 (gate 적용) | 통신 (MPI 호출 안의 시간, SectorQ는 노드 사이 교환) | 연산당 allgather (rank당) | 보낸 양 |
@@ -1276,10 +1487,12 @@ SectorQ의 시간을 문제 크기와 GPU 수에 따라 나누었다. GPU worker
 | 잡음 있는 kicked Ising | 1e-4 | cuPauliProp dedup 미룸 | 8.87초 | 5% |  | 55% (collective 29%) | 2.2회 | 0.6 GB (rank당) |
 <!-- /g:base_parts -->
 
+**결과와 이유.**
+
 - **큰 설정에서 SectorQ의 GPU는 실행 시간의 71–75%를 일한다.** 같은 설정의 cuPauliProp은 기본 모드가 20–32%, dedup을 미룬 방식이 33–49%이다. SectorQ의 실행 시간은 기본 모드의 4.3–7.1배, dedup을 미룬 방식의 2.4–4.0배 짧다(kicked Ising: 12.6초, 53.7초, 50.1초).
 - **기본 모드는 시간의 40–46%를 MPI 호출 안에서 보낸다.** 모든 rank가 참여하는 collective 호출이 19–26%이고 나머지는 항을 옮기는 시간이다. allgather는 연산마다 rank당 22.1번(잡음 있는 회로는 15.4번)이며 항 수와 무관하다. rank 하나가 보내는 양은 57–108 GB이다.
 - **dedup을 미루면 GPU가 일하는 몫이 33–49%로 늘지만 MPI 안의 시간은 37–51%로 남는다.** allgather는 연산당 2.2–8.6번으로 줄어든다. 전체 시간은 kicked Ising에서 53.7초가 50.1초가 되는 데 그친다.
-- **SectorQ에서 항이 노드를 옮기는 것은 구간 경계의 교환뿐이다.** 실행 시간의 6–14%이고, 실행 전체에서 노드 사이로 보내는 양은 17–79 GB이다. kicked Ising cutoff 1e-5에서 cuPauliProp 기본 모드는 16 rank가 모두 1,733 GB를 보내고 SectorQ는 45 GB를 보낸다. GPU 밖으로 내보내는 양을 모두 합쳐도 60 GB이다(29배 적다, 3.3절).
+- **SectorQ에서 항이 노드를 옮기는 것은 구간 경계의 교환뿐이다.** 실행 시간의 6–14%이고, 실행 전체에서 노드 사이로 보내는 양은 17–79 GB이다. kicked Ising cutoff 1e-5에서 cuPauliProp 기본 모드는 16 rank가 모두 1,733 GB를 보내고 SectorQ는 45 GB를 보낸다. GPU 밖으로 내보내는 양을 모두 합쳐도 60 GB이다(cuPauliProp이 SectorQ의 29배, 3.3절).
 - **작은 설정에서는 세 방식 모두 GPU가 덜 일한다.** cutoff 3e-5에서 GPU 사용률은 SectorQ 43–48%, 기본 모드 6–10%, dedup을 미룬 방식 12–19%이다. cutoff 1e-4는 SectorQ도 11–12%이다. 이 크기의 SectorQ 실행은 1–3초로 짧아 표본이 GPU당 4–13개이며, 표본 사용률이 라이브러리 호출 안의 시간(cutoff 3e-5에서 53–64%)보다 낮게 나온다. 큰 설정에서는 둘이 일치한다(표의 두 열).
 
 2 GPU와 4 GPU의 같은 분해는 `python3 analysis/campaign_g.py`가 출력하는 표에 있다. 잡음 있는 kicked Ising의 가장 작은 설정(cutoff 1e-4, 2–4 GPU)에서는 worker가 다음 구간의 행을 기다린 시간이 29–30%이다. 이 회로는 구간이 525 연산으로 길어 행을 고르는 데 약 2초가 들고, 실행 전체가 2.5초여서 그 몫이 크게 보인다. cutoff 3e-5(4.9초)에서는 기다린 시간이 0.1초이다.
@@ -1287,6 +1500,8 @@ SectorQ의 시간을 문제 크기와 GPU 수에 따라 나누었다. GPU worker
 초반 구간에 sector를 하나만 두면 32 GPU의 10.4초 가운데 2.5초가 그 구간이다. 그동안 GPU 한 장만 일하고 31장이 기다린다. 초반부터 노드마다 sector를 하나씩 주면 이 구간은 0.4초가 된다(4.7절).
 
 ### 4.7 설계 요소별 측정
+
+**요지.** 설계 요소를 하나씩 재었다. 조절 값(sector의 목표 크기, GPU당 sector 수, 허용한 GPU memory)을 기본값 주변에서 바꾸어도 실행 시간은 조금만 달라진다. 요소를 하나씩 더했을 때의 시간은 1.5절의 그림 6에 있다.
 
 | 요소 | 측정 | 결과 |
 |---|---|---|
@@ -1310,6 +1525,13 @@ SectorQ의 시간을 문제 크기와 GPU 수에 따라 나누었다. GPU worker
 | QAOA | 4.32배 | 35.9배 |
 
 오른쪽 열은 sector를 하나씩 처리할 때 GPU가 동시에 담지 않아도 되는 양이다.
+
+**조절 값.** sector의 목표 크기, GPU당 sector 수, 허용한 GPU memory를 바꾸어 재었다.
+
+<p align="center"><img src="figures/deck/n13_knobs.png" width="860"></p>
+<p align="center"><b>그림 30.</b> 조절 값에 따른 실행 시간(kicked Ising cutoff 1e-5).</p>
+
+**그림 설명.** 패널 셋이며 세로는 실행 시간(로그 축)이다. (a) sector당 목표 항 수, (b) GPU당 sector 수, (c) SectorQ에 허용한 GPU memory이다. 실선은 16 GPU, 파선은 4 GPU, 점선은 GPU 1장이고 점 위의 숫자는 초이다. 기본값은 가로축에 표시하였다. 세 패널 모두 선이 거의 평평하다.
 
 **sector의 목표 크기와 GPU당 sector 수.** 1–16 GPU 측정에서 두 매개변수를 바꾸어 재었다.
 
@@ -1343,6 +1565,8 @@ GPU memory를 절반(18 GB)으로 줄여도 시간은 −2%에서 +6% 사이이�
 
 ### 4.8 Checkpoint와 검산
 
+**요지.** 구간 경계의 checkpoint에서 재개한 실행은 끊지 않은 실행과 같은 값을 낸다. 보존 parity 검산은 19.9억 번의 검사에서 위반이 0건이고, 그 시간은 전체의 1% 미만이다.
+
 - 한 노드에서 checkpoint를 쓰고 다른 sector 구성으로 재개하면 기대값이 0.153108187591로 같다. 119만 항의 checkpoint는 48 MB이다.
 - 4 노드에서 쓰고 4 노드에서 재개하였다. 1.09억 항을 저장하였고 재개한 뒤의 기대값이 같다.
 - 보존 parity 검산은 kicked Ising cutoff 1e-5 실행에서 항을 19.9억 번 검사하여 위반이 0건이다. 검사 시간은 전체의 1% 미만이다. 잡음 있는 kicked Ising에서는 보존 parity 8개로 5.7억 번 검사하여 위반이 0건이다.
@@ -1357,6 +1581,8 @@ GPU memory를 절반(18 GB)으로 줄여도 시간은 −2%에서 +6% 사이이�
 <!-- /g:ckpt -->
 
 ### 4.9 데이터로 기각한 설계
+
+**요지.** 시도하였으나 측정에서 이득이 없어 기본 동작에서 뺀 설계이다. 공통된 이유는 둘이다. 재분배는 횟수보다 시점(항이 가장 적을 때)이 중요하고, 조각을 host로 한 번 더 거치게 하는 변형은 그 비용이 이득보다 크다.
 
 | 시도 | 결과 |
 |---|---|
@@ -1375,6 +1601,8 @@ GPU memory를 절반(18 GB)으로 줄여도 시간은 −2%에서 +6% 사이이�
 
 ### 4.10 초기 프로토타입의 측정
 
+**요지.** SectorQ 이전에 기능을 하나씩 따로 구현하여 잰 값이며 기록으로 둔다.
+
 SectorQ 이전에 기능별 프로토타입(`src/proto/lo_*`)으로 잰 값이다. 최종 수치는 4.2–4.4절을 쓴다.
 
 | 프로토타입 | 측정 | 결과 |
@@ -1390,28 +1618,31 @@ SectorQ 이전에 기능별 프로토타입(`src/proto/lo_*`)으로 잰 값이�
 
 ### 4.11 Sector 관리 비용
 
-sector를 나누고, host에 두고, 노드 사이에 옮기는 일은 통신을 구간 경계로 모으는 값이다. 이 비용이 어디에서 나오는지 재고 줄였다(2026-10-09, 할당 59620962의 같은 노드들, 설정마다 1회; `logs/u1`, `logs/u2`, `logs/u6`). 기대값은 모든 실행에서 이전과 같다.
+**요지.** sector를 나누고, host에 두고, 노드 사이에 옮기는 일은 통신을 구간 경계로 모으는 값이다. GPU 1장에 들어가는 문제에서 이 비용은 cuPauliProp 단일 GPU 대비 1–2%이다. 16 GPU의 교환에서는 전송 자체보다 받을 메모리를 준비하는 시간이 컸고, 그래서 chunk를 미리 만들어 둔다.
 
-**GPU 한 장.** 이전에는 GPU가 한 장이어도 "GPU마다 sector 둘" 규칙으로 sector를 나누고 구간마다 host를 거쳤다. 지금은 목표 크기 아래에서는 sector 하나로 GPU에 둔다(3.2절).
+측정은 같은 노드들에서 설정마다 1회 하였다(`logs/u1`, `logs/u2`, `logs/u6`, `logs/h1`). 기대값은 모든 실행에서 같다.
 
-| 회로, cutoff | 이전 | 지금 | cuPauliProp 단일 GPU (같은 방식으로 GPU에 둠) |
-|---|---|---|---|
-| kicked Ising, 1e-4 | 2.31초 | 1.72초 | 1.71초 |
-| TFIM heavy-hex, 1e-4 | 2.91초 | 1.92초 | 1.89초 |
-| noisy kicked Ising, 1e-4 | 4.39초 | 1.95초 | 1.91초 |
-| TFIM 11×11, 1e-4 | 2.24초 | 1.62초 | – |
-| XXZ 8×8, 1e-4 | 3.24초 | 2.67초 | – |
-| QAOA n=100, 1e-4 | 4.60초 | 4.26초 | – |
-| ansatz n=100, 1e-5 | 14.5초 | 13.4초 | 메모리 부족 |
-| kicked Ising, 3e-5 | 18.8초 | 18.3초 | 메모리 부족 |
-| kicked Ising, 1e-5 | 170.6초 | 166.9초 | 메모리 부족 |
+**GPU 한 장.** 항 수가 sector의 목표 크기 아래이면 SectorQ는 sector 하나를 GPU에 그대로 두고 host를 거치지 않는다(3.2절). 이때 SectorQ와 cuPauliProp 단일 GPU는 같은 연산을 같은 순서로 호출한다.
 
-한 장에 들어가는 설정에서 SectorQ는 이제 cuPauliProp 단일 GPU와 같다(차이 1–2%). 한 장에 들어가지 않는 설정은 2–8% 줄었다. 이 설정의 시간은 약 90%가 cuPauliProp의 연산이어서 관리 비용을 줄여도 더 줄지 않는다. 연산이 더 빠른 단일 GPU 구현(SPD)은 kicked Ising cutoff 3e-5를 7.3초에 끝내고, 그다음 cutoff에서 메모리가 부족하다.
+| 회로, cutoff | SectorQ, GPU 1장 | cuPauliProp 단일 GPU |
+|---|---:|---:|
+| kicked Ising, 1e-4 | 1.72초 | 1.71초 |
+| TFIM heavy-hex, 1e-4 | 1.92초 | 1.89초 |
+| noisy kicked Ising, 1e-4 | 1.95초 | 1.91초 |
+| TFIM 11×11, 1e-4 | 1.62초 | – |
+| XXZ 8×8, 1e-4 | 2.67초 | – |
+| QAOA n=100, 1e-4 | 4.26초 | – |
+| ansatz n=100, 1e-5 | 13.4초 | 메모리 부족 |
+| kicked Ising, 3e-5 | 18.3초 | 메모리 부족 |
+| kicked Ising, 1e-5 | 166.9초 | 메모리 부족 |
 
-**여러 노드.** 16 GPU에서 구간 경계의 교환은 전체 시간의 8–39%였다. 나누어 재니 그 대부분은 통신이 아니었다.
+- **한 장에 들어가는 설정에서 두 실행의 차이는 1–2%이다.** sector가 하나이면 나누기도 host 왕복도 없기 때문이다. GPU마다 sector를 둘 이상 두는 규칙을 GPU 1장에도 그대로 적용하면 kicked Ising, TFIM heavy-hex, noisy kicked Ising의 cutoff 1e-4가 2.31, 2.91, 4.39초가 걸린다.
+- **한 장에 들어가지 않는 설정은 SectorQ만 끝낸다.** 이 설정의 시간은 약 90%가 cuPauliProp의 연산이어서, 관리 비용을 더 줄여도 시간이 더 줄지 않는다. 연산이 더 빠른 단일 GPU 구현(SPD)은 kicked Ising cutoff 3e-5를 7.3초에 끝내고, 그다음 cutoff에서 메모리가 부족하다.
 
-| 설정 (16 GPU) | 교환, 노드당: 이전 | 그중 새 chunk 만들기 | 그중 전송 | 교환, 노드당: 지금 |
-|---|---|---|---|---|
+**여러 노드: 교환 시간의 구성.** 구간 경계의 교환을 나누어 재었다. 도착하는 항을 받을 고정(pinned) chunk를 교환할 때 `cudaHostAlloc`으로 만들면, 교환 시간의 49–86%가 chunk를 만드는 데 든다. 메모리를 고정하는 속도가 2 GB/s이고 그동안 노드의 GPU가 모두 기다린다. 전송 자체는 전체 실행 시간의 2–8%이다(kicked Ising 3e-6에서 노드당 24 GB/s).
+
+| 설정 (16 GPU) | 교환할 때 chunk를 만드는 방식: 교환, 노드당 | 그중 새 chunk 만들기 | 그중 전송 | chunk를 미리 만드는 방식(채택): 교환, 노드당 |
+|---|---:|---:|---:|---:|
 | kicked Ising, 1e-5 | 2.97초 | 2.06초 | 0.79초 | 1.42초 |
 | ansatz n=100, 1e-6 | 10.10초 | 7.68초 | 1.92초 | 3.43초 |
 | noisy kicked Ising, 5e-6 | 2.58초 | 1.48초 | 0.95초 | 1.61초 |
@@ -1419,11 +1650,10 @@ sector를 나누고, host에 두고, 노드 사이에 옮기는 일은 통신을
 | TFIM heavy-hex, 5e-6 | 14.32초 | 8.80초 | 4.62초 | 6.71초 |
 | kicked Ising, 3e-6 | 17.49초 | 8.49초 | 5.16초 | 9.58초 |
 
-- 교환 시간의 49–86%는 도착하는 항을 받을 고정(pinned) chunk를 새로 만드는 시간이었다. 노드의 GPU가 모두 기다리는 동안 `cudaHostAlloc`이 2 GB/s로 메모리를 고정한다. 전송 자체는 전체 시간의 2–8%이다(kicked Ising 3e-6에서 노드당 24 GB/s).
-- chunk를 만드는 방법을 바꾸고(7 GB/s), 교환에서 chunk가 모자랐으면 다음 구간이 도는 동안 미리 만든다(3.4절). GPU worker가 출력을 내릴 때 새 chunk를 기다리는 시간도 같이 준다.
+SectorQ는 chunk를 16개씩 묶어 만든다. 일반 메모리를 받아 한 번 쓴 뒤 CUDA에 등록하며 이 방법은 7 GB/s이다(3.4절). 교환에서 chunk가 모자랐으면 다음 구간이 도는 동안 그만큼을 미리 만든다. GPU worker가 출력을 내릴 때 새 chunk를 기다리는 시간도 같이 준다. 전체 실행 시간은 다음과 같다.
 
-| 설정 (16 GPU) | 이전 | 지금 | |
-|---|---|---|---|
+| 설정 (16 GPU) | 교환할 때 chunk를 만드는 방식 | chunk를 미리 만드는 방식(채택) | 앞의 것 / 뒤의 것 |
+|---|---:|---:|---:|
 | kicked Ising, 1e-5 | 15.3초 | 12.8초 | 1.20배 |
 | ansatz n=100, 1e-6 | 25.7초 | 18.5초 | 1.39배 |
 | noisy kicked Ising, 5e-6 | 32.1초 | 30.2초 | 1.06배 |
@@ -1431,11 +1661,11 @@ sector를 나누고, host에 두고, 노드 사이에 옮기는 일은 통신을
 | TFIM heavy-hex, 5e-6 | 62.3초 | 53.5초 | 1.17배 |
 | kicked Ising, 3e-6 | 133.5초 | 120.0초 | 1.11배 |
 
-host memory는 더 쓴다(가장 바쁜 노드에서 kicked Ising 3e-6이 26 → 33 GiB, QAOA가 22 → 33 GiB). 묶음으로 만들고 미리 만든 chunk의 몫이다.
+그 값으로 host memory를 더 쓴다(가장 바쁜 노드에서 kicked Ising 3e-6이 26 GiB에서 33 GiB, QAOA가 22 GiB에서 33 GiB). 묶음으로 만들고 미리 만든 chunk의 몫이다.
 
-**행 고르기를 구간 계산과 겹치기.** 위의 엔진은 다음 구간의 행을 구간 사이에 골랐고, 그 0.3–0.4초 동안 모든 GPU가 섰다. 크기와 무관한 비용이라 작은 operator에서 비중이 컸다(16 GPU, 233만 항에서 1.04초 가운데 0.27초). 지금은 구간이 시작할 때 표본만 뜨고, GPU가 구간을 계산하는 동안 main thread가 행을 고른다. 또 앞 구간이 0.5초보다 짧으면 GPU마다 sector를 하나만 준다. sector 하나는 구간마다 연산 호출의 고정 비용(연산당 약 0.15 ms)을 내기 때문이다. 같은 노드에서 두 엔진을 차례로 잰 값이다(`logs/h1/`, 설정마다 1회, 기대값 일치).
+**행 고르기를 구간 계산과 겹치기.** 다음 구간의 행을 구간 사이에 고르면 그 0.3–0.4초 동안 모든 GPU가 선다. 항 수와 무관한 비용이라 작은 문제에서 비중이 크다(16 GPU, 233만 항에서 1.04초 가운데 0.27초). 그래서 SectorQ는 구간이 시작할 때 표본만 뜨고, GPU가 구간을 계산하는 동안 main thread가 행을 고른다(3.1절). 또 앞 구간이 0.5초보다 짧으면 GPU마다 sector를 하나만 준다. sector 하나는 구간마다 연산 호출의 고정 비용(연산당 약 0.15 ms)을 내기 때문이다. 같은 노드에서 두 방식을 차례로 잰 값이다(`logs/h1/`).
 
-| 회로 (항 수) | GPU 1장 | 16 GPU 이전 | 16 GPU 지금 | 1장 대비 16장 | 4 GPU 이전 → 지금 |
+| 회로 (항 수) | GPU 1장 | 16 GPU, 구간 사이에 고름 | 16 GPU, 구간 계산과 겹침(채택) | GPU 1장 대비 16 GPU | 4 GPU, 구간 사이 → 겹침 |
 |---|---:|---:|---:|---|---|
 | kicked Ising (3만) | 0.50초 | 0.38초 | 0.38초 | 같음 | 0.26 → 0.27초 |
 | kicked Ising (233만) | 1.72초 | 1.07초 | 0.82초 | 1.6배 → 2.1배 | 1.17 → 0.88초 |
@@ -1445,11 +1675,14 @@ host memory는 더 쓴다(가장 바쁜 노드에서 kicked Ising 3e-6이 26 →
 | TFIM heavy-hex (3,170만) | 21.1초 | 3.64초 | 2.54초 | 5.8배 → 8.3배 | 6.65 → 5.82초 |
 | kicked Ising (1.6억) | 167.5초 | 12.65초 | 12.16초 | 13.2배 → 13.8배 | 44.1 → 44.6초 |
 
-남는 바닥은 rotation 2,540개를 호출 하나씩으로 적용하는 시간이다(약 0.4초). cuPauliProp 0.5.0은 rotation을 묶어 호출할 수 없다. 작은 operator를 노드에 늦게 나누는 변형(`--min-bucket-early 30000`)은 큰 크기에서 12.2초가 13.8초로 느려져 쓰지 않는다.
+- **이득은 작은 문제에서 크다.** 233만–3,170만 항에서 16 GPU의 시간이 1.07–3.64초에서 0.82–2.54초가 된다. 1.6억 항에서는 12.65초가 12.16초가 되어 차이가 4%이다. 행을 고르는 0.3–0.4초가 실행 시간에서 차지하는 몫이 문제가 클수록 작기 때문이다.
+- **남는 바닥은 rotation 2,540개를 호출 하나씩으로 적용하는 시간이다(약 0.4초).** cuPauliProp 0.5.0은 rotation을 묶어 호출할 수 없다. 작은 문제를 노드에 늦게 나누는 변형(`--min-bucket-early 30000`)은 큰 크기에서 12.2초가 13.8초로 느려져 쓰지 않는다.
 
-**noise channel 묶음.** noisy kicked Ising에서 SectorQ는 4 GPU cutoff 1e-5가 35.1초에서 33.2초가 된다. 같은 호출을 쓴 cuPauliProp은 4 GPU cutoff 1e-4의 기본 모드가 34.4초에서 33.9초가 된다. 단일 GPU 기준은 2.11초에서 1.91초가 되며, 여기에는 구간마다 host를 거치지 않게 된 몫이 함께 들어 있다.
+**noise channel 묶음.** 연속된 noise channel은 항을 늘리지도 합치지도 않으므로 최대 10개를 한 번의 호출로 적용한다(3.8절). noisy kicked Ising에서 SectorQ의 4 GPU cutoff 1e-5는 묶지 않으면 35.1초, 묶으면 33.2초이다. 같은 호출을 쓴 cuPauliProp은 4 GPU cutoff 1e-4의 기본 모드가 34.4초에서 33.9초가 된다. 평가에서는 두 쪽 모두 묶은 호출을 쓴다.
 
 ## 5. 한계
+
+**요지.** SectorQ의 이득은 문제가 GPU 한 장보다 클 때 난다. 작은 문제, GPU 1장 안의 비교, 특정 조건의 두 구현(SPD, MonoProp)과의 비교에서는 SectorQ가 더 빠르지 않다. 32 GPU 이상에서 메모리를 채우는 문제와 512 GPU는 아직 재지 않았다.
 
 - 측정은 256 GPU까지이다. 32–256 GPU에서 잰 문제는 host memory의 6–24%만 쓰며, 이 GPU 수에서 용량을 채우는 문제는 아직 재지 않았다(4.4절). 구간당 sector 수의 상한(256개)은 GPU 수와 문제 크기에 맞추어 정해야 하는데 그 규칙이 아직 없다.
 - qubit 수는 1,024까지이다. cuPauliProp 라이브러리가 1,056 qubit부터 연산과 expansion을 만들지 않으며, SectorQ는 gate 적용에 그 연산을 쓴다(4.4절).
@@ -1496,7 +1729,8 @@ host memory는 더 쓴다(가장 바쁜 노드에서 kicked Ising 3e-6이 26 →
 | `analysis/summarize.py`, `ownership.py`, `balance_rows.py` | cuPauliProp 계측 요약, 행의 균형 |
 | `jobs/` | 실험 스크립트(6.3절) |
 | `logs/` | 실험의 원시 로그 |
-| `figures/` | 이 문서의 그림. `figures/build.sh`가 TikZ 소스(`figures/src/`)와 `make_eval_figures.py`로 PNG를 만든다. `make_eval_figures.py --g`는 캠페인 g의 기록과 32–256 GPU의 로그에서 그림 6–15를 그린다 |
+| `figures/` | 이 문서의 그림. `figures/build.sh`가 설계 그림의 TikZ 소스(`figures/src/design_*.tex`)와 `make_eval_figures.py`로 PNG를 만든다. `make_eval_figures.py --g`는 캠페인 g의 기록과 32–256 GPU의 로그에서 평가 그림(`eval_*.png`)을 그린다 |
+| `figures/deck/` | 개념 그림과 발표용 그림. 개념 그림은 TikZ 소스 `figures/src/deck_*.tex`를 `figures/build_deck.sh`로 만든다(그림 1, 3, 4, 5, 7, 8, 10, 13, 17, 18). 자료 그림(그림 2, 6, 15, 26, 30)과 평가 그림의 발표용 판(`d_*.png`)은 `figures/make_deck_figures.py`가 같은 기록에서 그린다 |
 
 `bin/`, `results/`(gate별 원자료 약 480 MB), `third_party/`는 저장소에 포함되지 않는다. 원자료는 Perlmutter의 `/pscratch/sd/s/sgkim/kcj/pauliprop/results`에 있다.
 
@@ -1543,11 +1777,11 @@ thrust 코드는 `-gencode arch=compute_80,code=sm_80`로 빌드한다. 실행�
 | `jobs/u6_drive.sh` | 최종 판(`bin/pp_engine_u6`): 16 GPU, GPU 1장, kicked Ising 1e-5의 GPU 1장. `logs/u3`, `logs/u4`는 기각한 GPU 1장 규칙의 기록이다 | `logs/u6/` | 4.11 |
 | `jobs/u7_breakdown.sh` | 16 GPU의 시간 분해: SectorQ와 cuPauliProp 분산 모드(기본, dedup을 미룬 방식). cuPauliProp은 MPI 계측판과 호출별 timer, 모든 실행에 GPU 사용률 표본(`jobs/smi_sample.sh`). `bin/pp_engine_u7` = `bin/pp_engine` | `logs/u7/` | 3.3, 4.6 |
 | 캠페인 g (`queue_g/todo*.jsonl`, `jobs/g_loop.sh`) | 1–16 GPU의 모든 측정: SectorQ, cuPauliProp(단일 GPU, 분산 기본, dedup을 미룬 방식, 원래 회로), 외부 구현 일곱 가지. 회로 7종의 cutoff sweep, strong과 weak scaling, 시간 분해, GPU memory를 줄인 실행, 설계 매개변수, checkpoint, exact 값 대조, 각도별 수렴. interactive 할당(4 노드) 둘에서 차례로 실행 | 실행 기록 `queue_g/done/`, 로그 `logs/g/`, 외부 구현의 결과 `results/g_ext/` | 4.1–4.8, 4.11 |
-| 캠페인 g의 큐 맨 앞 항목 (`queue_g/todo_00h1.jsonl`, `jobs/g_ext_impl.py`의 `launch_engine`) | 행 고르기를 구간 계산과 겹친 엔진(`bin/pp_engine_h`)과 그 이전 엔진(`bin/pp_engine_g0`)을 같은 노드에서 차례로: 4와 16 GPU, 일곱 설정, 변형 셋. 엔진의 MPI 호출 수(`bin/libmpi_shim.so`) | `logs/h1/` | 3.1, 3.3, 4.11 |
+| 캠페인 g의 큐 맨 앞 항목 (`queue_g/todo_00h1.jsonl`, `jobs/g_ext_impl.py`의 `launch_engine`) | 행 고르기를 구간 계산과 겹친 binary(`bin/pp_engine_h`)와 행을 구간 사이에 고르는 binary(`bin/pp_engine_g0`)를 같은 노드에서 차례로: 4와 16 GPU, 일곱 설정, 변형 셋. 엔진의 MPI 호출 수(`bin/libmpi_shim.so`) | `logs/h1/` | 3.1, 3.3, 4.11 |
 
 작업은 `sbatch jobs/*.sh`로 낸다(`-A m5320_g -C gpu -q debug`). `e5`–`e10`은 측정 당시의 시험용 binary(`bin/pp_engine_dd*`)를 가리킨다. 최종 소스로 빌드한 SectorQ로 다시 돌리려면 `PP_BIN=bin/pp_engine`을 준다. `e8`의 `--busy-window`는 기각하여 최종 소스에 없다. `inter_run*.sh`는 interactive 할당 안에서 `PP_JOB=<할당 번호> bash jobs/inter_runN.sh`로 실행한다.
 
-4.1–4.3절, 4.4절의 1–16 GPU 부분, 4.5–4.8절의 표와 그림 6–15는 캠페인 g의 값이다(그림 7과 12의 32–256 GPU는 `e15`). 위 표에서 이 절들을 가리키는 앞선 스크립트(`inter_run4`–`inter_run6`, `e3`, `e4`, `e10`)의 값은 이 문서의 표에 더 쓰지 않는다. 4.9–4.11절은 그 로그의 값 그대로이다. `e12`와 `e13`(4–128 GPU의 앞선 측정)의 값은 이 문서의 표에 더 쓰지 않는다. 캠페인 g의 실행 기록(`queue_g/done/`)과 로그(`logs/g/`)는 아직 저장소에 넣지 않았으며 Perlmutter의 작업 디렉터리에 있다. 전체 표는 `python3 analysis/campaign_g.py`로, 이 문서의 표는 `python3 analysis/readme_g.py`로 다시 만든다.
+4.1–4.3절, 4.4절의 1–16 GPU 부분, 4.5–4.8절의 표와 평가 그림(그림 19–30)은 캠페인 g의 값이다(그림 20과 그림 25의 32–256 GPU는 `e15`). 위 표에서 이 절들을 가리키는 앞선 스크립트(`inter_run4`–`inter_run6`, `e3`, `e4`, `e10`)의 값은 이 문서의 표에 더 쓰지 않는다. 4.9–4.11절은 그 로그의 값 그대로이다. `e12`와 `e13`(4–128 GPU의 앞선 측정)의 값은 이 문서의 표에 더 쓰지 않는다. 캠페인 g의 실행 기록(`queue_g/done/`)과 로그(`logs/g/`)는 아직 저장소에 넣지 않았으며 Perlmutter의 작업 디렉터리에 있다. 전체 표는 `python3 analysis/campaign_g.py`로, 이 문서의 표는 `python3 analysis/readme_g.py`로 다시 만든다.
 
 `e12`와 `e13`은 같은 스크립트를 노드 수만 바꾸어 낸다(`sbatch -N <노드 수> -J pp_e13_g<GPU 수> jobs/e13_scaling.sh`, 16 노드부터는 `-q regular`). `e12`의 SectorQ 실행 시간은 쓰지 않는다. 그 판(`bin/pp_engine_scal`)은 행을 고르는 표본을 노드마다 20만 개씩 모아, 그 단계가 1 노드 0.4초에서 32 노드 15–45초로 늘었다. `e13`은 표본을 전체 20만 개로 되돌린 현재 소스(`bin/pp_engine_scal2`)로 다시 잰 것이다. `e12`의 cuPauliProp 실행과 기대값은 영향을 받지 않는다. 전체 표는 `python3 analysis/scaling_table.py`로 본다.
 
@@ -1603,18 +1837,18 @@ interactive 할당 안에서는 `jobs/inter.sh`를 source한 뒤 `eng <노드 �
 
 | 논문의 절 | 내용 | 이 문서 |
 |---|---|---|
-| 1. 서론 | 고전 시뮬레이션의 필요, 항 수가 정확도를 정한다, 나누기 어려운 세 가지 이유, 관찰과 규칙, 결과 | 1절 |
-| 2. 배경 | 100 qubit 이상의 고전 시뮬레이션, Pauli propagation의 연산, 분산이 어려운 이유 | 2.1–2.3절 |
-| 3. 지금 방식의 해부 | cuPauliProp 분산 모드의 측정 | 2.4절, 그림 1 |
-| 4. 원리 | 런타임 sector 재구성, 보장과 한계(정리와 증명 스케치) | 3.1–3.2절, 3.7절, 그림 2–3 |
-| 5. 설계 | 통신을 구간 경계로 모으기, sector 단위 실행, Clifford frame, checkpoint | 3.3–3.6절, 그림 4–5 |
-| 6. 평가 | 답의 일치, 단일 노드 성능(다른 구현과의 비교), 다중 노드 확장성(weak, strong), 여러 회로, 회로 크기(qubit 수와 깊이), scale-out, 정확도, 시간 분해 | 4절, 그림 6–15 |
-| 7. 관련 연구 | Pauli propagation 계열, state-vector 계열, database의 분할 실행 | 2.5절 |
+| 1. 서론 | 고전 시뮬레이션의 필요, 항 수가 정확도를 정한다, 나누기 어려운 세 가지 이유, 관찰과 규칙, 결과 | 1절, 그림 1–6 |
+| 2. 배경 | 100 qubit 이상의 고전 시뮬레이션, Pauli propagation의 연산, 분산이 어려운 이유 | 2.1–2.3절, 그림 7–8 |
+| 3. 지금 방식의 해부 | cuPauliProp 분산 모드의 측정 | 2.4절, 그림 9 |
+| 4. 원리 | 런타임 sector 재구성, 보장과 한계(정리와 증명 스케치) | 3.1–3.2절, 3.7절, 그림 11–13 |
+| 5. 설계 | 통신을 구간 경계로 모으기, sector 단위 실행, Clifford frame, checkpoint | 3.3–3.6절, 그림 14–17 |
+| 6. 평가 | 답의 일치, 단일 노드 성능(다른 구현과의 비교), 다중 노드 확장성(weak, strong), 여러 회로, 회로 크기(qubit 수와 깊이), scale-out, 정확도, 시간 분해 | 4절, 그림 18–30 |
+| 7. 관련 연구 | Pauli propagation 계열, state-vector 계열, database의 분할 실행 | 2.5절, 그림 10 |
 | 8. 한계 | | 5절 |
 
 | 순서 | 남은 실험 | 받치는 주장 |
 |---|---|---|
-| 1 | 32–512 GPU에서 메모리 한계까지의 sweep (지금은 256 GPU, cutoff 1e-6까지) | 규모. 32–256 GPU에서 잰 문제는 host memory의 6–24%만 쓴다. 기본 모드와의 차이는 64 GPU까지 벌어진다(16 GPU 4.5–7.0배, 32 GPU 7.3–14배, 64 GPU 12–25배, 128 GPU 12–20배, 256 GPU 13–23배, 4.4절) |
+| 1 | 32–512 GPU에서 메모리 한계까지의 sweep (지금은 256 GPU, cutoff 1e-6까지. GPU 수마다 job 둘이 대기 중이다) | 규모. 32–256 GPU에서 잰 문제는 host memory의 6–24%만 쓴다. 기본 모드와의 차이는 64 GPU까지 벌어진다(16 GPU 4.5–7.0배, 32 GPU 7.3–14배, 64 GPU 12–25배, 128 GPU 12–20배, 256 GPU 13–23배, 4.4절) |
 | 2 | 노드 사이 교환을 여러 thread로, sector가 GPU에 들어가면 host로 내리지 않기 | 남은 비용. 교환의 비중은 GPU 수와 함께 커진다(64 GPU에서 21–33%, 4.4절) |
 | 3 | 제자리 rotation kernel | GPU당 항 수(약 7배는 추정치이다) |
 | 4 | 회로 7종의 논문용 크기와 관측량 확정(IBM 실험의 weight-10, weight-17, 자화). XXZ, QAOA, ansatz는 지금의 큰 설정도 1–3초에 끝난다 | 일반성 |
