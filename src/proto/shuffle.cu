@@ -49,6 +49,14 @@ struct Term { uint64_t w[W]; };
 }  // namespace
 
 namespace {
+// out[i] = term idx[i] of xz, for terms of any number of words.
+__global__ void gatherTermsKernel(const uint64_t* xz, const int32_t* idx, int64_t n, int words, uint64_t* out) {
+  const int64_t i = (int64_t)blockIdx.x * blockDim.x + threadIdx.x;
+  if (i >= n) return;
+  const uint64_t* t = xz + (int64_t)idx[i] * words;
+  for (int w = 0; w < words; w++) out[i * words + w] = t[w];
+}
+
 __global__ void sampleTermsKernel(const uint64_t* xz, int64_t n, int words, int64_t stride, uint64_t* out) {
   const int64_t i = (int64_t)blockIdx.x * blockDim.x + threadIdx.x;
   if (i * stride >= n) return;
@@ -156,7 +164,35 @@ struct OwnerFn16 {
   }
 };
 
+// Terms of more than MAX_WORDS words (more than 256 qubits): the rows are read from device memory, since a
+// functor that carried them would not fit into the arguments of a kernel.
+struct OwnerFn16Wide {
+  const uint64_t* xz;
+  const uint64_t* mask;       // g rows of `words` words
+  int words;
+  int g;
+  __device__ uint16_t operator()(int64_t i) const {
+    const uint64_t* t = xz + i * words;
+    uint16_t o = 0;
+    for (int j = 0; j < g; j++) {
+      const uint64_t* m = mask + (int64_t)j * words;
+      int par = 0;
+      for (int w = 0; w < words; w++) par ^= __popcll(t[w] & m[w]) & 1;
+      o |= (uint16_t)(par << j);
+    }
+    return o;
+  }
+};
+
 void pp_owners16(const uint64_t* xz, int64_t n, int words, const uint64_t* masks, int g, uint16_t* owners) {
+  if (words > MAX_WORDS) {
+    thrust::device_vector<uint64_t> rows(masks, masks + (size_t)g * words);
+    OwnerFn16Wide f;
+    f.xz = xz; f.mask = thrust::raw_pointer_cast(rows.data()); f.words = words; f.g = g;
+    thrust::transform(thrust::device, thrust::counting_iterator<int64_t>(0), thrust::counting_iterator<int64_t>(n),
+                      thrust::device_pointer_cast(owners), f);
+    return;
+  }
   OwnerFn16 f;
   f.xz = xz; f.words = words; f.g = g;
   for (int j = 0; j < g; j++)
@@ -200,8 +236,9 @@ int pp_partition16(const uint64_t* xz, const double* coef, uint16_t* owners, int
   } else if (words == 8) {
     thrust::gather(thrust::device, ix, ix + n, thrust::device_pointer_cast((const Term<8>*)xz),
                    thrust::device_pointer_cast((Term<8>*)xzOut));
-  } else {
-    return -1;
+  } else {                      // any other width (more than 256 qubits)
+    if (n) gatherTermsKernel<<<(unsigned)((n + 255) / 256), 256>>>(xz, idx, n, words, xzOut);
+    if (cudaStreamSynchronize(0) != cudaSuccess) return -1;
   }
   return 0;
 }

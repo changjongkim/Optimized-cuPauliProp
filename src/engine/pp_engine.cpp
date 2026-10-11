@@ -109,6 +109,7 @@ struct Opts {
   int frame = 1;                 // defer Clifford operations
   // circuit parameters
   int steps = 20, lx = 5, ly = 6, n = 0, obsQ = -1, seed = 7, layers = 4;
+  int obsAll = 0;                // the observable is the sum of Z over all qubits (total magnetization), not Z on one qubit
   double theta = 0.25, phi = -0.5, jxy = 0.1, jz = 0.15, noise = 0.0, amp = 0.15;
   // truncation
   double coef = 1e-4;
@@ -1312,6 +1313,7 @@ int main(int argc, char** argv) {
     else if (a == "--ly")          o.ly = atoi(next());
     else if (a == "--n")           o.n = atoi(next());
     else if (a == "--obs-qubit")   o.obsQ = atoi(next());
+    else if (a == "--obs-all")     o.obsAll = atoi(next());
     else if (a == "--seed")        o.seed = atoi(next());
     else if (a == "--theta")       o.theta = atof(next());
     else if (a == "--phi")         o.phi = atof(next());
@@ -1362,6 +1364,10 @@ int main(int argc, char** argv) {
   if (o.weight > 0) o.frame = 0;      // weight truncation needs the true strings
 
   Problem P = buildProblem(o);
+  if (o.obsAll) {                // one term per qubit: the size of the problem grows with the number of qubits
+    P.observable.clear();
+    for (int q = 0; q < P.L.n; q++) singleZ(P, q);
+  }
   g_L = P.L;
   int deferred = 0;
   g_ops = compileForEngine(P, o.frame != 0, &deferred);
@@ -1371,6 +1377,7 @@ int main(int argc, char** argv) {
   if (g_rank == 0)
     printf("circuit: %s; %d qubits; %zu gates -> %d operations on the data (%d branching rotations, %d Clifford, %d noise); "
            "%d Clifford gates deferred by the frame\n", P.name.c_str(), g_L.n, P.ops.size(), M, nBranch, nMap, nNoise, deferred);
+  if (o.obsAll && g_rank == 0) printf("observable: sum of Z over the %d qubits (%zu terms)\n", g_L.n, P.observable.size());
   if (o.mode == "cupp") return runCuppDistributed(o, P);
 
   int nd = 0;

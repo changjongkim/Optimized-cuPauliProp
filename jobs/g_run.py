@@ -117,9 +117,12 @@ def binary_of(item):
     """SectorQ on more than one GPU runs the engine that chooses the rows of the next window while the window runs
     (bin/pp_engine_h, from 2026-10-10 01:20); SectorQ on one GPU and cuPauliProp run the first campaign binary
     (bin/pp_engine_g0), whose code for them is the same. bin/pp_engine_g makes the same choice for the runners
-    that were started before."""
+    that were started before. A run can name its binary itself ("bin"): the runs on more than 256 qubits and those with
+    the total magnetization need bin/pp_engine_w (partition kernels for terms of any width, --obs-all)."""
     if BIN:
         return BIN
+    if item.get("bin"):
+        return item["bin"]
     return "bin/pp_engine_h" if item["kind"] == "eng" and item["nodes"] * item["per"] > 1 else "bin/pp_engine_g0"
 
 
