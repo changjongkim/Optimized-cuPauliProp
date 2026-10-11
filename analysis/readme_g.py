@@ -455,7 +455,7 @@ def b_parts(g=16):
 def b_base_parts(g=16):
     rows = []
     for c in MAIN:
-        for x in ("1e-4", "3e-5"):
+        for x in ("1e-5", "3e-5", "1e-4"):
             for tag, name in (("bd", "SectorQ"), ("bdc", "cuPauliProp 기본"), ("bdd", "cuPauliProp dedup 미룸")):
                 item = f"{tag}.{c}.{x}.g{g}"
                 s = state.get(item)
@@ -476,7 +476,7 @@ def b_base_parts(g=16):
                     gb = num(r"cupp mpi isend: .*GB/rank=([\d.]+)", t)
                     rows.append((KO[c], x, name, sec(w), b, "", "" if mpi is None else "%.0f%% (collective %.0f%%)" % (100 * mpi / w, 100 * (coll or 0) / w), "" if per is None else "%.1f회" % per,
                                  "" if gb is None else "%.1f GB (rank당)" % gb))
-    return table(["회로", "cutoff", "방식", "전체", "GPU 사용률 (nvidia-smi 표본)", "gate 적용", "통신 (MPI 호출 안의 시간, SectorQ는 노드 사이 교환)", "연산당 allgather (rank당)", "보낸 양"], rows,
+    return table(["회로", "cutoff", "방식", "전체", "GPU 사용률 (nvidia-smi 표본)", "라이브러리 호출 안의 시간 (gate 적용)", "통신 (MPI 호출 안의 시간, SectorQ는 노드 사이 교환)", "연산당 allgather (rank당)", "보낸 양"], rows,
                  ["---", "---", "---", "---:", "---:", "---:", "---:", "---:", "---:"])
 
 

@@ -957,15 +957,18 @@ def g_scaleout(G, big=(), c="ki", title="Kicked Ising"):
 
 def g_breakdown(G, g=16):
     """Where the time goes on 16 GPUs (runs bd: SectorQ, bdc: cuPauliProp with the profiling plugin, bdd: the same, deferred)."""
-    sets = [("ki", "1e-4", "Kicked Ising, Cutoff 1e-4"), ("ki", "3e-5", "Kicked Ising, Cutoff 3e-5"),
-            ("tfim", "3e-5", "TFIM Heavy-Hex, Cutoff 3e-5"), ("noise", "3e-5", "Noisy Kicked Ising, Cutoff 3e-5")]
+    # the largest setting that cuPauliProp's distributed mode finishes on 16 GPUs, for the two noiseless circuits
+    sets = []
+    for c, x, name in (("ki", "1e-5", "Kicked Ising"), ("tfim", "1e-5", "TFIM Heavy-Hex")):
+        n = gterms(G, c, x)
+        sets.append((c, x, f"{name}, Cutoff {x}" + (f" ({count(n).replace(' ', '')} Terms, {data_size(n * term_bytes(c))})" if n else "")))
 
     def one(kind, tag, c, coef):
         item = f"{tag}.{c}.{coef}.g{g}"
         return shares(kind, gdetail(G.get(item)) if gok(G.get(item)) else None, os.path.join(LOGS, "g", "smi." + item))
 
     return draw_shares([(title, [("SectorQ", one("eng", "bd", c, coef)), ("cuPauliProp", one("cupp", "bdc", c, coef)),
-                                 ("cuPauliProp, Merge Deferred", one("cupp", "bdd", c, coef))]) for c, coef, title in sets], "eval_breakdown_base.png")
+                                 ("cuPauliProp, Dedup Deferred", one("cupp", "bdd", c, coef))]) for c, coef, title in sets], "eval_breakdown_base.png")
 
 
 SIZE_PARTS = [("Gate Application (Library Calls)", "operations", OURS), ("Exchange Between Nodes", "exchange", "#C0432F"),

@@ -107,7 +107,7 @@ SectorQ는 이 관찰에서 다음 규칙을 세운다.
 | Kicked Ising cutoff 3e-6 (15억 항) | 메모리 부족 (16, 64, 128 GPU) | 메모리 부족 | 1 / 4 / 16 / 64 / 128 GPU에서 1,741 / 436 / 122 / 33.2 / 18.9초 |
 | Kicked Ising cutoff 1e-6 (119억 항) | cutoff 5e-6부터 메모리 부족 | 같음 | 16 GPU 1,625초, 128 GPU 221초 |
 | 40분 안에 끝낸 가장 큰 크기 (kicked Ising, 구간 경계의 항 수) | 16 GPU로 1.6억 | 16 GPU로 1.6억 | GPU 1장으로 15억, 16 GPU로 119억 |
-| 16 GPU의 GPU 사용률 (cutoff 3e-5, 3종) | 6–10% | 12–19% | 43–48% |
+| 16 GPU의 GPU 사용률 (cutoff 1e-5, 3종) | 20–32% | 33–49% | 71–75% |
 | 연산마다의 전원 통신 | rank마다 연산당 allgather 22회 | 연산당 2.2–3.9회 | 없음. 구간마다 표본과 행을 나누고, 구간이 바뀔 때 항을 교환한다 |
 | 1,024 qubit의 전체 자화 (2D TFIM 32×32, cutoff 1e-3), 16 GPU | 366초 | 131초 | 90.7초 (기본의 4.0배, dedup을 미룬 것의 1.4배) |
 | 같은 격자의 cutoff 1e-4에서 16 GPU로 끝낸 가장 큰 qubit 수 | 121 | 121 | 529 (778초) |
@@ -413,7 +413,7 @@ Clifford gate와 Clifford 각도의 rotation은 항 수를 바꾸지 않고 bit�
 측정은 설정마다 1회이며 반복하지 않았다. 기대값은 12자리까지 출력하여 비교하였다. 표에서 "메모리 부족"과 "시간 초과"는 그 실행이 실패한 이유이다. "–"는 같은 방식이 더 쉬운 설정에서 이미 실패하여 돌리지 않은 칸이고, "측정 중"은 아직 끝나지 않은 칸이다. "지원 안 함"은 그 구현이 그 qubit 수를 받지 않는 칸이다.
 
 <!-- g:progress -->
-실행 3,098건 가운데 3,098건이 끝났다(완료 1,686, 메모리 부족 142, 시간 초과 54, 더 쉬운 칸에서 실패하여 돌리지 않음 682, qubit 수의 상한에 걸림 43, 캠페인 f에서 가져온 기준선 실행 474).
+실행 3,107건 가운데 3,107건이 끝났다(완료 1,695, 메모리 부족 142, 시간 초과 54, 더 쉬운 칸에서 실패하여 돌리지 않음 682, qubit 수의 상한에 걸림 43, 캠페인 f에서 가져온 기준선 실행 474).
 <!-- /g:progress -->
 
 | # | 회로 | 1–16 GPU 측정의 설정 | gate 구성 | 시험하는 것 | `--circuit` 이름 |
@@ -1238,50 +1238,47 @@ SectorQ의 시간을 문제 크기와 GPU 수에 따라 나누었다. GPU worker
 - **host를 거치는 비용은 작다.** GPU와 host 사이의 복사는 10% 이하, 분할은 5% 이하이다. 복사가 가장 큰 것은 가장 큰 실행(kicked Ising cutoff 1e-6, 119억 항)의 10%이다.
 
 <p align="center"><img src="figures/eval_breakdown_base.png" width="880"></p>
-<p align="center"><b>그림 15.</b> 16 GPU에서 실행 시간의 구성: SectorQ와 cuPauliProp 분산 모드(기본, dedup을 미룬 방식). cuPauliProp은 rank 평균이다. 세 방식 모두 라이브러리 호출 안의 시간을 nvidia-smi 표본 사용률로 GPU가 일한 부분(Gates on GPU)과 나머지(Library on the Host)로 나누었다.</p>
+<p align="center"><b>그림 15.</b> 16 GPU에서 큰 설정(cutoff 1e-5)의 실행 시간 구성: SectorQ와 cuPauliProp 분산 모드(기본, dedup을 미룬 방식). 제목의 괄호는 구간 경계의 항 수와 그 크기이다. cuPauliProp은 rank 평균이다. 세 방식 모두 라이브러리 호출 안의 시간을 nvidia-smi 표본 사용률로 GPU가 일한 부분(Gates on GPU)과 나머지(Library on the Host)로 나누었다.</p>
 
-**cuPauliProp 분산 모드의 시간 분해.** 같은 16 GPU에서 기준선의 시간이 어디로 가는지 재었다. MPI 호출의 시간은 MPI plugin을 감싼 계측판이 호출마다 잰다(`src/plugin/prof_mpi.c`). GPU 사용률은 nvidia-smi로 0.2초마다 표본한 값의 평균이다. 그림 15에서는 라이브러리 호출 안에서 MPI 밖에 있는 시간을 이 사용률로 GPU가 일한 부분과 나머지(host 쪽 작업)로 나누었다. SectorQ의 라이브러리 호출 시간도 같은 규칙으로 나누었다. cutoff 3e-5의 SectorQ 실행은 2–3초로 짧아 표본이 GPU당 10–13개이며, 표본 사용률(43–48%)이 라이브러리 호출 안의 시간(53–64%)보다 낮게 나온다. 10초가 넘는 cutoff 1e-5의 실행에서는 둘이 일치한다(표본 사용률 67–74%, 호출 안의 시간 66–73%, `logs/u7`). 설정은 cuPauliProp이 16 GPU로 끝내는 범위(cutoff 1e-4와 3e-5)에서 골랐다.
+**세 방식의 시간 분해.** 같은 16 GPU에서 세 방식의 시간이 어디로 가는지 재었다. 그림 15는 cuPauliProp 분산 모드가 16 GPU로 끝내는 가장 큰 설정(cutoff 1e-5)의 두 회로이고, 아래 표에는 잡음 있는 회로와 더 작은 설정(cutoff 3e-5, 1e-4)이 함께 있다. MPI 호출의 시간은 MPI plugin을 감싼 계측판이 호출마다 잰다(`src/plugin/prof_mpi.c`). GPU 사용률은 nvidia-smi로 0.2초마다 표본한 값의 평균이다. 그림에서는 라이브러리 호출 안에서 MPI 밖에 있는 시간을 이 사용률로 GPU가 일한 부분과 나머지(host 쪽 작업)로 나누었고, SectorQ의 라이브러리 호출 시간도 같은 규칙으로 나누었다. dedup을 미룬 방식은 cutoff 1e-5의 kicked Ising과 TFIM에서 3개 연산마다 dedup을 한 번 더 해야 메모리에 들어가며, 그 설정으로 재었다.
 
 <!-- g:base_parts -->
-| 회로 | cutoff | 방식 | 전체 | GPU 사용률 (nvidia-smi 표본) | gate 적용 | 통신 (MPI 호출 안의 시간, SectorQ는 노드 사이 교환) | 연산당 allgather (rank당) | 보낸 양 |
+| 회로 | cutoff | 방식 | 전체 | GPU 사용률 (nvidia-smi 표본) | 라이브러리 호출 안의 시간 (gate 적용) | 통신 (MPI 호출 안의 시간, SectorQ는 노드 사이 교환) | 연산당 allgather (rank당) | 보낸 양 |
 |---|---|---|---:|---:|---:|---:|---:|---:|
-| Kicked Ising | 1e-4 | SectorQ | 0.83초 | 12% | 26% | 9% | 없음 | 0.6 GB (전체) |
-| Kicked Ising | 1e-4 | cuPauliProp 기본 | 24.3초 | 4% |  | 47% (collective 36%) | 22.1회 | 1.1 GB (rank당) |
-| Kicked Ising | 1e-4 | cuPauliProp dedup 미룸 | 7.27초 | 6% |  | 66% (collective 36%) | 3.9회 | 1.2 GB (rank당) |
+| Kicked Ising | 1e-5 | SectorQ | 12.6초 | 75% | 75% | 11% | 없음 | 45.2 GB (전체) |
+| Kicked Ising | 1e-5 | cuPauliProp 기본 | 53.7초 | 32% |  | 46% (collective 19%) | 22.1회 | 108.3 GB (rank당) |
+| Kicked Ising | 1e-5 | cuPauliProp dedup 미룸 | 50.1초 | 49% |  | 42% (collective 12%) | 8.6회 | 113.1 GB (rank당) |
 | Kicked Ising | 3e-5 | SectorQ | 1.96초 | 48% | 64% | 10% | 없음 | 5.6 GB (전체) |
 | Kicked Ising | 3e-5 | cuPauliProp 기본 | 27.0초 | 10% |  | 46% (collective 32%) | 22.1회 | 12.0 GB (rank당) |
 | Kicked Ising | 3e-5 | cuPauliProp dedup 미룸 | 9.59초 | 19% |  | 60% (collective 24%) | 3.9회 | 14.4 GB (rank당) |
-| TFIM heavy-hex | 1e-4 | SectorQ | 1.27초 | 11% | 21% | 8% | 없음 | 1.0 GB (전체) |
-| TFIM heavy-hex | 1e-4 | cuPauliProp 기본 | 46.8초 | 3% |  | 42% (collective 34%) | 22.1회 | 0.9 GB (rank당) |
-| TFIM heavy-hex | 1e-4 | cuPauliProp dedup 미룸 | 10.6초 | 5% |  | 55% (collective 31%) | 3.8회 | 1.0 GB (rank당) |
+| Kicked Ising | 1e-4 | SectorQ | 0.83초 | 12% | 26% | 9% | 없음 | 0.6 GB (전체) |
+| Kicked Ising | 1e-4 | cuPauliProp 기본 | 24.3초 | 4% |  | 47% (collective 36%) | 22.1회 | 1.1 GB (rank당) |
+| Kicked Ising | 1e-4 | cuPauliProp dedup 미룸 | 7.27초 | 6% |  | 66% (collective 36%) | 3.9회 | 1.2 GB (rank당) |
+| TFIM heavy-hex | 1e-5 | SectorQ | 14.9초 | 71% | 68% | 14% | 없음 | 79.0 GB (전체) |
+| TFIM heavy-hex | 1e-5 | cuPauliProp 기본 | 73.0초 | 26% |  | 40% (collective 22%) | 22.1회 | 91.8 GB (rank당) |
+| TFIM heavy-hex | 1e-5 | cuPauliProp dedup 미룸 | 58.9초 | 45% |  | 37% (collective 15%) | 8.6회 | 94.8 GB (rank당) |
 | TFIM heavy-hex | 3e-5 | SectorQ | 2.61초 | 47% | 53% | 11% | 없음 | 9.7 GB (전체) |
 | TFIM heavy-hex | 3e-5 | cuPauliProp 기본 | 48.6초 | 7% |  | 40% (collective 33%) | 22.1회 | 9.9 GB (rank당) |
 | TFIM heavy-hex | 3e-5 | cuPauliProp dedup 미룸 | 13.6초 | 14% |  | 55% (collective 30%) | 3.8회 | 11.4 GB (rank당) |
-| 잡음 있는 kicked Ising | 1e-4 | SectorQ | 1.40초 | 11% | 20% | 5% | 없음 | 0.3 GB (전체) |
-| 잡음 있는 kicked Ising | 1e-4 | cuPauliProp 기본 | 47.8초 | 3% |  | 41% (collective 35%) | 15.4회 | 0.7 GB (rank당) |
-| 잡음 있는 kicked Ising | 1e-4 | cuPauliProp dedup 미룸 | 8.87초 | 5% |  | 55% (collective 29%) | 2.2회 | 0.6 GB (rank당) |
+| TFIM heavy-hex | 1e-4 | SectorQ | 1.27초 | 11% | 21% | 8% | 없음 | 1.0 GB (전체) |
+| TFIM heavy-hex | 1e-4 | cuPauliProp 기본 | 46.8초 | 3% |  | 42% (collective 34%) | 22.1회 | 0.9 GB (rank당) |
+| TFIM heavy-hex | 1e-4 | cuPauliProp dedup 미룸 | 10.6초 | 5% |  | 55% (collective 31%) | 3.8회 | 1.0 GB (rank당) |
+| 잡음 있는 kicked Ising | 1e-5 | SectorQ | 9.02초 | 75% | 79% | 6% | 없음 | 17.1 GB (전체) |
+| 잡음 있는 kicked Ising | 1e-5 | cuPauliProp 기본 | 64.0초 | 20% |  | 40% (collective 26%) | 15.4회 | 57.3 GB (rank당) |
+| 잡음 있는 kicked Ising | 1e-5 | cuPauliProp dedup 미룸 | 21.9초 | 33% |  | 51% (collective 15%) | 2.2회 | 49.5 GB (rank당) |
 | 잡음 있는 kicked Ising | 3e-5 | SectorQ | 2.07초 | 43% | 63% | 5% | 없음 | 2.3 GB (전체) |
 | 잡음 있는 kicked Ising | 3e-5 | cuPauliProp 기본 | 50.6초 | 6% |  | 41% (collective 35%) | 15.4회 | 7.0 GB (rank당) |
 | 잡음 있는 kicked Ising | 3e-5 | cuPauliProp dedup 미룸 | 10.6초 | 12% |  | 56% (collective 28%) | 2.2회 | 6.0 GB (rank당) |
+| 잡음 있는 kicked Ising | 1e-4 | SectorQ | 1.40초 | 11% | 20% | 5% | 없음 | 0.3 GB (전체) |
+| 잡음 있는 kicked Ising | 1e-4 | cuPauliProp 기본 | 47.8초 | 3% |  | 41% (collective 35%) | 15.4회 | 0.7 GB (rank당) |
+| 잡음 있는 kicked Ising | 1e-4 | cuPauliProp dedup 미룸 | 8.87초 | 5% |  | 55% (collective 29%) | 2.2회 | 0.6 GB (rank당) |
 <!-- /g:base_parts -->
 
-- **cuPauliProp의 GPU는 대부분 쉰다.** GPU 사용률이 기본 모드에서 3–10%, dedup을 미룬 방식에서 5–19%이다. 같은 설정의 SectorQ는 cutoff 3e-5에서 43–48%이다(cutoff 1e-4는 문제가 작아 11–12%).
-- **기본 모드는 시간의 40–47%를 MPI 호출 안에서 보낸다.** 그 대부분이 모든 rank가 참여하는 collective 호출이다(32–36%). allgather는 연산마다 rank당 22.1번(잡음 있는 회로는 15.4번)이며 항 수와 무관하다.
-- **dedup을 미루면 allgather가 연산당 2.2–3.9번으로 줄지만 MPI 안의 시간은 55–66%로 비중이 커진다.** gate 적용이 rank 안에서 끝나 전체 시간이 줄어든 만큼, truncation 전마다 하는 전역 dedup의 몫이 커진다.
-- **SectorQ에서 항이 노드를 옮기는 것은 구간 경계의 교환뿐이다.** 같은 설정에서 실행 시간의 5–11%이다.
-
-**더 큰 설정의 기준선.** cutoff 1e-5의 기준선은 같은 방법으로 따로 재었다(`jobs/u7_breakdown.sh`, `logs/u7`).
-
-| 설정 (16 GPU, 기본 모드) | 전체 | GPU에서 gate | host 쪽 작업 (GPU는 쉼) | 전체 GPU의 collective 호출 | GPU 사이 항 이동 | 연산당 allgather / 송신 (rank당) | rank당 보낸 양 |
-|---|---:|---:|---:|---:|---:|---:|---:|
-| Kicked Ising, cutoff 1e-4 | 28.4초 | 3% | 44% | 44% | 9% | 22.1 / 11.9 | 1.1 GB |
-| Kicked Ising, cutoff 1e-5 | 51.6초 | 34% | 22% | 18% | 26% | 22.1 / 15.4 | 108 GB |
-| TFIM heavy-hex, cutoff 1e-5 | 71.8초 | 27% | 33% | 23% | 17% | 22.1 / 11.3 | 92 GB |
-| 잡음 있는 kicked Ising, cutoff 1e-5 | 69.7초 | 18% | 38% | 32% | 12% | 15.4 / 10.3 | 57 GB |
-
-- **큰 문제에서는 항의 이동이 더해진다.** cutoff 1e-5에서는 rank당 57–108 GB를 보내며 항 이동이 12–26%가 된다. collective 호출 18–32%와 host 쪽 작업 22–38%는 남는다. GPU가 일하는 시간은 18–34%이다. 같은 job에서 잰 SectorQ의 GPU 사용률 표본은 67–74%이다.
-- **dedup을 미룬 방식은 시간의 72–92%가 전역 dedup 호출 안에 있다**(kicked Ising cutoff 1e-5: 50.2초 가운데 46.2초). 이 설정과 TFIM은 dedup을 truncation 직전에만 하면 16 GPU에서 메모리가 부족하여 3개 연산마다 한 번 더 한다.
-- kicked Ising cutoff 1e-5에서 cuPauliProp 기본 모드는 16 rank가 모두 1,733 GB를 보낸다. SectorQ가 실행 전체에서 노드 사이로 보내는 양은 45 GB이고, GPU 밖으로 내보내는 양을 모두 합쳐도 60 GB이다(29배 적다, 3.3절).
+- **큰 설정에서 SectorQ의 GPU는 실행 시간의 71–75%를 일한다.** 같은 설정의 cuPauliProp은 기본 모드가 20–32%, dedup을 미룬 방식이 33–49%이다. SectorQ의 실행 시간은 기본 모드의 4.3–7.1배, dedup을 미룬 방식의 2.4–4.0배 짧다(kicked Ising: 12.6초, 53.7초, 50.1초).
+- **기본 모드는 시간의 40–46%를 MPI 호출 안에서 보낸다.** 모든 rank가 참여하는 collective 호출이 19–26%이고 나머지는 항을 옮기는 시간이다. allgather는 연산마다 rank당 22.1번(잡음 있는 회로는 15.4번)이며 항 수와 무관하다. rank 하나가 보내는 양은 57–108 GB이다.
+- **dedup을 미루면 GPU가 일하는 몫이 33–49%로 늘지만 MPI 안의 시간은 37–51%로 남는다.** allgather는 연산당 2.2–8.6번으로 줄어든다. 전체 시간은 kicked Ising에서 53.7초가 50.1초가 되는 데 그친다.
+- **SectorQ에서 항이 노드를 옮기는 것은 구간 경계의 교환뿐이다.** 실행 시간의 6–14%이고, 실행 전체에서 노드 사이로 보내는 양은 17–79 GB이다. kicked Ising cutoff 1e-5에서 cuPauliProp 기본 모드는 16 rank가 모두 1,733 GB를 보내고 SectorQ는 45 GB를 보낸다. GPU 밖으로 내보내는 양을 모두 합쳐도 60 GB이다(29배 적다, 3.3절).
+- **작은 설정에서는 세 방식 모두 GPU가 덜 일한다.** cutoff 3e-5에서 GPU 사용률은 SectorQ 43–48%, 기본 모드 6–10%, dedup을 미룬 방식 12–19%이다. cutoff 1e-4는 SectorQ도 11–12%이다. 이 크기의 SectorQ 실행은 1–3초로 짧아 표본이 GPU당 4–13개이며, 표본 사용률이 라이브러리 호출 안의 시간(cutoff 3e-5에서 53–64%)보다 낮게 나온다. 큰 설정에서는 둘이 일치한다(표의 두 열).
 
 2 GPU와 4 GPU의 같은 분해는 `python3 analysis/campaign_g.py`가 출력하는 표에 있다. 잡음 있는 kicked Ising의 가장 작은 설정(cutoff 1e-4, 2–4 GPU)에서는 worker가 다음 구간의 행을 기다린 시간이 29–30%이다. 이 회로는 구간이 525 연산으로 길어 행을 고르는 데 약 2초가 들고, 실행 전체가 2.5초여서 그 몫이 크게 보인다. cutoff 3e-5(4.9초)에서는 기다린 시간이 0.1초이다.
 
