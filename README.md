@@ -216,7 +216,7 @@ Pauli propagation에서 새 항 P⊕Q가 어느 프로세스의 항과 합쳐질
 | cutoff 3e-6 설정 | 3e-6 | 없음 | 구간 경계에서 15억 |
 
 <p align="center"><img src="figures/bg_scaling.png" width="32%"> <img src="figures/bg_gatecost.png" width="32%"> <img src="figures/bg_capacity.png" width="32%"></p>
-<p align="center"><b>그림 1.</b> cuPauliProp v0.5.0 분산 모드의 측정. (a) 2,250만 항 설정의 실행 시간. GPU를 늘릴수록 느려진다. (b) gate 하나에 드는 고정 비용. (c) 메모리 부족으로 멈춘 지점의 GPU당 항 수. GPU 수와 무관하게 약 1억이다.</p>
+<p align="center"><b>그림 1.</b> cuPauliProp v0.5.0 분산 모드의 측정(세로는 로그 축). (a) 2,250만 항 설정의 실행 시간. GPU를 늘릴수록 느려진다. (b) gate 하나에 드는 고정 비용. (c) 메모리 부족으로 멈춘 지점의 GPU당 항 수. GPU 수와 무관하게 약 1억이다.</p>
 
 | 성질 | 측정값 |
 |---|---|
@@ -482,7 +482,7 @@ MonoProp은 truncation 규칙이 달라 이 대조에 넣지 않았다(4.3절).
 한 노드(A100 4장, CPU 64 코어)에서 모든 구현을 그 구현이 쓸 수 있는 자원으로 실행하였다. 대표 회로는 kicked Ising이다. 같은 truncation 규칙을 쓰는 구현의 기대값은 완료한 모든 실행에서 SectorQ와 같다(4.1절).
 
 <p align="center"><img src="figures/eval_single_node.png" width="980"></p>
-<p align="center"><b>그림 6.</b> 한 노드에서 cutoff에 따른 실행 시간(kicked Ising, 로그 축). 가로축의 괄호는 그 cutoff에서 구간 경계의 항 수이며, 오른쪽으로 갈수록 문제가 크다. 실선은 4 GPU 또는 64 코어, 점선은 GPU 1장이다. ×는 그 구현이 다음 cutoff에서 메모리 부족이나 시간 초과(40분)로 멈춘 곳이다.</p>
+<p align="center"><b>그림 6.</b> 한 노드에서 cutoff에 따른 실행 시간(kicked Ising, 로그 축). 가로축의 첫째 괄호는 그 cutoff에서 구간 경계의 항 수이고 둘째 괄호는 그 항들의 크기이다(127 qubit에서 항 하나는 Pauli 문자열 32 byte와 계수 8 byte). 오른쪽으로 갈수록 문제가 크다. 실선은 4 GPU 또는 64 코어, 점선은 GPU 1장이다. ×는 그 구현이 다음 cutoff에서 메모리 부족이나 시간 초과(40분)로 멈춘 곳이다.</p>
 
 <!-- g:single_node -->
 **Kicked Ising** (한 노드, 실행 시간)
@@ -922,7 +922,7 @@ cutoff 1e-4의 1,024 qubit에서 SectorQ는 16 GPU로 9.06초이고 cuPauliProp 
 #### Scale-out과 도달 범위
 
 <p align="center"><img src="figures/eval_scaleout.png" width="760"></p>
-<p align="center"><b>그림 12.</b> GPU 수에 따른 SectorQ의 실행 시간(kicked Ising, 로그 축, 1–128 GPU). 128 GPU의 cutoff 1e-6은 sector 수의 상한을 1,024개로 둔 실행이다. GPU를 늘리면 같은 문제가 빨라지고 더 큰 문제까지 간다. ×는 40분 안에 끝내지 못했거나 메모리가 부족한 곳이다.</p>
+<p align="center"><b>그림 12.</b> GPU 수에 따른 SectorQ의 실행 시간(kicked Ising, 로그 축, 1–128 GPU). 가로축의 괄호는 그림 6과 같이 구간 경계의 항 수와 그 크기이다. 128 GPU의 cutoff 1e-6은 sector 수의 상한을 1,024개로 둔 실행이다. GPU를 늘리면 같은 문제가 빨라지고 더 큰 문제까지 간다. ×는 40분 안에 끝내지 못했거나 메모리가 부족한 곳이다.</p>
 
 세 회로를 1–16 GPU에서 세 방식으로 실행하였다. 괄호는 SectorQ 대비이다.
 

@@ -153,16 +153,19 @@ def save(fig, name):
 def background():
     gpus = ["1", "4", "8", "16"]
     panels = [
-        ("bg_scaling.png", [2.92, 32.9, 64.8, 71.2], "Time (s)", "{:.0f}"),
-        ("bg_gatecost.png", [0.05, 5.9, 22.5, 29.8], "Fixed Cost per Gate (ms)", "{:.1f}"),
-        ("bg_capacity.png", [96.0, 95.8, 103.7, 87.9], "Terms per GPU\nat the Failure Point (millions)", "{:.0f}"),
+        ("bg_scaling.png", [2.92, 32.9, 64.8, 71.2], "Time (s)", "{:.0f}", (1, 300)),
+        ("bg_gatecost.png", [0.05, 5.9, 22.5, 29.8], "Fixed Cost per Gate (ms)", "{:.1f}", (0.01, 200)),
+        ("bg_capacity.png", [96.0, 95.8, 103.7, 87.9], "Terms per GPU\nat the Failure Point (millions)", "{:.0f}", (1, 1000)),
     ]
-    for name, vals, ylabel, fmt in panels:
+    for name, vals, ylabel, fmt, ylim in panels:
         fig, ax = plt.subplots(figsize=(4.3, 3.5))
         ax.bar(gpus, vals, width=0.62, color=BASE)
         for x, v in zip(gpus, vals):
-            ax.text(x, v + max(vals) * 0.02, ("%.2f" % v) if v < 1 else fmt.format(v), ha="center", va="bottom", fontsize=13)
-        ax.set_ylim(0, max(vals) * 1.16)
+            ax.text(x, v * 1.12, ("%.2f" % v) if v < 1 else fmt.format(v), ha="center", va="bottom", fontsize=13)
+        ax.set_yscale("log")
+        ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:g}"))
+        ax.yaxis.set_minor_formatter(NullFormatter())
+        ax.set_ylim(*ylim)
         ax.set_xlabel("GPUs (cuPauliProp distributed)")
         ax.set_ylabel(ylabel)
         clean(ax)
@@ -752,12 +755,27 @@ def sq_legend(fig, ax, y, ncol, extra=True, size=13.5):
     fig.legend(handles, names, loc="upper center", ncol=ncol, bbox_to_anchor=(0.5, y), fontsize=size, columnspacing=1.6, handlelength=2.4, frameon=False)
 
 
+QUBITS = {"ki": 127, "tfim": 127, "noise": 127, "tfimsq": 121, "xxz": 64, "qaoa": 100, "hea": 100}
+
+
+def term_bytes(c):
+    """Bytes of one term: the X and Z bits of the Pauli string in 64-bit words, and a double coefficient."""
+    return 2 * ((QUBITS[c] + 63) // 64) * 8 + 8
+
+
+def data_size(nbytes):
+    for unit, scale in (("TB", 1e12), ("GB", 1e9), ("MB", 1e6)):
+        if nbytes >= scale:
+            return f"{nbytes / scale:.3g}{unit}"
+    return f"{nbytes / 1e3:.3g}KB"
+
+
 def cut_ticks(G, c, cutoffs, extra=None):
-    """Tick labels: the cutoff and, below it, the number of terms of that problem (or the text of `extra`)."""
+    """Tick labels: the cutoff and, below it, the number of terms of that problem and their size (or the text of `extra`)."""
     out = []
     for i, x in enumerate(cutoffs):
         n = gterms(G, c, x)
-        second = extra[i] if extra is not None else ("(" + count(n).replace(" ", "") + ")" if n else "")
+        second = extra[i] if extra is not None else (f"({count(n).replace(' ', '')})\n({data_size(n * term_bytes(c))})" if n else "")
         out.append(f"{x}\n{second}")
     return out
 
@@ -775,7 +793,7 @@ def g_single_node(G, c="ki", title="Kicked Ising"):
     for kind, suffix, ls, label in lines:
         recs, pts, fail = sq_line(ax, G, kind, c, cutoffs, suffix, label=label, ls=ls, lw=3.4 if kind == "ours" else 2.6, ms=9 if kind == "ours" else 8)
         rows.append((label, [(cutoffs[i], s["wall"]) for i, s in enumerate(recs) if gok(s)], (cutoffs[fail[0]], fail[1]) if fail else None))
-    sq_axes(ax, "Cutoff (# of Terms)", "Simulation Time (s)")
+    sq_axes(ax, "Cutoff (# of Terms) (Size of Terms)", "Simulation Time (s)")
     ax.set_xticks(range(len(cutoffs)))
     ax.set_xticklabels(cut_ticks(G, c, cutoffs))
     ax.set_xlim(-0.4, len(cutoffs) - 0.6)
@@ -922,7 +940,7 @@ def g_scaleout(G, big=(), c="ki", title="Kicked Ising"):
         if fail is not None:
             ax.plot([fail], [pts[-1][1]], color=colors[g], marker="x", markersize=11, markeredgewidth=2.6, linestyle="none", zorder=5)
         rows.append((g, [(cutoffs[i], w) for i, w in pts]))
-    sq_axes(ax, "Cutoff (# of Terms)", "Simulation Time (s)")
+    sq_axes(ax, "Cutoff (# of Terms) (Size of Terms)", "Simulation Time (s)")
     ax.set_xticks(range(len(cutoffs)))
     ax.set_xticklabels(cut_ticks(G, c, cutoffs))
     ax.set_xlim(-0.4, len(cutoffs) - 0.6)
