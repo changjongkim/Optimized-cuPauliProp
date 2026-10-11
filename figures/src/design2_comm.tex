@@ -1,0 +1,174 @@
+% Where communication happens (Section 3.3), second style (the look of the ScaleQsim paper).
+% What the figure shows: the same gate sequence (2,540 gates) and the same four GPUs under the two schemes.
+%   Left:  cuPauliProp's distributed mode. Every gate is followed by a global step (red mark after every gate
+%          cell): all GPUs merge and redistribute their terms, 22 collective calls per gate on every GPU,
+%          because a new term may belong to any GPU.
+%   Right: SectorQ. The gates are grouped into 20 windows of 127 gates; every GPU holds one sector and applies
+%          the whole window to it; terms are exchanged only at the window boundaries (blue marks), cut where
+%          the terms are fewest (159 million of the 1.36 billion terms of the peak move).
+%   Bottom: the measured cost of the two schemes (first three rows: kicked Ising, 22.5 million terms, 4 GPUs;
+%          last row: kicked Ising, cutoff 1e-5, 16 GPUs).
+% Message (one sentence): the existing multi-GPU implementation coordinates all GPUs after every gate; SectorQ
+% applies a whole window of gates inside each GPU and exchanges terms once, at the window boundary.
+% Colors: peach = a gate, gray = a term, orange with a red outline = a new term, blue/green/yellow/violet = the
+% four sectors, teal = the step that moves terms between GPUs, red = the cost that SectorQ removes,
+% blue = a window boundary.
+\begin{tikzpicture}[x=1cm, y=1cm, font=\rmfamily\bfseries\footnotesize]
+  \tikzset{
+    gc/.style={cl, fill=nA, minimum width=0.82cm, minimum height=0.40cm},
+    dc/.style={cl, fill=white, minimum width=0.55cm, minimum height=0.40cm},
+    tm/.style={cl, fill=black!22, minimum width=0.32cm, minimum height=0.32cm, line width=0.35pt},
+    rmark/.style={fill=dred, draw=dred, line width=0.2pt, inner sep=0pt, minimum width=0.09cm, minimum height=0.52cm,
+                  anchor=west},
+    bmark/.style={rmark, fill=thblue, draw=thblue},
+    rbr/.style={decorate, decoration={brace, mirror, amplitude=2.2pt}, draw=dred, line width=0.6pt},
+    bbr/.style={decorate, decoration={brace, mirror, amplitude=3.0pt}, draw=thblue, line width=0.7pt},
+    % fat block arrows: the shaft is as wide as twice the inner ysep
+    fatd/.style={double arrow, fill=dred, draw=dred, line width=0.3pt, inner xsep=0pt, inner ysep=0.075cm,
+                 minimum height=0.82cm, double arrow head extend=0.10cm, double arrow tip angle=90, rotate=90},
+    fatb/.style={barrow, inner xsep=0pt, inner ysep=0.10cm, minimum width=0pt, minimum height=0.46cm,
+                 single arrow head extend=0.17cm, rotate=-90},
+    bdarr/.style={{Latex[length=1.7mm,width=1.6mm]}-{Latex[length=1.7mm,width=1.6mm]}, line width=1.0pt, draw=thblue},
+    bar/.style={draw=black!85, fill=nB, line width=0.6pt, rounded corners=3pt},
+    hb/.style={th, font=\rmfamily\bfseries\footnotesize, minimum height=0.40cm, text height=0.24cm, text depth=0.08cm},
+    db/.style={td, font=\rmfamily\bfseries\footnotesize, minimum height=0.40cm, text height=0.24cm, text depth=0.08cm},
+  }
+  \def\gdots{{\boldmath$\cdots$}}
+  \def\tms{{\boldmath$\times$}}
+  % =====================================================================================================
+  % LEFT: cuPauliProp distributed
+  % =====================================================================================================
+  \begin{scope}
+    \draw[pan] (0,0) rectangle (8.65,-6.40);
+    \node[ptitle, anchor=base west] at (0.14,-0.43) {cuPauliProp Distributed};
+    \node[bigkey, anchor=base west] at (0.16,-0.83) {A Global Step After Every Gate};
+    % ---- the gate sequence: a global step (red) after every gate
+    \draw[comp] (0.15,-0.96) rectangle (8.50,-2.30);
+    \node[ann, anchor=west] at (0.25,-1.14) {Gate Sequence};
+    \node[key, anchor=east] (lg) at (8.38,-1.14) {2,540 Global Steps};
+    \node[rmark, minimum height=0.22cm, anchor=east] at ([xshift=-0.06cm]lg.west) {};
+    \foreach \i in {1,...,6}
+    {
+      \node[gc] at ({0.30+0.99*(\i-1)},-1.55) {G\i};
+      \node[rmark] at ({0.30+0.99*(\i-1)+0.86},-1.55) {};
+      \draw[rbr] ({0.30+0.99*(\i-1)},-1.85) -- ({0.30+0.99*(\i-1)+0.95},-1.85);
+      \node[sann, text=dred] at ({0.30+0.99*(\i-1)+0.475},-2.11) {Step \i};
+    }
+    \node[dc, minimum width=0.82cm] at (6.24,-1.55) {\gdots};
+    \node[rmark] at (7.10,-1.55) {};
+    \node[sann, text=dred] at (6.715,-2.11) {\gdots};
+    \node[gc, minimum width=1.00cm] at (7.23,-1.55) {G2540};
+    \node[rmark] at (8.27,-1.55) {};
+    \draw[rbr] (7.23,-1.85) -- (8.36,-1.85);
+    \node[sann, text=dred] at (7.795,-2.11) {Step 2,540};
+    % ---- gates go to the GPUs
+    \node[fatb, anchor=tip] at (4.325,-2.83) {};
+    \node[ann, anchor=west] at (4.72,-2.60) {One Gate at a Time};
+    % ---- four GPUs and the global step
+    \draw[comp] (0.15,-2.90) rectangle (8.50,-6.28);
+    \foreach \g in {0,1,2,3}
+    {
+      \node[gpu, anchor=north west, minimum width=1.84cm, minimum height=1.15cm] at ({0.27+2.09*\g},-2.99) {};
+      \node[stitle] at ({0.27+2.09*\g+0.92},-3.19) {GPU \g};
+      \node[sann, anchor=west] at ({0.27+2.09*\g+0.08},-3.53) {Terms};
+      \node[sann, text=dred, anchor=east] at ({0.27+2.09*\g+1.76},-3.53) {New};
+      \foreach \i in {0,1,2,3}
+        \node[tm] at ({0.27+2.09*\g+0.12+0.32*\i},-3.85) {};
+      \node[tm, fill=newc, draw=dred, line width=0.9pt] at ({0.27+2.09*\g+0.12+1.28},-3.85) {};
+      \node[fatd] at ({0.27+2.09*\g+0.92},-4.61) {};
+    }
+    \draw[bar] (0.27,-5.08) rectangle (8.38,-5.86);
+    \node[stitle] (bt) at (4.42,-5.28) {Global Merge and Redistribution};
+    \node[rmark, minimum height=0.26cm, anchor=east] at ([xshift=-0.07cm]bt.west) {};
+    \node[ann] at (4.325,-5.65) {22 Collective Calls per Gate, per GPU. All GPUs Wait.};
+    \node[tm, minimum width=0.28cm, minimum height=0.28cm, fill=newc, draw=dred, line width=0.9pt] (ll) at (1.75,-6.07) {};
+    \node[ann, anchor=west] at ([xshift=0.08cm]ll.east) {A New Term May Belong to Any GPU};
+  \end{scope}
+  % =====================================================================================================
+  % RIGHT: SectorQ
+  % =====================================================================================================
+  \begin{scope}[shift={(8.95,0)}]
+    \draw[pan] (0,0) rectangle (8.65,-6.40);
+    \node[ptitle, anchor=base west] at (0.14,-0.43) {SectorQ};
+    \node[bigkey, anchor=base west] at (0.16,-0.83) {One Exchange per Window of 127 Gates};
+    % ---- the same gate sequence, grouped into windows: a mark (blue) only at the window boundaries
+    \draw[comp] (0.15,-0.96) rectangle (8.50,-2.30);
+    \node[ann, anchor=west] at (0.25,-1.14) {Gate Sequence};
+    \node[ann, text=thblue, anchor=east] (lg) at (8.38,-1.14) {20 Global Steps};
+    \node[bmark, minimum height=0.22cm, anchor=east] at ([xshift=-0.06cm]lg.west) {};
+    % window 1
+    \node[gc, minimum width=0.66cm] at (0.30,-1.55) {G1};
+    \node[gc, minimum width=0.66cm] at (0.96,-1.55) {G2};
+    \node[gc, minimum width=0.66cm] at (1.62,-1.55) {G3};
+    \node[dc] at (2.28,-1.55) {\gdots};
+    \node[gc, minimum width=0.80cm] at (2.83,-1.55) {G127};
+    \node[bmark] at (3.67,-1.55) {};
+    \draw[bbr] (0.30,-1.85) -- (3.63,-1.85);
+    \node[stxt] at (1.965,-2.12) {Window 1: 127 Gates};
+    % window 2
+    \node[gc, minimum width=0.80cm] at (3.80,-1.55) {G128};
+    \node[dc] at (4.60,-1.55) {\gdots};
+    \node[gc, minimum width=0.80cm] at (5.15,-1.55) {G254};
+    \node[bmark] at (5.99,-1.55) {};
+    \draw[bbr] (3.80,-1.85) -- (5.95,-1.85);
+    \node[stxt] at (4.875,-2.12) {Window 2};
+    % windows 3 to 19
+    \node[stxt] at (6.33,-1.55) {\gdots};
+    \node[stxt] at (6.33,-2.12) {\gdots};
+    \node[bmark] at (6.58,-1.55) {};
+    % window 20
+    \node[dc] at (6.71,-1.55) {\gdots};
+    \node[gc, minimum width=0.95cm] at (7.26,-1.55) {G2540};
+    \node[bmark] at (8.25,-1.55) {};
+    \draw[bbr] (6.71,-1.85) -- (8.21,-1.85);
+    \node[stxt] at (7.46,-2.12) {Window 20};
+    % ---- gates go to the GPUs
+    \node[fatb, anchor=tip] at (4.325,-2.83) {};
+    \node[ann, anchor=west] at (4.72,-2.60) {One Window at a Time};
+    % ---- four GPUs, one sector each, and the exchange at the window boundary
+    \draw[comp] (0.15,-2.90) rectangle (8.50,-6.28);
+    \foreach \g/\f in {0/sa, 1/sb, 2/sc, 3/sd}
+    {
+      \node[gpu, anchor=north west, minimum width=1.84cm, minimum height=1.15cm] at ({0.27+2.09*\g},-2.99) {};
+      \node[stitle] at ({0.27+2.09*\g+0.92},-3.19) {GPU \g};
+      \node[cl, fill=\f, minimum width=1.60cm, minimum height=0.34cm] at ({0.27+2.09*\g+0.12},-3.56) {Sector \g};
+      % the window runs inside the GPU: a loop arrow (an arc, and a head whose tip and base lie on the circle)
+      \coordinate (lc) at ({0.27+2.09*\g+0.36},-3.94);
+      \coordinate (la) at ($(lc)+(105:0.14)$);
+      \coordinate (lb) at ($(lc)+(160:0.14)$);
+      \draw[line width=0.8pt] ($(lc)+(15:0.14)$) arc[start angle=15, end angle=-200, radius=0.14];
+      \fill (la) -- ($(lb)!0.075cm!90:(la)$) -- ($(lb)!0.075cm!-90:(la)$) -- cycle;
+      \node[sann, anchor=west] at ({0.27+2.09*\g+0.60},-3.93) {127 Gates};
+      \draw[bdarr] ({0.27+2.09*\g+0.92},-4.56) -- ({0.27+2.09*\g+0.92},-5.06);
+    }
+    \node[key] at (4.325,-4.38) {No Terms Cross GPUs While the Window Runs};
+    \draw[bar] (0.27,-5.08) rectangle (8.38,-5.86);
+    \node[stitle] (bt) at (4.42,-5.28) {Exchange at the Window Boundary};
+    \node[bmark, minimum height=0.26cm, anchor=east] at ([xshift=-0.07cm]bt.west) {};
+    \node[ann] at (4.325,-5.65) {Cut Where Terms Are Fewest: 159M of 1.36B Terms Move};
+    \foreach \i/\f in {0/sa, 1/sb, 2/sc, 3/sd}
+      \node[tm, minimum width=0.30cm, minimum height=0.28cm, fill=\f] (l\i) at ({1.55+0.30*\i},-6.07) {};
+    \node[ann, anchor=west] at ([xshift=0.08cm]l3.east) {A New Term Stays in Its Sector};
+  \end{scope}
+  % =====================================================================================================
+  % BOTTOM: the measured cost
+  % =====================================================================================================
+  \def\ya{-6.52}
+  \node[hb, minimum width=5.40cm] at (0,\ya) {Measured};
+  \node[hb, minimum width=4.60cm] at (5.40,\ya) {cuPauliProp Distributed};
+  \node[hb, minimum width=4.60cm] at (10.00,\ya) {SectorQ};
+  \node[hb, minimum width=3.00cm] at (14.60,\ya) {Ratio};
+  \foreach \r/\m/\a/\b/\c in {
+      1/{Collective Calls per GPU}/{119,785}/{208}/{576},
+      2/{Data Moved Between GPUs}/{20.3 GB}/{0.57 GB}/{36},
+      3/{Global Steps}/{Every Gate (2,540)}/{Every Window (20)}/{127},
+      4/{Data Leaving the GPUs, 16 GPUs}/{1,733 GB}/{60 GB}/{29}}
+  {
+    \node[db, minimum width=5.40cm] at (0,{\ya-0.40*\r}) {\m};
+    \node[db, minimum width=4.60cm, text=dred] at (5.40,{\ya-0.40*\r}) {\a};
+    \node[db, minimum width=4.60cm] at (10.00,{\ya-0.40*\r}) {\b};
+    \node[db, minimum width=3.00cm, text=dred] at (14.60,{\ya-0.40*\r}) {\c\tms};
+  }
+  \node[sann, anchor=north west] at (0,{\ya-2.04})
+    {First three rows: kicked Ising, 22.5M terms, 4 GPUs. Last row: kicked Ising, cutoff 1e-5, 16 GPUs.};
+\end{tikzpicture}

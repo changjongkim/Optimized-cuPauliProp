@@ -5,7 +5,7 @@
 % 190 million terms per buffer on 36 GB. Worker::process loads a sector, applies the operations of the
 % window, splits the sector by one more row of the window when the next operation does not fit
 % (splitCurrent), and divides the output by the rows of the next window into the tails of the next sectors.
-% Key value: 12.1 billion terms at a window boundary on 16 GPUs (logs/inter_run3.out).
+% Key value: 11.9 billion terms at a window boundary on 16 GPUs (campaign g, eng.ki.1e-6.g16; README 4.4).
 \begin{tikzpicture}[x=1cm, y=1cm, font=\rmfamily\footnotesize]
   \tikzset{ch/.style={draw=black!70, line width=0.3pt, anchor=west, inner sep=0pt, minimum width=0.4cm, minimum height=0.3cm},
            lab/.style={draw=black!70, line width=0.35pt, anchor=west, inner sep=0pt, minimum width=1.2cm, minimum height=0.3cm,
@@ -83,7 +83,7 @@
   \draw[sarr] (nr.west) -- (9.4,-3.57);
   % key value
   \node[draw=black!70, line width=0.45pt, fill=white, anchor=north west, minimum width=6.6cm, minimum height=0.72cm] at (7.15,-4.3) {};
-  \node[key, anchor=west] at (7.25,-4.66) {12.1 Billion Terms on 16 GPUs};
+  \node[key, anchor=west] at (7.25,-4.66) {11.9 Billion Terms on 16 GPUs};
   \node[inote, anchor=east] at (13.68,-4.66) {Held in Host Memory};
   % ================= the three paths between host and GPU =================
   \draw[arr] (6.3,-1.15) -- (7.0,-1.15);

@@ -1,0 +1,73 @@
+% Second TikZ style of the SectorQ design figures (trial, 2026-10-11): the look of the ScaleQsim paper.
+% Used by src/design2_<name>.tex, built by figures/build_v2.sh into figures/v2/<name>.png.
+% The first style (tikz_style.tex) and its figures are kept as they are.
+%
+% What makes the look:
+%   - all text is bold Times; names of panels and components are large, annotations are bold italic
+%   - a phase is a tinted panel (pan) with its name at the top left; inside it, white component boxes (comp)
+%     with a name and a black numbered circle (num)
+%   - data structures are drawn as tables with a blue header row (th) and example values (td), or as rows of
+%     colored cells (cl)
+%   - stages are joined by fat black block arrows (barrow); thin arrows (arr) inside a component; a dashed arrow
+%     (dsh) for what flows back; an action is a yellow rounded box (act)
+%   - nodes are peach / lavender / teal / pale yellow boxes (nA..nD), GPUs khaki (gpu)
+%   - red (dred) only for the key values of a figure and for the cost that SectorQ removes
+% Canvas: 17.6 cm wide. No text or arrow crosses the border of a box it does not belong to; little empty space.
+\definecolor{pan}{HTML}{D9D8C4}     % panel of a phase
+\definecolor{pan2}{HTML}{EDEDED}    % a lighter panel inside a figure
+\definecolor{navy}{HTML}{1F3864}
+\definecolor{thblue}{HTML}{0070C0}  % table header
+\definecolor{thgreen}{HTML}{70AD47}
+\definecolor{dred}{HTML}{C00000}
+\definecolor{nA}{HTML}{F8E3D4}      % node 0: peach
+\definecolor{nB}{HTML}{C5E0E6}      % node 1: teal
+\definecolor{nC}{HTML}{EDE9B4}      % node 2: pale yellow
+\definecolor{nD}{HTML}{D3DAF6}      % node 3: lavender
+\definecolor{gpuc}{HTML}{DDDAB8}    % a GPU
+\definecolor{actc}{HTML}{FFE699}    % an action
+\definecolor{tune}{HTML}{D5F2E3}    % a decision made at run time
+\definecolor{sa}{HTML}{8FAADC}      % sector colors (as in the first style): 00 blue, 01 green, 10 yellow, 11 violet
+\definecolor{sb}{HTML}{A9D18E}
+\definecolor{sc}{HTML}{FFD966}
+\definecolor{sd}{HTML}{CDB5E8}
+\definecolor{genc}{HTML}{F4B183}    % a generator Q
+\definecolor{rowc}{HTML}{9FD8CB}    % a parity row
+\definecolor{newc}{HTML}{ED7D31}    % a new term
+\tikzset{
+  every node/.append style={execute at begin node=\boldmath},     % symbols as bold as the text
+  pan/.style={draw=black!75, fill=pan, line width=0.6pt},
+  pan2/.style={draw=black!75, fill=pan2, line width=0.6pt},
+  comp/.style={draw=navy, fill=white, line width=0.7pt},
+  ptitle/.style={font=\rmfamily\bfseries\Large, inner sep=1.5pt},
+  ctitle/.style={font=\rmfamily\bfseries\normalsize, inner sep=1.5pt},
+  stitle/.style={font=\rmfamily\bfseries\small, inner sep=1.5pt},
+  txt/.style={font=\rmfamily\bfseries\footnotesize, inner sep=1.5pt, align=center},
+  stxt/.style={font=\rmfamily\bfseries\scriptsize, inner sep=1.5pt, align=center},
+  ann/.style={font=\rmfamily\bfseries\itshape\footnotesize, inner sep=1.5pt, align=center},
+  sann/.style={font=\rmfamily\bfseries\itshape\scriptsize, inner sep=1.5pt, align=center},
+  key/.style={font=\rmfamily\bfseries\itshape\footnotesize, text=dred, inner sep=1.5pt, align=center},
+  bigkey/.style={font=\rmfamily\bfseries\itshape\small, text=dred, inner sep=1.5pt, align=center},
+  th/.style={draw=black, fill=thblue, text=white, font=\rmfamily\bfseries\scriptsize, anchor=north west, inner sep=0pt,
+             minimum height=0.40cm, text height=0.22cm, text depth=0.07cm, line width=0.4pt},
+  td/.style={draw=black, fill=white, font=\rmfamily\bfseries\scriptsize, anchor=north west, inner sep=0pt,
+             minimum height=0.40cm, text height=0.22cm, text depth=0.07cm, line width=0.4pt},
+  cl/.style={draw=black!80, line width=0.4pt, anchor=west, inner sep=0pt, minimum width=0.46cm, minimum height=0.40cm,
+             font=\rmfamily\bfseries\scriptsize},
+  free/.style={cl, pattern=north east lines, pattern color=black!55},
+  act/.style={draw=black, fill=actc, rounded corners=3pt, line width=0.6pt, font=\rmfamily\bfseries\footnotesize, align=center,
+              inner sep=2.5pt, minimum height=0.55cm},
+  dec/.style={draw=black, fill=tune, line width=0.6pt, font=\rmfamily\bfseries\footnotesize, align=center, inner sep=2.5pt,
+              minimum height=0.55cm},
+  box/.style={draw=black, fill=white, line width=0.6pt, font=\rmfamily\bfseries\footnotesize, align=center, inner sep=2.5pt,
+              minimum height=0.55cm},
+  node0/.style={draw=black!80, fill=nA, line width=0.6pt}, node1/.style={draw=black!80, fill=nB, line width=0.6pt},
+  node2/.style={draw=black!80, fill=nC, line width=0.6pt}, node3/.style={draw=black!80, fill=nD, line width=0.6pt},
+  gpu/.style={draw=black!85, fill=gpuc, line width=0.6pt},
+  barrow/.style={single arrow, fill=black, draw=black, inner xsep=0pt, inner ysep=0.11cm, minimum height=0.6cm,
+                 single arrow head extend=0.14cm, single arrow tip angle=90},     % the shaft is 0.22 cm thick
+  arr/.style={-{Latex[length=2.0mm,width=1.7mm]}, line width=1.0pt},
+  darr/.style={{Latex[length=2.0mm,width=1.7mm]}-{Latex[length=2.0mm,width=1.7mm]}, line width=1.0pt},
+  dsh/.style={-{Latex[length=2.2mm,width=1.9mm]}, line width=1.2pt, dashed},
+  rarr/.style={-{Latex[length=2.0mm,width=1.7mm]}, line width=1.1pt, draw=dred},
+  num/.style={circle, fill=black, text=white, font=\sffamily\bfseries\scriptsize, inner sep=0.6pt, minimum size=0.40cm},
+}

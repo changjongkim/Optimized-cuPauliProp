@@ -1,0 +1,11 @@
+% One figure in the second style:  pdflatex -jobname=NAME "\def\figfile{NAME.tex}\input{standalone2.tex}"
+\documentclass[border=3pt]{standalone}
+\usepackage[T1]{fontenc}
+\usepackage{newtxtext,newtxmath}
+\usepackage{pifont}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, fit, calc, patterns, shapes.geometric, shapes.arrows, decorations.pathreplacing}
+\input{tikz_style2.tex}
+\begin{document}
+\input{\figfile}
+\end{document}

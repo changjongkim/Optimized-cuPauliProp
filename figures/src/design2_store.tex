@@ -1,0 +1,161 @@
+% Sector store and sector executor (Section 3.4), drawn in the second style (the look of the ScaleQsim paper).
+% What it shows: the host memory of one node keeps every sector as a list of fixed-size chunks (262,144 terms
+% each; chunks are pinned once and reused through a pool), and one GPU works on a single sector at a time:
+% (1) load one sector into the input buffer, (2) apply the 127 gates of the window, (3) when the next output
+% does not fit the buffer, split the sector by one more valid row and return the two halves to the store,
+% (4) at the end of the window, partition the output by the rows of the next window into the tails of the
+% next sectors. The strip at the bottom gives the measured reach on 16, 32 and 64 GPUs.
+% Message: sectors are independent, so they live in host memory and a GPU holds only the one it is
+% processing -- the number of terms is limited by host memory, not by GPU memory.
+\begin{tikzpicture}[x=1cm, y=1cm, font=\rmfamily\bfseries\footnotesize]
+  \tikzset{
+    ck/.style={cl, minimum width=0.355cm, minimum height=0.36cm},           % one chunk
+    lb/.style={cl, minimum width=1.05cm, minimum height=0.36cm},            % the name of a chunk row
+    pc/.style={cl, minimum height=0.44cm, font=\rmfamily\bfseries\footnotesize},  % a piece on the GPU
+    % block arrows with a thick shaft: the shaft is as wide as twice the inner sep
+    fa/.style={barrow, inner sep=0.14cm, minimum height=0.80cm, minimum width=0.56cm, single arrow head extend=0.14cm},
+    fas/.style={barrow, inner sep=0.10cm, minimum height=0.40cm, minimum width=0.42cm, single arrow head extend=0.11cm},
+    sarr/.style={-{Latex[length=1.5mm,width=1.3mm]}, line width=0.8pt},
+    thS/.style={th, minimum height=0.42cm},
+    tdS/.style={td, minimum height=0.44cm},
+    thL/.style={th, font=\rmfamily\bfseries\footnotesize, minimum height=0.42cm, text height=0.25cm, text depth=0.08cm},
+    tdL/.style={td, font=\rmfamily\bfseries\footnotesize, minimum height=0.46cm, text height=0.26cm, text depth=0.09cm},
+  }
+  \def\PB{-6.91}    % bottom of the two panels
+  \def\yA{-1.77}    % row of sector 0 and of the memory bar
+  \def\yC{-4.08}    % row of the two halves
+  \def\yD{-5.92}    % row of the pieces of the next window
+
+  % =====================================================================================================
+  % LEFT PANEL: the sector store in host memory
+  % =====================================================================================================
+  \path[pan] (0,0) rectangle (7.5,\PB);
+  \node[ptitle, anchor=north west] at (0.10,-0.07) {Sector Store {\normalsize (Host DRAM of Node 0)}};
+
+  % ---- sectors of this window: table and chunk lists ----
+  \path[comp] (0.15,-0.64) rectangle (7.35,-4.39);
+  \node[ctitle, anchor=west] (t1) at (0.24,-0.89) {Sectors of This Window};
+  \node[sann, anchor=east] at (7.27,-0.89) {Chunk = 262,144 Terms};
+  \node[thS, minimum width=0.90cm] at (0.30,-1.13) {Sector};
+  \node[thS, minimum width=1.05cm] at (1.20,-1.13) {Chunks};
+  \node[thS, minimum width=0.90cm] at (2.25,-1.13) {Terms};
+  \foreach \y/\s/\c/\t/\f/\n in {-1.55/0/10/2.5M/sa/9, -1.99/4/9/2.3M/sb/8, -2.43/8/10/2.5M/sc/9, -3.17/60/10/2.5M/sd/9}
+  {
+    \node[tdS, minimum width=0.90cm] at (0.30,\y) {\s};
+    \node[tdS, minimum width=1.05cm] at (1.20,\y) {\c};
+    \node[tdS, minimum width=0.90cm] at (2.25,\y) {\t};
+    \draw[sarr] (3.19,{\y-0.22}) -- (3.55,{\y-0.22});
+    \foreach \i in {0,...,\n}
+      \node[ck, fill=\f] at ({3.58+0.355*\i},{\y-0.22}) {};
+  }
+  \path[draw=black, fill=white, line width=0.4pt] (0.307,-2.877) rectangle (3.157,-3.177);
+  \foreach \x in {1.73, 5.355}
+    \foreach \d in {-0.075, 0, 0.075}
+      \fill (\x,{-3.027+\d}) circle (0.023);
+  % the two halves of a sector that was split
+  \node[lb, fill=sa, minimum width=1.25cm] at (0.30,\yC) {Sector 0a};
+  \foreach \i in {0,...,4}
+    \node[ck, fill=sa] at ({1.55+0.355*\i},\yC) {};
+  \node[lb, fill=sa!50, minimum width=1.25cm] at (4.105,\yC) {Sector 0b};
+  \foreach \i in {0,...,4}
+    \node[ck, fill=sa!50] at ({5.355+0.355*\i},\yC) {};
+
+  % ---- chunk pool ----
+  \path[comp] (0.15,-4.51) rectangle (7.35,-5.25);
+  \node[ctitle, anchor=west] at (0.24,-4.88) {Chunk Pool};
+  \foreach \i in {0,...,3}
+    \node[free, minimum width=0.355cm, minimum height=0.36cm] at ({2.32+0.355*\i},-4.88) {};
+  \node[sann, anchor=east, align=right] at (7.27,-4.88) {Pinned Once, Reused\\Grown While the GPUs Work};
+
+  % ---- sectors of the next window: their tails fill up ----
+  \path[comp] (0.15,-5.37) rectangle (7.35,-6.77);
+  \node[ctitle, anchor=west] at (0.24,-5.62) {Sectors of the Next Window};
+  \node[ann, anchor=east] at (7.27,-5.62) {Tails Fill Up};
+  \foreach \x/\y/\t/\f/\n in {0.30/-6.04/Next 00/sa/4, 0.30/-6.45/Next 01/sb/3, 3.95/-6.04/Next 10/sc/2, 3.95/-6.45/Next 11/sd/3}
+  {
+    \node[lb, fill=\f] at (\x,\y) {\t};
+    \foreach \i in {0,...,\n}
+      \node[ck, fill=\f] at ({\x+1.05+0.355*\i},\y) {};
+    \node[ck, fill=\f!35] at ({\x+1.05+0.355*(\n+1)},\y) {};
+  }
+
+  % =====================================================================================================
+  % RIGHT PANEL: one GPU works on one sector
+  % =====================================================================================================
+  \path[pan] (8.6,0) rectangle (17.6,\PB);
+  \node[ptitle, anchor=north west] at (8.70,-0.07) {Sector Executor {\normalsize (GPU 0, 36 GB)}};
+
+  % ---- the memory of the GPU: two term buffers and scratch space, drawn to scale ----
+  \path[gpu] (8.75,-0.60) rectangle (17.45,-1.55);
+  \node[key, anchor=west] at (8.82,-0.82) {190 Million Terms per Buffer};
+  \draw[line width=0.7pt, decorate, decoration={brace, amplitude=2.0pt}] (8.84,-1.10) -- (12.14,-1.10);
+  \node[txt] at (9.62,-1.35) {Input 20\%};
+  \node[txt] at (11.36,-1.35) {Output 20\%};
+  \node[stitle] at (14.84,-1.075) {Scratch 60\%};
+  \path[draw=black, fill=white, line width=0.5pt] (8.75,-1.55) rectangle (10.49,-1.99);
+  \path[draw=black, fill=white, line width=0.5pt] (10.49,-1.55) rectangle (12.23,-1.99);
+  \path[draw=black, line width=0.5pt, preaction={fill=white}, pattern=north east lines, pattern color=black!55]
+    (12.23,-1.55) rectangle (17.45,-1.99);
+  \path[draw=black, fill=sa, line width=0.5pt] (8.75,-1.55) rectangle (9.97,-1.99);
+  \node[stxt] at (9.36,\yA) {Sector 0};
+  \path[draw=black, fill=sa!45, line width=0.5pt] (10.49,-1.55) rectangle (11.90,-1.99);
+
+  % ---- (2) apply the gates of the window: read the input buffer, write the output buffer ----
+  \node[fas, shape border rotate=270, anchor=tip] at (9.62,-2.455) {};
+  \node[fas, shape border rotate=90, anchor=tip] at (11.36,-2.045) {};
+  \path[act] (8.75,-2.51) rectangle (14.00,-3.33);
+  \node[num] at (9.07,-2.92) {2};
+  \node[txt] at (11.62,-2.75) {Apply the 127 Gates of the Window};
+  \node[sann] at (11.62,-3.09) {Branch, Merge, Truncate Inside the Sector};
+
+  % ---- (3) does the next output fit? ----
+  \draw[arr] (14.00,-2.92) -- (14.50,-2.92);
+  \path[dec] (14.50,-2.51) rectangle (17.45,-3.33);
+  \node[num] at (14.82,-2.92) {3};
+  \node[txt] at (16.22,-2.92) {Next Output\\Fits the Buffer?};
+
+  % ---- no: split by one more valid row ----
+  \path[comp] (8.75,-3.67) rectangle (15.35,-5.25);
+  \draw[rarr] (15.00,-3.33) -- (15.00,\yC) -- (14.50,\yC);
+  \node[key, anchor=west] at (15.05,-3.49) {No};
+  \path[act] (10.66,{\yC+0.31}) rectangle (14.50,{\yC-0.31});
+  \node[txt] at (12.58,\yC) {Split by One More Valid Row};
+  \draw[rarr] (10.66,\yC) -- (10.14,\yC);
+  \node[pc, fill=sa, minimum width=0.62cm] at (8.90,\yC) {0a};
+  \node[pc, fill=sa!50, minimum width=0.62cm] at (9.52,\yC) {0b};
+  \node[ann, anchor=west, align=left] at (8.86,-4.82) {Both Halves Continue From the Next Gate.\\The Answer Does Not Change.};
+
+  % ---- yes, at the end of the window: (4) partition by the rows of the next window ----
+  \path[comp] (8.75,-5.37) rectangle (17.45,-6.77);
+  \draw[arr] (15.75,-3.33) -- (15.75,{\yD+0.31});
+  \node[ann, anchor=west] at (15.80,-3.49) {Yes};
+  \node[sann, anchor=west, align=left] at (15.82,-4.46) {At the End\\of the Window};
+  \path[act] (11.45,{\yD+0.31}) rectangle (17.30,{\yD-0.31});
+  \node[num] at (11.77,\yD) {4};
+  \node[txt] at (14.62,\yD) {Partition by the Rows of the Next Window};
+  \draw[arr] (11.45,\yD) -- (10.90,\yD);
+  \foreach \i/\f/\t in {0/sa/00, 1/sb/01, 2/sc/10, 3/sd/11}
+    \node[pc, fill=\f, minimum width=0.50cm] at ({8.90+0.50*\i},\yD) {\t};
+  \node[ann, anchor=west] at (8.86,-6.50) {Pieces Owned by Other Nodes Are Sent at the Window Boundary};
+
+  % =====================================================================================================
+  % BETWEEN THE PANELS: what moves between host memory and the GPU
+  % =====================================================================================================
+  \node[num] at (8.05,-1.24) {1};
+  \node[fa, anchor=tail] at (7.65,\yA) {};
+  \node[stxt, anchor=north] at (8.05,-2.10) {Load\\One\\Sector};
+  \node[fa, fill=dred, draw=dred, shape border rotate=180, anchor=tail] at (8.45,\yC) {};
+  \node[fa, shape border rotate=180, anchor=tail] at (8.45,\yD) {};
+
+  % =====================================================================================================
+  % BOTTOM: the capacity that follows, with the measured reach
+  % =====================================================================================================
+  \draw[line width=2.4pt, -{Latex[length=3.8mm,width=3.4mm]}] (0,{\PB-0.23}) -- (17.6,{\PB-0.23});
+  \node[font=\rmfamily\bfseries\itshape\large, inner sep=1.5pt] at (8.8,{\PB-0.60}) {Capacity Is Set by Host Memory, Not GPU Memory};
+  \foreach \i/\g/\n/\m in {0/16 GPUs/11.9 Billion Terms/{788 of 1,024 GiB}, 1/32 GPUs/23.3 Billion Terms/{1,725 of 2,048 GiB},
+                           2/64 GPUs/44.3 Billion Terms/{3,410 of 4,096 GiB}}
+  {
+    \node[thL, minimum width=5.8667cm] at ({5.8667*\i},{\PB-0.90}) {\g};
+    \node[tdL, minimum width=5.8667cm] at ({5.8667*\i},{\PB-1.32}) {{\color{dred}\n}, \m};
+  }
+\end{tikzpicture}

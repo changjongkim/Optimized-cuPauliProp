@@ -1,0 +1,180 @@
+% Runtime re-sectoring of one window (Section 3.2), second style (the look of the ScaleQsim paper).
+% What it shows: a three-qubit example, bit vectors are (x | z). Left, outside the panel: the next gates of the window
+% (three X rotations) and their generators Q. In the panel: (1) the valid rows, found by GF(2) elimination on the
+% generators (a row r is the parity of the bits its mask selects; it is valid when r(Q) = 0 for every generator);
+% (2) a sample of the live terms with the value of every valid row; (3) the valid rows scored by how they split the
+% live terms (r1 and r3 split six terms 3 : 3, r2 splits them 4 : 2); (4) the sectors, one per value of (r1, r3);
+% (5) the rotation RX1 applied to P1 inside sector 10: the new term equals P2, which is in the same sector.
+% Bottom strip: the same decision for window 9 of the 127-qubit run.
+% Message (one sentence): which rows are valid is decided by the next gates, and which valid rows split the terms evenly
+% is decided by the live terms -- both are known only at run time -- and the sectors made from those rows are closed
+% while the window runs.
+% Each component is drawn in a scope whose origin is the top left corner of its box. Block arrows are placed by their tip.
+\begin{tikzpicture}[x=1cm, y=1cm, font=\rmfamily\bfseries\footnotesize]
+  \def\B#1{\mbox{\boldmath$#1$}}
+  \tikzset{
+    hd/.style={th, minimum height=0.38cm},      % header cell, one tier
+    hh/.style={th, minimum height=0.34cm},      % header cell, one of two tiers
+    hH/.style={th, minimum height=0.68cm},      % header cell, two tiers high
+    hT/.style={draw=black, fill=thblue, text=white, font=\rmfamily\bfseries\scriptsize, anchor=north west, inner sep=0pt,
+               minimum height=0.68cm, line width=0.4pt, align=center},   % header cell, two tiers high, two lines of text
+    bd/.style={td, minimum height=0.38cm},      % body cell
+    mc/.style={draw=black!80, line width=0.35pt, anchor=west, inner sep=0pt, minimum width=0.32cm, minimum height=0.30cm,
+               font=\rmfamily\bfseries\fontsize{6}{7}\selectfont},
+    gate/.style={draw=black, fill=genc, line width=0.6pt, inner sep=0pt, minimum width=0.70cm, minimum height=0.42cm,
+                 font=\rmfamily\bfseries\scriptsize},
+    otitle/.style={font=\rmfamily\bfseries\itshape\small, inner sep=1.5pt, align=center},
+    bits/.style={draw=black, line width=0.6pt, inner sep=0pt, minimum width=1.18cm, minimum height=0.40cm,
+                 font=\rmfamily\bfseries\footnotesize},
+    sec/.style={draw=black!80, line width=0.6pt, anchor=north west},
+    % barrow of the style file has no inner sep, so its shaft is a hairline: give it a shaft (local)
+    barrow/.append style={inner ysep=0.12cm, single arrow head extend=0.16cm, minimum height=0.58cm, anchor=tip},
+  }
+  % ================= left: the next gates of the window (outside any panel) =================
+  \node[otitle] at (1.15,-0.48) {Next Gates\\of the Window};
+  \node[font=\rmfamily\bfseries\itshape\small, text=thblue, inner sep=1pt] at (1.31,-1.18) {Window};
+  \foreach \k/\y in {1/-1.76, 2/-2.41, 3/-3.06}
+  {
+    \node[font=\rmfamily\bfseries\small, inner sep=0pt] at (0.20,\y) {\B{q_\k}};
+    \draw[line width=1.0pt] (0.44,\y) -- (2.20,\y);
+    \node[gate] at (1.31,\y) {RX\B{_\k}};
+  }
+  \draw[draw=thblue, dashed, line width=1.3pt] (0.76,-1.39) rectangle (1.86,-3.43);
+  \draw[arr] (1.31,-3.51) -- (1.31,-3.94);
+  \node[otitle] at (1.15,-4.20) {Generators \B{Q}};
+  \foreach \x/\w/\h in {0.11/0.76/Gate, 0.87/0.66/x, 1.53/0.66/z}
+    \node[hd, minimum width=\w cm] at (\x,-4.44) {\h};
+  \foreach \k/\xb in {1/100, 2/010, 3/001}
+  {
+    \node[bd, fill=genc, minimum width=0.76cm] at (0.11,{-4.44-0.38*\k}) {RX\B{_\k}};
+    \node[bd, minimum width=0.66cm] at (0.87,{-4.44-0.38*\k}) {\xb};
+    \node[bd, minimum width=0.66cm] at (1.53,{-4.44-0.38*\k}) {000};
+  }
+  \node[sann] at (1.15,-6.44) {X Rotations Flip\\Only x Bits};
+  \node[barrow] at (2.93,-2.41) {};
+  % ================= the panel =================
+  \node[pan, anchor=north west, minimum width=14.62cm, minimum height=7.24cm] at (2.98,0) {};
+  \node[ptitle, anchor=west] at (3.10,-0.33) {Runtime Re-Sectoring};
+  \node[ann, anchor=east] at (17.42,-0.34) {3-Qubit Example: A Pauli String Is Stored as a Bit Vector (x\,|\,z)};
+  % ---- 1: the valid rows ----
+  \begin{scope}[shift={(3.14,-0.64)}]
+    \node[comp, anchor=north west, minimum width=4.20cm, minimum height=3.54cm] at (0,0) {};
+    \node[ctitle] (t1) at (1.86,-0.29) {Valid Rows};
+    \node[num] at ([xshift=0.27cm]t1.east) {1};
+    \node[cl, fill=genc, anchor=center] at (0.71,-0.78) {\B{Q}};
+    \draw[arr] (0.96,-0.78) -- (1.33,-0.78);
+    \node[act, minimum height=0.44cm, minimum width=2.40cm] at (2.54,-0.78) {GF(2) Elimination};
+    \draw[arr] (2.54,-1.00) -- (2.54,-1.36);
+    \def\ax{0.15} \def\ay{-1.37}
+    \node[hH, minimum width=0.64cm] at (\ax,\ay) {Row};
+    \node[hT, minimum width=0.76cm] at ({\ax+0.64},\ay) {x\\Mask};
+    \node[hT, minimum width=0.76cm] at ({\ax+1.40},\ay) {z\\Mask};
+    \node[hh, minimum width=1.74cm] at ({\ax+2.16},\ay) {\B{r\mkern-1.5mu(Q\mkern-1mu)} for};
+    \foreach \k in {1,2,3}
+      \node[hh, minimum width=0.58cm] at ({\ax+2.16+0.58*(\k-1)},{\ay-0.34}) {RX\B{_\k}};
+    \foreach \k/\zb in {1/100, 2/010, 3/011}
+    {
+      \node[bd, minimum height=0.36cm, fill=rowc, minimum width=0.64cm] at (\ax,{\ay-0.68-0.36*(\k-1)}) {\B{r_\k}};
+      \node[bd, minimum height=0.36cm, minimum width=0.76cm] at ({\ax+0.64},{\ay-0.68-0.36*(\k-1)}) {000};
+      \node[bd, minimum height=0.36cm, minimum width=0.76cm] at ({\ax+1.40},{\ay-0.68-0.36*(\k-1)}) {\zb};
+      \foreach \j in {0,1,2}
+        \node[bd, minimum height=0.36cm, minimum width=0.58cm] at ({\ax+2.16+0.58*\j},{\ay-0.68-0.36*(\k-1)}) {0};
+    }
+    \node[ann] at (2.10,-3.33) {Rank 3: 6 \B{-} 3 = 3 Valid Rows};
+  \end{scope}
+  \node[barrow] at (7.98,-2.41) {};
+  % ---- 3: the valid rows, scored by how they split the live terms ----
+  \begin{scope}[shift={(8.04,-0.64)}]
+    \node[comp, anchor=north west, minimum width=4.70cm, minimum height=3.54cm] at (0,0) {};
+    \node[ctitle] (t3) at (2.11,-0.29) {Rows Chosen by the Split};
+    \node[num] at ([xshift=0.27cm]t3.east) {3};
+    \def\cx{0.13} \def\cy{-0.60} \def\rh{0.52}
+    \node[hH, minimum width=0.60cm] at (\cx,\cy) {Row};
+    \node[hh, minimum width=3.18cm] at ({\cx+0.60},\cy) {Split of the Live Terms};
+    \node[hh, minimum width=1.40cm] at ({\cx+0.60},{\cy-0.34}) {\B{r = 0}};
+    \node[hh, minimum width=1.08cm] at ({\cx+2.00},{\cy-0.34}) {\B{r = 1}};
+    \node[hh, minimum width=0.70cm] at ({\cx+3.08},{\cy-0.34}) {Ratio};
+    \node[hH, minimum width=0.66cm] at ({\cx+3.78},\cy) {Kept};
+    \foreach \k/\s/\kp/\f in {1/{3 : 3}/Yes/rowc, 2/{4 : 2}/No/black!12, 3/{3 : 3}/Yes/rowc}
+    {
+      \node[bd, minimum height=\rh cm, fill=\f, minimum width=0.60cm] at (\cx,{\cy-0.68-\rh*(\k-1)}) {\B{r_\k}};
+      \node[bd, minimum height=\rh cm, minimum width=1.40cm] at ({\cx+0.60},{\cy-0.68-\rh*(\k-1)}) {};
+      \node[bd, minimum height=\rh cm, minimum width=1.08cm] at ({\cx+2.00},{\cy-0.68-\rh*(\k-1)}) {};
+      \node[bd, minimum height=\rh cm, minimum width=0.70cm] at ({\cx+3.08},{\cy-0.68-\rh*(\k-1)}) {\s};
+      \node[bd, minimum height=\rh cm, fill=\f, minimum width=0.66cm] at ({\cx+3.78},{\cy-0.68-\rh*(\k-1)}) {\kp};
+    }
+    % the terms on each side of a row, in the color of their sector
+    \foreach \t/\f [count=\i from 0] in {3/sa, 4/sb, 6/sb}        \node[mc, fill=\f] at ({\cx+0.60+0.22+0.32*\i},{\cy-0.68-0.5*\rh}) {\B{P_\t}};
+    \foreach \t/\f [count=\i from 0] in {1/sc, 2/sc, 5/sd}        \node[mc, fill=\f] at ({\cx+2.00+0.06+0.32*\i},{\cy-0.68-0.5*\rh}) {\B{P_\t}};
+    \foreach \t/\f [count=\i from 0] in {1/sc, 2/sc, 4/sb, 5/sd}  \node[mc, fill=\f] at ({\cx+0.60+0.06+0.32*\i},{\cy-0.68-1.5*\rh}) {\B{P_\t}};
+    \foreach \t/\f [count=\i from 0] in {3/sa, 6/sb}              \node[mc, fill=\f] at ({\cx+2.00+0.22+0.32*\i},{\cy-0.68-1.5*\rh}) {\B{P_\t}};
+    \foreach \t/\f [count=\i from 0] in {1/sc, 2/sc, 3/sa}        \node[mc, fill=\f] at ({\cx+0.60+0.22+0.32*\i},{\cy-0.68-2.5*\rh}) {\B{P_\t}};
+    \foreach \t/\f [count=\i from 0] in {4/sb, 5/sd, 6/sb}        \node[mc, fill=\f] at ({\cx+2.00+0.06+0.32*\i},{\cy-0.68-2.5*\rh}) {\B{P_\t}};
+    \node[bigkey] at (2.35,-3.19) {Even Split: Keep \B{r_1}, \B{r_3}};
+  \end{scope}
+  \node[barrow, rotate=180] at (12.80,-2.41) {};
+  % ---- 2: the live terms ----
+  \begin{scope}[shift={(13.44,-0.64)}]
+    \node[comp, anchor=north west, minimum width=4.00cm, minimum height=3.54cm] at (0,0) {};
+    \node[ctitle] (t2) at (1.76,-0.29) {Live Terms (Sample)};
+    \node[num] at ([xshift=0.27cm]t2.east) {2};
+    \def\lx{0.20} \def\ly{-0.60}
+    \foreach \x/\w/\h in {0/0.74/Term, 0.74/0.68/x, 1.42/0.68/z, 2.10/0.50/\B{r_1}, 2.60/0.50/\B{r_2}, 3.10/0.50/\B{r_3}}
+      \node[th, minimum width=\w cm] at ({\lx+\x},\ly) {\h};
+    \foreach \k/\xb/\zb/\a/\b/\c/\f in {1/000/100/1/0/0/sc, 2/100/100/1/0/0/sc, 3/010/011/0/1/0/sa,
+                                        4/000/001/0/0/1/sb, 5/001/101/1/0/1/sd, 6/011/010/0/1/1/sb}
+    {
+      \node[td, fill=\f, minimum width=0.74cm] at (\lx,{\ly-0.40*\k}) {\B{P_\k}};
+      \node[td, minimum width=0.68cm] at ({\lx+0.74},{\ly-0.40*\k}) {\xb};
+      \node[td, minimum width=0.68cm] at ({\lx+1.42},{\ly-0.40*\k}) {\zb};
+      \node[td, minimum width=0.50cm] at ({\lx+2.10},{\ly-0.40*\k}) {\a};
+      \node[td, minimum width=0.50cm] at ({\lx+2.60},{\ly-0.40*\k}) {\b};
+      \node[td, minimum width=0.50cm] at ({\lx+3.10},{\ly-0.40*\k}) {\c};
+    }
+  \end{scope}
+  \node[barrow, minimum height=0.54cm, rotate=-90] at (10.10,-4.79) {};
+  % ---- 4: the sectors ----
+  \begin{scope}[shift={(3.14,-4.86)}]
+    \node[comp, anchor=north west, minimum width=7.60cm, minimum height=2.24cm] at (0,0) {};
+    \node[ctitle] (t4) at (3.56,-0.29) {Sectors = Values of (\B{r_1}, \B{r_3})};
+    \node[num] at ([xshift=0.27cm]t4.east) {4};
+    \foreach \k/\id/\f in {0/00/sa, 1/01/sb, 2/10/sc, 3/11/sd}
+    {
+      \node[sec, fill=\f!40, minimum width=1.70cm, minimum height=0.98cm] at ({0.175+1.85*\k},-0.59) {};
+      \node[txt] at ({1.025+1.85*\k},-0.80) {Sector \id};
+    }
+    \node[cl, fill=sa] at (0.795,-1.26) {\B{P_3}};
+    \node[cl, fill=sb] at (2.415,-1.26) {\B{P_4}};  \node[cl, fill=sb] at (2.875,-1.26) {\B{P_6}};
+    \node[cl, fill=sc] at (4.265,-1.26) {\B{P_1}};  \node[cl, fill=sc] at (4.725,-1.26) {\B{P_2}};
+    \node[cl, fill=sd] at (6.345,-1.26) {\B{P_5}};
+    \node[ann] at (3.80,-1.90) {Sector \B{d} Lives on Node \B{d} mod \B{N}};
+  \end{scope}
+  \node[barrow] at (11.38,-5.98) {};
+  % ---- 5: a rotation stays inside its sector ----
+  \begin{scope}[shift={(11.44,-4.86)}]
+    \node[comp, anchor=north west, minimum width=6.00cm, minimum height=2.24cm] at (0,0) {};
+    \node[ctitle] (t5) at (2.76,-0.29) {Closure Inside a Sector};
+    \node[num] at ([xshift=0.27cm]t5.east) {5};
+    \node[sec, fill=sc!40, minimum width=5.70cm, minimum height=0.88cm] at (0.15,-0.57) {};
+    \node[txt] at (0.64,-1.01) {Sector\\10};
+    \node[sann] at (1.80,-0.73) {\B{P_1}};
+    \node[sann] at (3.42,-0.73) {RX\B{_1}};
+    \node[sann] at (5.04,-0.73) {\B{P_2}: Merge};
+    \node[bits, fill=sc]   at (1.80,-1.17) {000\,|\,100};
+    \node[bits, fill=genc] at (3.42,-1.17) {100\,|\,000};
+    \node[bits, fill=sc]   at (5.04,-1.17) {100\,|\,100};
+    \node[txt] at (2.61,-1.17) {\B{\oplus}};
+    \node[txt] at (4.23,-1.17) {\B{=}};
+    \node[key] at (3.00,-1.85) {The New Term and Its Merge Partner\\Stay in the Sector};
+  \end{scope}
+  % ================= bottom strip: the same decision for the 127-qubit circuit =================
+  \node[pan2, anchor=north west, minimum width=17.60cm, minimum height=1.00cm] at (0,-7.36) {};
+  \node[ctitle, anchor=west] at (0.18,-7.86) {Window 9 of the 127-Qubit Run:};
+  \node[box, fill=genc, minimum width=1.50cm, minimum height=0.80cm] at (6.35,-7.86) {127 Gates};
+  \node[barrow] at (7.76,-7.86) {};
+  \node[box, fill=rowc, minimum width=2.20cm, minimum height=0.80cm] at (8.94,-7.86) {127 Valid Rows};
+  \node[barrow] at (10.70,-7.86) {};
+  \node[box, fill=rowc, minimum width=3.00cm, minimum height=0.80cm] at (12.28,-7.86) {6 Rows, Even on\\200K Sampled Terms};
+  \node[barrow] at (14.44,-7.86) {};
+  \node[box, fill=white, minimum width=2.90cm, minimum height=0.80cm] at (15.97,-7.86) {64 Sectors, Largest\\1.01\B{\times} the Mean};
+\end{tikzpicture}
