@@ -60,7 +60,7 @@ def scaling_jobs():
     """The runs on 32-256 GPUs (jobs e15), as the evaluation figures read them."""
     if len(_G) < 2:
         campaign()
-        _G.append(mf.many("pp_e15_g*-*.out"))
+        _G.append(mf.big_logs())
     return _G[1]
 
 

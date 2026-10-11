@@ -15,6 +15,8 @@ import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import json
+
 import campaign_g as cg
 sys.path.insert(0, os.path.join(cg.ROOT, "figures"))
 import make_eval_figures as mf                      # parse(): the logs of the scaling jobs, one log per GPU count
@@ -591,10 +593,10 @@ _big = {}
 
 
 def big_runs():
+    """The runs on 32 GPUs and more by GPU count: the scaling jobs e15, then the scale campaign (logs/s, one log per run)."""
     if not _big:
-        for path in sorted(glob.glob(os.path.join(ROOT, "logs", "pp_e15_g*-*.out"))):
-            for r in mf.parse(os.path.basename(path)):
-                _big.setdefault(r["gpus"], []).append(r)
+        for r in mf.big_logs():
+            _big.setdefault(r["gpus"], []).append(r)
     return _big
 
 
@@ -785,11 +787,80 @@ def b_var():
     return "\n\n".join(out) + "\n\n" + ("기대값은 모든 설정에서 10회가 12자리까지 같다." if same else "기대값이 반복마다 다른 설정이 있다.")
 
 
+def b_reach_big(c="ki"):
+    """Per GPU count: the largest problem SectorQ finished, the memory it took, and where cuPauliProp's modes stop."""
+    todo = os.path.join(ROOT, "queue_s", "todo_s.jsonl")
+    s_items = [json.loads(line) for line in open(todo) if line.strip()] if os.path.exists(todo) else []
+
+    def scale_state(item_id):
+        p = os.path.join(ROOT, "queue_s", "done", item_id)
+        return json.load(open(p)) if os.path.exists(p) else None
+
+    def after(tags, g, below):
+        """The next step of the ladder under the cutoff `below`: (cutoff, what happened to it)."""
+        if g == 16:
+            steps = sorted({y for tag in tags for y in ladder(f"{tag}.{c}", f"g{g}")}, key=float, reverse=True)
+            for y in steps:
+                st = [state.get(f"{tag}.{c}.{y}.g{g}") for tag in tags]
+                st = [x for x in st if x and x["status"] != "skipped_after_failure"]
+                if float(y) < float(below) * 0.999 and st:
+                    return y, ("ok" if any(ok(x) for x in st) else st[0]["status"])
+            return None
+        steps = sorted((i for i in s_items if i["id"].split(".")[0] in tags and i["id"].split(".")[1] == c and i["id"].endswith(f".g{g}")
+                        and i["coef"] < float(below) * 0.999), key=lambda i: -i["coef"])
+        if not steps:
+            return None
+        st = scale_state(steps[0]["id"])
+        return ".".join(steps[0]["id"].split(".")[2:-1]), (st["status"] if st else None)
+
+    def tell(step):
+        if not step:
+            return ""
+        x, status = step
+        return f"{x}: " + ("아직 돌지 않음" if status is None else FAIL.get(status, status))
+
+    size = lambda n: mf.data_size(n * mf.term_bytes(c))
+    rows = []
+    for g in (16, 32, 64, 128, 256, 512):
+        total = g // 4 * 256
+        if g == 16:
+            done = [x for x in ladder(f"eng.{c}", f"g{g}", True) if ok(state.get(f"eng.{c}.{x}.g{g}"))]
+            x = min(done, key=float)
+            st = state[f"eng.{c}.{x}.g{g}"]
+            f = cg.engine_facts("", st)
+            ours = (x, f[0], f[1], st["wall"], f[2])
+            base = {"cupp": [y for y in ladder(f"cupp.{c}", f"g{g}", True) if ok(state.get(f"cupp.{c}.{y}.g{g}"))],
+                    "defer": [y for y in ladder(f"cupp.{c}", f"g{g}") if ok(deferred(c, y, g))]}
+            base = {tag: min(v, key=float) if v else None for tag, v in base.items()}
+        else:
+            runs = [r for r in big_runs().get(g, []) if r["circuit"] == CIRC[c]]          # any sector limit and chunk size: the table is about reach
+            eng = [r for r in runs if r["kind"] == "engine" and mf.ok(r)]
+            if not eng:
+                rows.append([str(g), f"{total:,} GiB", "대기 중", "", "", "", "", "", "", ""])
+                continue
+            r = min(eng, key=lambda r: r["coef"])
+            ours = (r["opt"]["--coef"], r.get("boundary"), r.get("inside"), r["wall"], r.get("host_gib"))
+            base = {}
+            for tag, tuned in (("cupp", False), ("defer", True)):
+                fin = [q for q in runs if q["kind"] == "cupp" and q["tuned"] == tuned and mf.ok(q)]
+                base[tag] = min(fin, key=lambda q: q["coef"])["opt"]["--coef"] if fin else None
+        x, nb, ni, wall, host = ours
+        cells = []
+        for tag, tags in (("cupp", ("cupp",)), ("defer", ("defer", "defer2", "defer3") if g == 16 else ("defer",))):
+            y = base.get(tag)
+            cells.append((f"{y} ({ko_terms(facts(c, y)[0])})" + (". " + tell(after(tags, g, y)) if after(tags, g, y) else "")) if y else "")
+        rows.append([str(g), f"{total:,} GiB", x, f"{ko_terms(nb)} ({size(nb)})" if nb else "", ko_terms(ni) if ni else "", sec(wall),
+                     f"{host:,.0f} GiB ({100 * host / total:.0f}%)" if host else "", tell(after(("eng", "eng10", "eng12"), g, x))] + cells)
+    return table(["GPU 수", "host memory", "SectorQ가 끝낸 가장 작은 cutoff", "구간 경계의 항 수 (크기)", "구간 안 최대 항 수", "시간", "쓴 host memory", "그다음 cutoff",
+                  "cuPauliProp 기본이 끝낸 가장 작은 cutoff와 그다음", "dedup을 미룬 방식이 끝낸 가장 작은 cutoff와 그다음"], rows,
+                 ["---:", "---:", "---", "---:", "---:", "---:", "---:", "---", "---", "---"])
+
+
 BLOCKS = {"large": b_large, "single": b_single, "gain": b_gain, "progress": b_progress, "agree": b_agree, "speed": b_speed, "single_node": b_single_node, "node_mult": b_node_mult,
           "multi_mult": b_multi_mult, "strong_sota": b_strong_sota, "same_error": b_same_error, "given": b_given,
           "threads": b_threads, "gpus": b_gpus, "reach": b_reach, "largest": b_largest, "strong": b_strong, "weak": b_weak, "parts": b_parts,
           "base_parts": b_base_parts, "params": b_params, "vram": b_vram, "exact": b_exact, "ckpt": b_ckpt, "conv": b_conv,
-          "acc": b_acc, "qubits": b_qubits, "qubits_site": b_qubits_site, "depth": b_depth, "var": b_var}
+          "acc": b_acc, "qubits": b_qubits, "qubits_site": b_qubits_site, "depth": b_depth, "var": b_var, "reach_big": b_reach_big}
 
 
 def main():

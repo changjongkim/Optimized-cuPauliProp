@@ -94,6 +94,12 @@ def parse(name):
         m = re.match(r"max_terms_at_window_boundary=(\d+)", line)
         if m:
             cur["boundary"] = int(m.group(1))
+        m = re.match(r"max_terms_inside_a_window=(\d+)", line)
+        if m:
+            cur["inside"] = int(m.group(1))
+        m = re.match(r"host memory in chunks: ([\d.]+) GiB on the busiest node, ([\d.]+) GiB over all nodes", line)
+        if m:
+            cur["busiest_gib"], cur["host_gib"] = float(m.group(1)), float(m.group(2))
         m = re.match(r"integrity: (\d+) term checks", line)
         if m:
             cur["checks"] = int(m.group(1))
@@ -320,6 +326,15 @@ def many(pattern):
     out = []
     for path in sorted(glob.glob(os.path.join(LOGS, pattern))):
         out += parse(os.path.basename(path))
+    return out
+
+
+def big_logs():
+    """The runs on 32 GPUs and more: the scaling jobs e15 and the scale campaign (queue_s; one log per run in logs/s).
+    A run that the campaign took over from e15 appears twice with the same values."""
+    out = many("pp_e15_g*-*.out")
+    for path in sorted(glob.glob(os.path.join(LOGS, "s", "*.out"))):
+        out += parse(os.path.join("s", os.path.basename(path)))
     return out
 
 
@@ -780,11 +795,12 @@ def data_size(nbytes):
     return f"{nbytes / 1e3:.3g}KB"
 
 
-def cut_ticks(G, c, cutoffs, extra=None):
-    """Tick labels: the cutoff and, below it, the number of terms of that problem and their size (or the text of `extra`)."""
+def cut_ticks(G, c, cutoffs, extra=None, more=None):
+    """Tick labels: the cutoff and, below it, the number of terms of that problem and their size (or the text of `extra`).
+    `more`: {cutoff: terms} of the problems that no run of campaign g finished."""
     out = []
     for i, x in enumerate(cutoffs):
-        n = gterms(G, c, x)
+        n = gterms(G, c, x) or (more or {}).get(x)
         second = extra[i] if extra is not None else (f"({count(n).replace(' ', '')})\n({data_size(n * term_bytes(c))})" if n else "")
         out.append(f"{x}\n{second}")
     return out
@@ -953,19 +969,36 @@ def g_circuits(G, g=16, axes=None, which=None):
 
 
 def g_scaleout(G, big=(), c="ki", title="Kicked Ising", ax=None):
-    """Scale-out of SectorQ: time against the problem size, one line per GPU count (1-16 GPUs: campaign g, more: jobs e15).
+    """Scale-out of SectorQ: time against the problem size, one line per GPU count (1-16 GPUs: campaign g; more: the
+    scaling jobs e15 and the scale campaign). On 32 GPUs and more the runs at cutoff 1e-6 and below are those with
+    the sector limit 1,024 where there is one (the ladder of the scale campaign down to the memory limit).
     With `ax` (a panel of another figure, make_deck_figures.py) only the panel is drawn: no legend, no file."""
+    mine = [r for r in big if r["kind"] == "engine" and r["circuit"] == BIG_NAME[c] and "--chunk" not in r["opt"]]
+
+    def at(x, g):
+        hits = [r for r in mine if r["gpus"] == g and abs(r["coef"] / float(x) - 1) < 1e-9]
+        wide = [r for r in hits if r["opt"].get("--gmax") == "10"]
+        plain = [r for r in hits if "--gmax" not in r["opt"]]
+        order = (wide + plain) if float(x) <= 1.0000001e-6 else (plain + wide)
+        done = [r for r in order if ok(r)]
+        return done[0] if done else (order[0] if order else None)
+
     cutoffs = greached(G, f"eng.{c}", "g16", [x for x in gladder(G, f"eng.{c}", "g16") if x not in ("15e-7", "12e-7")])[4:]         # from cutoff 1e-4
-    colors = {1: "#1f77b4", 2: "#d62728", 4: "#FFA500", 8: "#5b4a8a", 16: "#2ca02c", 32: "#8c564b", 64: "#e377c2", 128: "#7f7f7f", 256: "#17becf"}
+    lower = {r["opt"]["--coef"] for r in mine if r["coef"] < float(cutoffs[-1]) * 0.999 and (ok(r) or r["fatal"])}
+    cutoffs += sorted(lower, key=float, reverse=True)                # problems that only more than 16 GPUs were given
+    more = {}
+    for r in mine:
+        if ok(r) and r.get("boundary"):
+            more[r["opt"]["--coef"]] = r["boundary"]
+    colors = {1: "#1f77b4", 2: "#d62728", 4: "#FFA500", 8: "#5b4a8a", 16: "#2ca02c", 32: "#8c564b", 64: "#e377c2", 128: "#7f7f7f", 256: "#17becf", 512: "#bcbd22"}
     fig = None
     if ax is None:
         fig, ax = plt.subplots(figsize=(max(10.4, 1.2 * len(cutoffs)), 4.9))           # room for the three-line tick labels
     rows = []
-    for g in list(GPUS_G) + sorted(BIG_WEAK):
+    for g in list(GPUS_G) + sorted(set(BIG_WEAK) | {r["gpus"] for r in mine if r["gpus"] > 16}):
         if g > 16:
-            found = [big_run(big, c, x, g) or next((r for r in big if r["kind"] == "engine" and r["circuit"] == BIG_NAME[c] and r["gpus"] == g
-                                                    and abs(r["coef"] / float(x) - 1) < 1e-9 and ok(r)), None) for x in cutoffs]
-            recs = [dict(status="ok", wall=r["wall"]) if r else None for r in found]
+            found = [at(x, g) for x in cutoffs]
+            recs = [None if r is None else dict(status="ok", wall=r["wall"]) if ok(r) else dict(status="oom" if r["fatal"] else "tl") for r in found]
         else:
             recs = [G.get(f"eng.{c}.{x}.g{g}") for x in cutoffs]
         pts = [(i, s["wall"]) for i, s in enumerate(recs) if gok(s)]
@@ -978,7 +1011,7 @@ def g_scaleout(G, big=(), c="ki", title="Kicked Ising", ax=None):
         rows.append((g, [(cutoffs[i], w) for i, w in pts]))
     sq_axes(ax, "Cutoff (# of Terms) (Size of Terms)", "Simulation Time (s)")
     ax.set_xticks(range(len(cutoffs)))
-    ax.set_xticklabels(cut_ticks(G, c, cutoffs))
+    ax.set_xticklabels(cut_ticks(G, c, cutoffs, more=more))
     ax.set_xlim(-0.4, len(cutoffs) - 0.6)
     ax.set_ylim(0.5, 4000)
     if fig is None:
@@ -1261,7 +1294,7 @@ def g_variability(G):
 
 def main_g():
     G = campaign_g()
-    big = many("pp_e15_g*-*.out")
+    big = big_logs()
     single = g_single_node(G)
     weak = g_weak(G, big)
     strong = g_strong(G)
