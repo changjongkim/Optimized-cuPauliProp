@@ -532,10 +532,12 @@ def shares(kind, r, smi_prefix):
     wall = r["wall"]
     busy = gpu_busy(smi_prefix, r.get("epoch"))
     if kind == "eng":
-        # time inside the single-GPU library calls of the workers: the GPU works for all of it (the sampled
-        # utilization agrees), so it is not split
+        # time inside the single-GPU library calls of the workers, split by the sampled GPU utilization like the time
+        # inside the library calls of cuPauliProp's distributed mode: the same rule for both (without samples: not split)
         p, n = r["parts"], r["parts"]["workers"]
-        sec = {"gpu": p.get("operations", 0.0) / n, "host": 0.0, "collective": 0.0, "moving": p.get("exchange", 0.0),
+        lib = p.get("operations", 0.0) / n
+        gpu = lib if busy is None else min(lib, busy / 100.0 * wall)
+        sec = {"gpu": gpu, "host": lib - gpu, "collective": 0.0, "moving": p.get("exchange", 0.0),
                "copies": (p.get("gpu->host", 0.0) + p.get("host->gpu", 0.0) + p.get("partition", 0.0)) / n,
                "idle": p.get("idle", 0.0) / n + p.get("waiting", 0.0)}
     else:
@@ -817,14 +819,14 @@ def big_run(big, c, coef, g):
 def g_weak(G, big=()):
     """Weak scaling: the cutoff is lowered with the GPU count. One panel per circuit and load, one line per implementation.
     The large load goes on to the GPU counts of the scaling jobs (SectorQ only: the other implementations were not run there)."""
-    fig, axes = plt.subplots(2, 3, figsize=(15.6, 8.6), gridspec_kw={"wspace": 0.2, "hspace": 0.5})
+    fig, axes = plt.subplots(3, 2, figsize=(15.6, 12.4), gridspec_kw={"wspace": 0.14, "hspace": 0.52})
     rows = []
     more = [g for g in sorted(BIG_WEAK) if any(big_run(big, c, BIG_WEAK[g], g) for c, _ in G3)]
     for r, (load, cuts) in enumerate((("S", WEAK_S), ("L", WEAK_G))):
         counts = list(GPUS_G) + (more if load == "L" else [])
         cuts = {**cuts, **(BIG_WEAK if load == "L" else {})}
         for j, (c, title) in enumerate(G3):
-            ax = axes[r][j]
+            ax = axes[j][r]
             for kind in ("ours", "cupp", "defer", "orqa", "monoprop"):
                 pts, stop = [], None
                 for i, g in enumerate(counts):
@@ -851,13 +853,13 @@ def g_weak(G, big=()):
                             label=SQ_NAME[kind] if (r == 0 and j == 0) else None, zorder=4 if kind == "ours" else 3)
                     if stop is not None and stop > pts[-1][0]:
                         ax.plot([stop], [pts[-1][1]], color=col, marker="x", markersize=11, markeredgewidth=2.6, linestyle="none", zorder=5)
-            sq_axes(ax, "# of GPUs (Cutoff)", "Simulation Time (s)" if j == 0 else None)
+            sq_axes(ax, "# of GPUs (Cutoff)", "Simulation Time (s)" if r == 0 else None)
             ax.set_xticks(range(len(counts)))
-            ax.set_xticklabels([f"{g}\n({cuts[g]})" for g in counts], fontsize=13 if len(counts) <= 5 else 9.5)
+            ax.set_xticklabels([f"{g}\n({cuts[g]})" for g in counts], fontsize=13 if len(counts) <= 5 else 11.5)
             ax.set_xlim(-0.35, len(counts) - 0.65)
             ax.set_ylim((1.5, 500) if load == "S" else (15, 1500))
-            ax.set_title(f"({'abcdef'[3 * r + j]}) {title}, {'small' if load == 'S' else 'large'} load", fontsize=14.5, pad=8)
-    sq_legend(fig, axes[0][0], 0.985, 6)
+            ax.set_title(f"({'abcdef'[2 * j + r]}) {title}, {'small' if load == 'S' else 'large'} load", fontsize=14.5, pad=8)
+    sq_legend(fig, axes[0][0], 0.945, 6)
     save(fig, "eval_weak.png")
     return rows
 
@@ -892,8 +894,9 @@ def g_strong(G, c="ki", cutoffs=("1e-4", "3e-5", "1e-5", "3e-6", "1e-6")):
 
 
 def g_circuits(G, g=16):
-    """Seven circuits on 16 GPUs: SectorQ against cuPauliProp's two distributed modes, time against the problem size."""
-    fig, axes = plt.subplots(2, 4, figsize=(15.6, 8.2), gridspec_kw={"wspace": 0.26, "hspace": 0.52})
+    """Seven circuits on 16 GPUs: SectorQ against cuPauliProp's two distributed modes, time against the problem size.
+    Every cutoff of a panel has its tick; below it the speedup of SectorQ over cuPauliProp's distributed mode."""
+    fig, axes = plt.subplots(4, 2, figsize=(15.6, 15.4), gridspec_kw={"wspace": 0.14, "hspace": 0.5})
     flat = [a for row in axes for a in row]
     rows = []
     for j, (c, name) in enumerate(G7):
@@ -905,16 +908,18 @@ def g_circuits(G, g=16):
             recs, pts, fail = sq_line(ax, G, kind, c, cutoffs, f"g{g}", label=SQ_NAME[kind] if j == 0 else None, lw=3.8 if kind == "ours" else 3.0, ms=9)
             got[kind] = recs
             rows.append((name.replace("\n", " "), SQ_NAME[kind], [(cutoffs[i], s["wall"]) for i, s in enumerate(recs) if gok(s)], (cutoffs[fail[0]], fail[1]) if fail else None))
-        extra = ["(" + times(b["wall"], a["wall"]).replace("×", "x") + ")" if gok(a) and gok(b) else "" for a, b in zip(got["ours"], got["cupp"])]
-        sq_axes(ax, "Cutoff / Speedup of SectorQ", "Simulation Time (s)" if j % 4 == 0 else None, size=13)
-        step = -(-len(cutoffs) // 4)                            # at most four labelled cutoffs in a panel
-        ax.set_xticks(range(0, len(cutoffs), step))
-        ax.set_xticklabels([f"{cutoffs[i]}\n{extra[i]}" for i in range(0, len(cutoffs), step)], fontsize=11.5)
+        extra, stopped = [], False
+        for a_, b_ in zip(got["ours"], got["cupp"]):
+            stopped = stopped or (b_ is not None and not gok(b_))
+            extra.append("(" + times(b_["wall"], a_["wall"]).replace("×", "x") + ")" if gok(a_) and gok(b_) else ("(OOM)" if gok(a_) and stopped else ""))
+        sq_axes(ax, "Cutoff / Speedup of SectorQ", "Simulation Time (s)" if j % 2 == 0 else None, size=14)
+        ax.set_xticks(range(len(cutoffs)))
+        ax.set_xticklabels([f"{x}\n{e}" for x, e in zip(cutoffs, extra)], fontsize=11 if len(cutoffs) <= 8 else 9.4)
         ax.set_xlim(-0.4, len(cutoffs) - 0.6)
         ax.set_ylim(0.2, 3000)
-        ax.set_title(f"({'abcdefg'[j]}) {name.replace(chr(10), ' ')}", fontsize=14, pad=8)
+        ax.set_title(f"({'abcdefg'[j]}) {name.replace(chr(10), ' ')}", fontsize=14.5, pad=8)
     flat[7].axis("off")
-    sq_legend(fig, flat[0], 0.985, 4)
+    sq_legend(fig, flat[0], 0.93, 4)
     save(fig, "eval_circuits.png")
     return rows
 
@@ -963,7 +968,7 @@ def g_breakdown(G, g=16):
                                  ("cuPauliProp, Merge Deferred", one("cupp", "bdd", c, coef))]) for c, coef, title in sets], "eval_breakdown_base.png")
 
 
-SIZE_PARTS = [("Gates on GPU", "operations", OURS), ("Exchange Between Nodes", "exchange", "#C0432F"),
+SIZE_PARTS = [("Gate Application (Library Calls)", "operations", OURS), ("Exchange Between Nodes", "exchange", "#C0432F"),
               ("GPU-Host Copies", "copies", "#F5B553"), ("Re-sectoring", "partition", "#7FC8BE"),
               ("Idle GPU", "idle", "#B9BDC4"), ("Waiting for Other Nodes", "waiting", "#8E96A3"), ("Other", "other", "#E3E4E8")]
 

@@ -618,7 +618,7 @@ cuPauliProp이 GPU 1장으로 끝내는 가장 큰 설정에서 SectorQ의 시�
 #### Weak scaling
 
 <p align="center"><img src="figures/eval_weak.png" width="980"></p>
-<p align="center"><b>그림 7.</b> Weak scaling(로그 축). GPU 수에 맞추어 cutoff를 낮추어 문제를 키웠다. 가로축의 괄호는 그 GPU 수에서의 cutoff이다. 위: 작은 부하(1–16 GPU). 아래: 큰 부하(SectorQ는 128 GPU까지, 4.4절). 선이 평평할수록 좋다. ×는 그 구현이 다음 GPU 수의 문제를 끝내지 못한 곳이다.</p>
+<p align="center"><b>그림 7.</b> Weak scaling(로그 축). GPU 수에 맞추어 cutoff를 낮추어 문제를 키웠다. 가로축의 괄호는 그 GPU 수에서의 cutoff이다. 왼쪽: 작은 부하(1–16 GPU). 오른쪽: 큰 부하(SectorQ는 128 GPU까지, 4.4절). 큰 부하에서 cuPauliProp의 두 분산 모드는 모든 GPU 수에서 메모리가 부족하여 선이 없다. 선이 평평할수록 좋다. ×는 그 구현이 다음 GPU 수의 문제를 끝내지 못한 곳이다.</p>
 
 Pauli propagation은 문제 크기를 직접 정할 수 없으므로 cutoff를 낮추어 일의 양을 늘렸다. cutoff는 4 GPU의 값에 (G/4)^(−0.52)를 곱한 것이다(일의 양을 구간 경계의 항 수를 모든 구간에 대해 더한 값으로 잡으면 kicked Ising에서 cutoff 1e-5에서 3e-6으로 갈 때 10.0배가 되며, 지수 −0.52는 이 관계에서 얻었다). 부하는 둘이다. 작은 부하는 4 GPU에서 cutoff 3e-5이고 큰 부하는 4 GPU에서 cutoff 1e-5이다.
 
@@ -762,7 +762,7 @@ Pauli propagation은 문제 크기를 직접 정할 수 없으므로 cutoff를 �
 #### 여러 회로 (16 GPU)
 
 <p align="center"><img src="figures/eval_circuits.png" width="980"></p>
-<p align="center"><b>그림 9.</b> 16 GPU에서 회로 7종의 cutoff에 따른 실행 시간(로그 축). 가로축의 괄호는 cuPauliProp 분산 모드(기본) 대비 SectorQ의 배수이다. ×는 그 구현이 다음 cutoff에서 멈춘 곳이다.</p>
+<p align="center"><b>그림 9.</b> 16 GPU에서 회로 7종의 cutoff에 따른 실행 시간(로그 축). 가로축의 괄호는 cuPauliProp 분산 모드(기본) 대비 SectorQ의 배수이고, OOM은 cuPauliProp이 메모리 부족으로 끝내지 못한 cutoff이다. ×는 그 구현이 다음 cutoff에서 멈춘 곳이다.</p>
 
 회로 7종을 16 GPU에서 cuPauliProp 분산 모드의 두 가지와 비교하였다. 아래 표는 회로마다 두 크기를 고른 것이다. 하나는 cuPauliProp이 GPU 1장으로 끝내는 가장 큰 설정이고, 다른 하나는 cuPauliProp 분산 모드(기본)가 16 GPU로 끝내는 가장 큰 설정이다. 기준선이 끝낸 설정만 고르므로 기준선이 실패한 설정은 이 표에 들어 있지 않다.
 
@@ -1091,7 +1091,7 @@ kicked Ising cutoff 1e-6은 구간 경계에서 119억 항, 구간 안에서 최
 <!-- /g:large -->
 
 - **Strong scaling.** 큰 문제 세 가지는 1 GPU에서 64 GPU로 45–52배, 128 GPU로 62–92배 빨라진다(kicked Ising cutoff 3e-6: 1,741초 → 33.2초 → 18.9초). 작은 문제(cutoff 1e-5)는 64 GPU에서 33–41배, 128 GPU에서 38–58배이다.
-- **Weak scaling.** 일의 양을 GPU 수만큼 늘린 실행에서 GPU 한 장의 처리율은 64 GPU에서 1 GPU의 72–80%, 128 GPU에서 50–77%이다(그림 7의 아래 줄). 128 GPU의 kicked Ising이 50%로 떨어지는 것은 구간당 sector 수의 상한 때문이다. 기본값 256개로는 sector가 GPU 버퍼에 들어가지 않아 3,146번 다시 나뉘었다. 상한을 1,024개로 올리면(`--gmax 10`) 다시 나뉜 횟수가 74번이 되고 80.0초가 61.6초가 된다(처리율 65%).
+- **Weak scaling.** 일의 양을 GPU 수만큼 늘린 실행에서 GPU 한 장의 처리율은 64 GPU에서 1 GPU의 72–80%, 128 GPU에서 50–77%이다(그림 7의 오른쪽 열). 128 GPU의 kicked Ising이 50%로 떨어지는 것은 구간당 sector 수의 상한 때문이다. 기본값 256개로는 sector가 GPU 버퍼에 들어가지 않아 3,146번 다시 나뉘었다. 상한을 1,024개로 올리면(`--gmax 10`) 다시 나뉜 횟수가 74번이 되고 80.0초가 61.6초가 된다(처리율 65%).
 - **cuPauliProp과의 차이는 GPU가 늘수록 벌어진다.** cutoff 1e-5에서 기본 모드 대비 SectorQ의 배수는 16 GPU의 4.5–7.0배에서 32 GPU의 7.3–14배, 64 GPU의 12–25배, 128 GPU의 12–20배가 된다. 기본 모드의 시간은 GPU를 늘려도 조금만 줄어든다(kicked Ising: 54.3 / 47.8 / 46.7 / 34.8초). dedup을 미룬 방식과의 차이는 32–128 GPU에서 3.2–5.4배이다.
 - **cuPauliProp은 kicked Ising cutoff 3e-6을 64 GPU와 128 GPU로도 끝내지 못한다.** 64 GPU에서는 938번째 연산에서 GPU당 9,522만 항으로, 128 GPU에서는 1,084번째 연산에서 GPU당 9,832만 항으로 메모리가 부족해진다. SectorQ는 같은 문제를 64 GPU로 33.2초, 128 GPU로 18.9초에 끝내고 GPU 1장으로도 1,741초에 끝낸다.
 - **도달 범위.** kicked Ising cutoff 1e-6(구간 경계에서 119억 항)은 16 GPU로 1,625초, 128 GPU로 221초이다(7.4배, sector 상한 1,024개).
@@ -1196,7 +1196,7 @@ kicked Ising cutoff 1e-6은 구간 경계에서 119억 항, 구간 안에서 최
 ### 4.6 시간 분해
 
 <p align="center"><img src="figures/eval_breakdown.png" width="980"></p>
-<p align="center"><b>그림 14.</b> 16 GPU에서 SectorQ의 실행 시간 구성. 세로는 cutoff(괄호는 실행 시간)이며 아래로 갈수록 문제가 크다.</p>
+<p align="center"><b>그림 14.</b> 16 GPU에서 SectorQ의 실행 시간 구성. 세로는 cutoff(괄호는 실행 시간)이며 아래로 갈수록 문제가 크다. gate 적용은 worker가 라이브러리 호출 안에 있던 시간이다.</p>
 
 SectorQ의 시간을 문제 크기와 GPU 수에 따라 나누었다. GPU worker 전체에 대해 더한 시간(gate 적용, 복사, 분할, GPU 대기)은 worker 수로 나누었다.
 
@@ -1238,9 +1238,9 @@ SectorQ의 시간을 문제 크기와 GPU 수에 따라 나누었다. GPU worker
 - **host를 거치는 비용은 작다.** GPU와 host 사이의 복사는 10% 이하, 분할은 5% 이하이다. 복사가 가장 큰 것은 가장 큰 실행(kicked Ising cutoff 1e-6, 119억 항)의 10%이다.
 
 <p align="center"><img src="figures/eval_breakdown_base.png" width="880"></p>
-<p align="center"><b>그림 15.</b> 16 GPU에서 실행 시간의 구성: SectorQ와 cuPauliProp 분산 모드(기본, dedup을 미룬 방식). cuPauliProp은 rank 평균이다.</p>
+<p align="center"><b>그림 15.</b> 16 GPU에서 실행 시간의 구성: SectorQ와 cuPauliProp 분산 모드(기본, dedup을 미룬 방식). cuPauliProp은 rank 평균이다. 세 방식 모두 라이브러리 호출 안의 시간을 nvidia-smi 표본 사용률로 GPU가 일한 부분(Gates on GPU)과 나머지(Library on the Host)로 나누었다.</p>
 
-**cuPauliProp 분산 모드의 시간 분해.** 같은 16 GPU에서 기준선의 시간이 어디로 가는지 재었다. MPI 호출의 시간은 MPI plugin을 감싼 계측판이 호출마다 잰다(`src/plugin/prof_mpi.c`). GPU 사용률은 nvidia-smi로 0.2초마다 표본한 값의 평균이다. 그림 15에서는 라이브러리 호출 안에서 MPI 밖에 있는 시간을 이 사용률로 GPU가 일한 부분과 나머지(host 쪽 작업)로 나누었다. 설정은 cuPauliProp이 16 GPU로 끝내는 범위(cutoff 1e-4와 3e-5)에서 골랐다.
+**cuPauliProp 분산 모드의 시간 분해.** 같은 16 GPU에서 기준선의 시간이 어디로 가는지 재었다. MPI 호출의 시간은 MPI plugin을 감싼 계측판이 호출마다 잰다(`src/plugin/prof_mpi.c`). GPU 사용률은 nvidia-smi로 0.2초마다 표본한 값의 평균이다. 그림 15에서는 라이브러리 호출 안에서 MPI 밖에 있는 시간을 이 사용률로 GPU가 일한 부분과 나머지(host 쪽 작업)로 나누었다. SectorQ의 라이브러리 호출 시간도 같은 규칙으로 나누었다. cutoff 3e-5의 SectorQ 실행은 2–3초로 짧아 표본이 GPU당 10–13개이며, 표본 사용률(43–48%)이 라이브러리 호출 안의 시간(53–64%)보다 낮게 나온다. 10초가 넘는 cutoff 1e-5의 실행에서는 둘이 일치한다(표본 사용률 67–74%, 호출 안의 시간 66–73%, `logs/u7`). 설정은 cuPauliProp이 16 GPU로 끝내는 범위(cutoff 1e-4와 3e-5)에서 골랐다.
 
 <!-- g:base_parts -->
 | 회로 | cutoff | 방식 | 전체 | GPU 사용률 (nvidia-smi 표본) | gate 적용 | 통신 (MPI 호출 안의 시간, SectorQ는 노드 사이 교환) | 연산당 allgather (rank당) | 보낸 양 |
@@ -1279,7 +1279,7 @@ SectorQ의 시간을 문제 크기와 GPU 수에 따라 나누었다. GPU worker
 | TFIM heavy-hex, cutoff 1e-5 | 71.8초 | 27% | 33% | 23% | 17% | 22.1 / 11.3 | 92 GB |
 | 잡음 있는 kicked Ising, cutoff 1e-5 | 69.7초 | 18% | 38% | 32% | 12% | 15.4 / 10.3 | 57 GB |
 
-- **큰 문제에서는 항의 이동이 더해진다.** cutoff 1e-5에서는 rank당 57–108 GB를 보내며 항 이동이 12–26%가 된다. collective 호출 18–32%와 host 쪽 작업 22–38%는 남는다. GPU가 일하는 시간은 18–34%이다. 같은 설정의 SectorQ는 16 GPU에서 gate 적용이 69–78%이다.
+- **큰 문제에서는 항의 이동이 더해진다.** cutoff 1e-5에서는 rank당 57–108 GB를 보내며 항 이동이 12–26%가 된다. collective 호출 18–32%와 host 쪽 작업 22–38%는 남는다. GPU가 일하는 시간은 18–34%이다. 같은 job에서 잰 SectorQ의 GPU 사용률 표본은 67–74%이다.
 - **dedup을 미룬 방식은 시간의 72–92%가 전역 dedup 호출 안에 있다**(kicked Ising cutoff 1e-5: 50.2초 가운데 46.2초). 이 설정과 TFIM은 dedup을 truncation 직전에만 하면 16 GPU에서 메모리가 부족하여 3개 연산마다 한 번 더 한다.
 - kicked Ising cutoff 1e-5에서 cuPauliProp 기본 모드는 16 rank가 모두 1,733 GB를 보낸다. SectorQ가 실행 전체에서 노드 사이로 보내는 양은 45 GB이고, GPU 밖으로 내보내는 양을 모두 합쳐도 60 GB이다(29배 적다, 3.3절).
 
