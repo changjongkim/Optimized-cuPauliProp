@@ -108,7 +108,8 @@ for g in (32, 64, 128, 256):
 # 512 GPUs (128 nodes): the scale-out of SectorQ only, on the representative circuit (no baselines, no weak scaling, so that
 # the job is short). The default of 256 sectors per window is below the number of GPUs, so every run sets the limit:
 # 1,024, or 4,096 with host chunks of 65,536 terms (a partly filled chunk per sector and node stays small).
-for x, est in (("1e-5", 120), ("3e-6", 120), ("1e-6", 300)):
+# The whole cutoff line of the scale-out figure, as on the other GPU counts (seconds per run above 5e-6).
+for x, est in (("1e-4", 60), ("5e-5", 60), ("3e-5", 60), ("2e-5", 60), ("1e-5", 120), ("5e-6", 120), ("3e-6", 120), ("2e-6", 180), ("1e-6", 300)):
     eng(f"eng10.ki.{x}.g512", "ki", x, 512, est=est, more=" --gmax 10")
 for x, est in (("3e-6", 120), ("1e-6", 300), ("5e-7", 900), ("3e-7", 1500), ("2e-7", 2400), ("1e-7", 2400)):
     eng(f"eng12.ki.{x}.g512", "ki", x, 512, "eng12.ki.g512", est, " --gmax 12 --chunk 65536")
