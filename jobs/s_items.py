@@ -27,20 +27,21 @@ ARGS = {"ki": ("--circuit ki_lab --weight 0", 6000000), "tfim": ("--circuit tfim
 NAME = {"ki_lab": "ki", "tfim_hh": "tfim", "ki_noisy": "noise"}
 WEAK_L = {32: "3.4e-6", 64: "2.3e-6", 128: "1.6e-6", 256: "1.15e-6"}       # cutoff = 1e-5 * (GPUs/4)^-0.52
 WEAK_S = {32: "1e-5", 64: "7.1e-6", 128: "4.9e-6", 256: "3.5e-6"}           # cutoff = 3e-5 * (GPUs/4)^-0.52
-REACH = ("5e-7", "3e-7", "2e-7", "1e-7")            # cutoffs below the sweep of campaign g
+REACH = ("7e-7", "5e-7", "3e-7", "2e-7", "1.5e-7", "1e-7")   # cutoffs below the sweep of campaign g: down to where the host memory ends
+REACH_LIMIT = 7200                                  # seconds per run of that ladder: long enough that memory, not time, ends it
 items = []
 
 
-def add(item_id, g, kind, ladder=None, coef=None, est=600, **more):
-    item = dict(id=item_id, nodes=g // 4, kind=kind, limit=LIMIT, coef=float(coef), est=est, **more)
+def add(item_id, g, kind, ladder=None, coef=None, est=600, limit=LIMIT, **more):
+    item = dict(id=item_id, nodes=g // 4, kind=kind, limit=limit, coef=float(coef), est=est, **more)
     if ladder:
         item["ladder"] = ladder
     items.append(item)
 
 
-def eng(item_id, c, x, g, ladder=None, est=600, more=""):
+def eng(item_id, c, x, g, ladder=None, est=600, more="", limit=LIMIT):
     a, target = ARGS[c]
-    add(item_id, g, "eng", ladder, x, est, per=4, args=f"{a} --coef {x} --target {target} --trace 1 --vram-frac 0.9{more}")
+    add(item_id, g, "eng", ladder, x, est, limit, per=4, args=f"{a} --coef {x} --target {target} --trace 1 --vram-frac 0.9{more}")
 
 
 def cupp(item_id, c, x, g, ladder=None, tuned=False, est=300):
@@ -58,12 +59,16 @@ for g in (32, 64, 128, 256):
     #    fails: out of memory, or a step that the steps before predict to take more than the 40 minutes of a run
     for x in ("1e-4", "5e-5", "3e-5", "2e-5", "1e-5", "5e-6", "3e-6", "2e-6", "1e-6"):
         eng(f"eng.ki.{x}.g{g}", "ki", x, g, f"eng.ki.g{g}")
-    if g < 128:
-        for x in REACH:
-            eng(f"eng.ki.{x}.g{g}", "ki", x, g, f"eng.ki.g{g}")
-    else:               # two sectors or fewer per GPU with the default of 256 per window: up to 4,096, small host chunks
-        for x in ("1e-6",) + REACH:
-            eng(f"eng12.ki.{x}.g{g}", "ki", x, g, f"eng12.ki.g{g}", more=" --gmax 12 --chunk 65536")
+    # ... and on down to the memory limit of this node count (the limit of a run is two hours here). More sectors per
+    # window than the default of 256, so that a sector of these problems fits the GPU buffer: 1,024 on 32 and 64 GPUs,
+    # 4,096 with small host chunks from 128 GPUs on.
+    tag, more = ("eng10", " --gmax 10") if g < 128 else ("eng12", " --gmax 12 --chunk 65536")
+    for x in ("1e-6",) + REACH:
+        eng(f"{tag}.ki.{x}.g{g}", "ki", x, g, f"{tag}.ki.g{g}", 1200, more, REACH_LIMIT)
+    # 1c. cuPauliProp's distributed mode on the representative circuit, down to where it fails on the same GPUs
+    for tag, tuned in (("cupp", False), ("defer", True)):
+        for x in ("1e-4", "3e-5", "1e-5", "5e-6", "3e-6", "2e-6", "1e-6"):
+            cupp(f"{tag}.ki.{x}.g{g}", "ki", x, g, f"{tag}.ki.g{g}", tuned)
     # 2. the other two large circuits
     for c in ("tfim", "noise"):
         for x in ("1e-4", "3e-5", "1e-5", "5e-6", "3e-6", "2e-6", "1e-6"):
@@ -82,7 +87,8 @@ for g in (32, 64, 128, 256):
     for c in ARGS:
         for tag, tuned in (("cupp", False), ("defer", True)):
             for x in ("1e-4", "3e-5", "1e-5", "5e-6", "3e-6"):
-                cupp(f"{tag}.{c}.{x}.g{g}", c, x, g, f"{tag}.{c}.g{g}", tuned)
+                if c != "ki":                       # the representative circuit: above (1c)
+                    cupp(f"{tag}.{c}.{x}.g{g}", c, x, g, f"{tag}.{c}.g{g}", tuned)
         if WEAK_S[g] != "1e-5":
             cupp(f"weakSc.{c}.{WEAK_S[g]}.g{g}", c, WEAK_S[g], g)
             cupp(f"weakSd.{c}.{WEAK_S[g]}.g{g}", c, WEAK_S[g], g, tuned=True)
@@ -111,8 +117,11 @@ for g in (32, 64, 128, 256):
 # The whole cutoff line of the scale-out figure, as on the other GPU counts (seconds per run above 5e-6).
 for x, est in (("1e-4", 60), ("5e-5", 60), ("3e-5", 60), ("2e-5", 60), ("1e-5", 120), ("5e-6", 120), ("3e-6", 120), ("2e-6", 180), ("1e-6", 300)):
     eng(f"eng10.ki.{x}.g512", "ki", x, 512, est=est, more=" --gmax 10")
-for x, est in (("3e-6", 120), ("1e-6", 300), ("5e-7", 900), ("3e-7", 1500), ("2e-7", 2400), ("1e-7", 2400)):
-    eng(f"eng12.ki.{x}.g512", "ki", x, 512, "eng12.ki.g512", est, " --gmax 12 --chunk 65536")
+for x, est in (("3e-6", 120), ("1e-6", 300), ("7e-7", 600), ("5e-7", 900), ("3e-7", 1500), ("2e-7", 2400), ("1.5e-7", 3600), ("1e-7", 3600)):
+    eng(f"eng12.ki.{x}.g512", "ki", x, 512, "eng12.ki.g512", est, " --gmax 12 --chunk 65536", REACH_LIMIT)
+# cuPauliProp's distributed mode on the same 512 GPUs, down to where it fails
+for x in ("1e-5", "3e-6", "2e-6", "1e-6"):
+    cupp(f"cupp.ki.{x}.g512", "ki", x, 512, "cupp.ki.g512")
 
 assert len({i["id"] for i in items}) == len(items)
 os.makedirs(os.path.join(Q, "done"), exist_ok=True)
