@@ -1,0 +1,42 @@
+% Deck figure n10: the six requirements and the single rule that answers them (README Section 2.6).
+%   top     the rule of SectorQ (README Sections 1.4 and 3.2)
+%   table   requirement | measured evidence | answer of the design; the numbers are those of README Section 2.6
+%           and of the sections it points to:
+%     R1  without the merge the expectation value is 0.1675 (4 parts) to 0.189 (16 parts), the answer is 0.1531 (2.4)
+%     R2  cuPauliProp distributed: fixed cost per gate 5.9 ms on 4 GPUs, 29.8 ms on 16 GPUs (2.4)
+%     R3  deferred merge: 2 of the 7 circuits do not fit 16 GPUs (4.4)
+%     R4  split by fixed bits into 16 parts: largest / average 1.4 to 4.9 (4.7)
+%     R5  cuPauliProp stops at about 100 million terms per GPU (2.4)
+%     R6  the example setting: 0.42 s on 1 GPU, 32 to 47 s on 4 GPUs (2.4)
+% The table text is \small (the size of ttl in the style file) because the figure is a table only.
+\begin{tikzpicture}[x=1cm, y=1cm, font=\rmfamily\footnotesize]
+  \tikzset{tc/.style={draw=black!70, line width=0.35pt, anchor=north west, inner sep=0pt, minimum height=0.9cm,
+                      align=center, font=\rmfamily\small},
+           th/.style={draw=black!70, line width=0.35pt, anchor=north west, inner sep=0pt, minimum height=0.48cm,
+                      text height=0.29cm, text depth=0.09cm, fill=black!10, font=\rmfamily\small}}
+  % ================= the rule =================
+  \node[host, anchor=north west, minimum width=13.9cm, minimum height=1.3cm] at (0,0) {};
+  \node[lttl, anchor=west] at (0.2,-0.65) {The Rule};
+  \node[key, font=\rmfamily\itshape\bfseries\small] at (7.9,-0.42)
+       {Split the Terms by the Parities That All Gates of the Current Window Keep.};
+  \node[note, font=\rmfamily\itshape\small] at (7.9,-0.89)
+       {Sectors Then Neither Exchange Nor Merge Terms During the Window.};
+  % ================= the requirements =================
+  \node[th, minimum width=4.3cm] at (0,-1.5) {Requirement};
+  \node[th, minimum width=4.7cm] at (4.3,-1.5) {Measured Evidence};
+  \node[th, minimum width=4.9cm] at (9.0,-1.5) {Answer of the Design};
+  \foreach \k/\ra/\rb/\ea/\eb/\aa/\ab in {
+      0/{Equal Terms Merge}/{Before Truncation}/{Otherwise 0.1675--0.189}/{Instead of 0.1531}/{The Merge Partner Is}/{in the Same Sector},
+      1/{No Coordination}/{While Gates Run}/{Cost per Gate Grows}/{From 5.9 to 29.8 ms}/{No Terms Move}/{During a Window},
+      2/{No Pile of}/{Unmerged Terms}/{Deferred Merge:}/{2 of 7 Circuits Do Not Fit}/{Merge at Every Gate,}/{Inside the Sector},
+      3/{The Split Is Decided}/{at Run Time}/{Fixed Bits:}/{Largest / Average 1.4--4.9}/{Rows Chosen From}/{a Sample of Live Terms},
+      4/{Capacity Not Tied}/{to GPU Memory}/{About 100M Terms}/{per GPU}/{Sectors Are Kept}/{in Host Memory},
+      5/{Small Problems}/{Do Not Lose}/{0.42 s on 1 GPU,}/{32--47 s on 4 GPUs}/{One Sector on One GPU}/{While Terms Are Few}}
+  {
+    \pgfmathtruncatemacro{\n}{\k+1}
+    \node[tc, fill=black!10, minimum width=0.8cm, font=\rmfamily\bfseries\small] at (0,{-1.98-0.9*\k}) {R\n};
+    \node[tc, fill=white, minimum width=3.5cm] at (0.8,{-1.98-0.9*\k}) {\strut\ra\\[-1pt]\strut\rb};
+    \node[tc, fill=white, minimum width=4.7cm] at (4.3,{-1.98-0.9*\k}) {\strut\ea\\[-1pt]\strut\eb};
+    \node[tc, fill=sa!30, minimum width=4.9cm] at (9.0,{-1.98-0.9*\k}) {\strut\aa\\[-1pt]\strut\ab};
+  }
+\end{tikzpicture}

@@ -1,0 +1,52 @@
+% Deck figure n15: the platform and what ran where (README Section 4, opening paragraphs).
+%   left    one Perlmutter GPU node: four A100 GPUs with 40 GB each, of which a run uses 36 GB
+%           (--vram-frac 0.9), 64 CPU cores, 256 GiB of host memory
+%   right   the two groups of measurements: 1-4 nodes (1-16 GPUs) with SectorQ and every compared implementation,
+%           8-64 nodes (32, 64, 128, 256 GPUs) with SectorQ and cuPauliProp's distributed mode
+%           (README Sections 1.5 and 4.4). A node icon is the node of the left frame in small: four GPUs
+%           over the host memory. The lower frame draws 64 nodes, the upper frame 4.
+%   bottom  circuits and rules of the evaluation (README Sections 1.5 and 4): 7 circuits with 64-127 qubits, a
+%           30-qubit circuit whose exact value is known, square lattices with 36-1,024 qubits; one run per
+%           setting, a limit of 40 minutes per run, the same list of operations for every implementation.
+\begin{tikzpicture}[x=1cm, y=1cm, font=\rmfamily\footnotesize]
+  \tikzset{rc/.style={draw=black!70, line width=0.35pt, anchor=north west, inner sep=0pt, minimum height=0.48cm,
+                      text height=0.29cm, text depth=0.09cm, font=\rmfamily\footnotesize},
+           nd/.pic={\draw[draw=navyf, line width=0.35pt, fill=white] (0,-0.15) rectangle (0.74,0.15);
+                    \foreach \i in {0,1,2,3}
+                      \fill[cyanp, draw=navyf, line width=0.2pt] ({0.07+0.155*\i},-0.03) rectangle ({0.205+0.155*\i},0.1);
+                    \fill[peach, draw=black!70, line width=0.2pt] (0.07,-0.11) rectangle (0.67,-0.06);}}
+  % ================= one node =================
+  \node[frame, anchor=north west, minimum width=6.0cm, minimum height=6.0cm] at (0,0) {};
+  \node[lttl, anchor=north] at (3.0,-0.05) {One Node};
+  \foreach \g/\x in {0/0.2, 1/1.633, 2/3.067, 3/4.5}
+  {
+    \node[gpu, anchor=north west, minimum width=1.3cm, minimum height=1.3cm] at (\x,-0.8) {};
+    \node[cttl] at ({\x+0.65},-1.45) {GPU \g};
+  }
+  \draw[line width=0.6pt] (0.2,-2.2) -- (0.2,-2.3) -- (5.8,-2.3) -- (5.8,-2.2);
+  \node[anchor=base] at (3.0,-2.72) {A100, 40 GB (36 GB Used)};
+  \node[host, anchor=north west, minimum width=5.6cm, minimum height=1.1cm] at (0.2,-3.2) {};
+  \node[cttl] at (3.0,-3.55) {Host Memory};
+  \node at (3.0,-3.95) {256 GiB};
+  \node[comp, anchor=north west, minimum width=5.6cm, minimum height=0.95cm, font=\rmfamily\footnotesize] at (0.2,-4.65) {64 CPU Cores};
+  % ================= 1-4 nodes =================
+  \node[frame, anchor=north west, minimum width=7.5cm, minimum height=1.7cm] at (6.4,0) {};
+  \node[ttl, anchor=north west] at (6.52,-0.07) {1--4 Nodes (1--16 GPUs)};
+  \foreach \i in {0,1,2,3}
+    \pic at ({6.63+0.9*\i},-0.85) {nd};
+  \node[note, anchor=west] at (6.55,-1.36) {SectorQ and Every Compared Implementation};
+  % ================= 8-64 nodes =================
+  \node[frame, anchor=north west, minimum width=7.5cm, minimum height=4.05cm] at (6.4,-1.95) {};
+  \node[ttl, anchor=north west] at (6.52,-2.02) {8--64 Nodes (32--256 GPUs)};
+  \foreach \r in {0,...,7}
+    \foreach \i in {0,...,7}
+      \pic at ({6.63+0.9*\i},{-2.8-0.34*\r}) {nd};
+  \node[note, anchor=west] at (6.55,-5.65) {SectorQ and cuPauliProp Distributed Mode};
+  % ================= circuits and rules =================
+  \node[rc, fill=black!10, minimum width=1.5cm] at (0,-6.25) {Circuits};
+  \node[rc, fill=white, minimum width=12.4cm] at (1.5,-6.25)
+       {7 Circuits (64--127 Qubits), a 30-Qubit Circuit With a Known Exact Value, Lattices of 36--1,024 Qubits};
+  \node[rc, fill=black!10, minimum width=1.5cm] at (0,-6.73) {Rules};
+  \node[rc, fill=white, minimum width=12.4cm] at (1.5,-6.73)
+       {One Run per Setting; 40 Minutes per Run; the Same List of Operations for Every Implementation};
+\end{tikzpicture}

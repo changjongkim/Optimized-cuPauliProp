@@ -1,0 +1,61 @@
+% What is computed (deck, background): the expectation value of an observable after a quantum circuit.
+%   left    the circuit (sketch of the kicked Ising layout: one rotation on every qubit, then two-qubit
+%           rotations on neighbours; 127 qubits, 20 steps)
+%   middle  the observable held as a list of terms, coefficient times Pauli string; the gates are applied to
+%           the list from the last to the first, and terms with small coefficients are dropped
+%   right   the result is one number
+%   bottom  why the list is used: a state vector stores 2^n amplitudes, Pauli propagation stores the kept terms
+% Numbers: 127 qubits and 20 steps are the kicked Ising setting of README 4.1; 0.2286 is its expectation
+% value at cutoff 1e-5 (0.228607441423, README 4.4, table "Several Circuits"). The three coefficients in the
+% list are an illustration of the form of a term, not measured values.
+\begin{tikzpicture}[x=1cm, y=1cm, font=\rmfamily\footnotesize]
+  \tikzset{tc/.style={draw=black!70, line width=0.35pt, anchor=north west, inner sep=0pt, minimum height=0.52cm,
+                      text height=0.29cm, text depth=0.09cm, font=\rmfamily\footnotesize},
+           th/.style={tc, fill=black!10},
+           bt/.style={draw=black!70, line width=0.35pt, anchor=north west, inner sep=0pt, minimum height=0.65cm,
+                      text height=0.31cm, text depth=0.1cm, font=\rmfamily\small},
+           g1/.style={draw=black!70, line width=0.35pt, fill=genc, inner sep=0pt, minimum width=0.34cm, minimum height=0.34cm},
+           g2/.style={g1, minimum height=0.99cm}}
+  \node[layer, anchor=north west, minimum width=13.9cm, minimum height=5.5cm] at (0,0) {};
+  % ================= the circuit =================
+  \node[cttl, anchor=base] at (2.6,-0.52) {Quantum Circuit: 127 Qubits, 20 Steps};
+  \foreach \y in {-1.5,-2.15,-2.8,-3.45,-4.5}
+  {
+    \draw[line width=0.5pt, black!80] (0.5,\y) -- (4.05,\y);
+    \draw[line width=0.5pt, black!80, densely dotted] (4.05,\y) -- (4.8,\y);
+  }
+  \foreach \x in {0.9,2.55}
+  {
+    \foreach \y in {-1.5,-2.15,-2.8,-3.45,-4.5}
+      \node[g1] at (\x,\y) {};
+    \node[g2] at ({\x+0.5},-1.825) {};
+    \node[g2] at ({\x+0.5},-3.125) {};
+    \node[g2] at ({\x+1.0},-2.475) {};
+    \node[font=\rmfamily\footnotesize] at (\x,-3.92) {$\vdots$};
+  }
+  % ================= the list of terms =================
+  \node[cttl, anchor=base] at (9.0,-0.52) {Observable as a List of Terms};
+  \node[th, minimum width=1.5cm] at (7.45,-1.7) {Coefficient};
+  \node[th, minimum width=1.6cm] at (8.95,-1.7) {Pauli String};
+  \foreach \k/\c/\p in {1/0.71/{Z I I $\cdots$}, 2/0.42/{Y I I $\cdots$}, 3/0.09/{X Z I $\cdots$}, 4/$\cdots$/$\cdots$}
+  {
+    \node[tc, fill=white, minimum width=1.5cm] at (7.45,{-1.7-0.52*\k}) {\c};
+    \node[tc, fill=white, minimum width=1.6cm] at (8.95,{-1.7-0.52*\k}) {\p};
+  }
+  \node[note, anchor=base] at (9.0,-4.82) {Terms With Small Coefficients Are Dropped};
+  \draw[arr] (5.05,-3.0) -- (7.38,-3.0);
+  \node[note, anchor=south, align=center] at (6.22,-2.9) {Gates Applied From\\the Last to the First};
+  % ================= the result =================
+  \node[cttl, anchor=base] at (12.4,-0.52) {Expectation Value};
+  \node[draw=black, line width=0.45pt, fill=white, minimum width=2.3cm, minimum height=1.04cm,
+        font=\rmfamily\bfseries\Large, text=dred] at (12.4,-3.0) {0.2286};
+  \draw[arr] (10.6,-3.0) -- (11.22,-3.0);
+  % ================= state vector against Pauli propagation =================
+  \foreach \k/\n/\s/\l in {0/State Vector/{Stores $2^n$ Amplitudes}/{About 50 Qubits at Most},
+                           1/Pauli Propagation/{Stores the Kept Terms}/{Cost Set by the Number of Terms, Not by the Qubit Count}}
+  {
+    \node[bt, fill=black!10, minimum width=2.7cm] at (0,{-5.8-0.65*\k}) {\n};
+    \node[bt, fill=white, minimum width=3.4cm] at (2.7,{-5.8-0.65*\k}) {\s};
+    \node[bt, fill=white, minimum width=7.8cm] at (6.1,{-5.8-0.65*\k}) {\l};
+  }
+\end{tikzpicture}

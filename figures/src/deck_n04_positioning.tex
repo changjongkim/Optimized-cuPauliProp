@@ -1,0 +1,51 @@
+% Where the existing implementations of Pauli propagation run and what this work adds (deck, related work;
+% README 1.3 and the table of 2.5). One row per implementation, one column per property:
+%   shared with prior work   runs on GPUs; runs on many nodes
+%   added by this work       when terms move between processes; whether a run can hold more terms than the
+%                            GPU memory; whether the split of the terms is chosen at run time
+% Sources of the entries: cuPauliProp distributed mode (global merge and redistribution after every gate,
+% README 2.4; the inside of the library is not public), ORQA (arXiv 2506.13241: CPU ranks, a fixed distribution
+% function, new terms are sent at every branching gate), MonoProp (CPU, many nodes), SPD (one GPU, runs out
+% of memory at cutoff 1e-5, README 4.2), PauliPropagation.jl, ppvm and Qiskit pauli-prop (one node of CPU
+% cores), SectorQ (exchange only at window boundaries, sectors kept in host memory, rows chosen at run time;
+% README 3.2 to 3.4). A dash is a property that the sources used here do not state. No measured numbers.
+\begin{tikzpicture}[x=1cm, y=1cm, font=\rmfamily\footnotesize]
+  \tikzset{cc/.style={draw=black!70, line width=0.35pt, anchor=north west, inner sep=0pt, minimum height=0.88cm,
+                      align=center, font=\rmfamily\footnotesize},
+           nc/.style={draw=black!70, line width=0.35pt, anchor=north west, inner ysep=0pt, inner xsep=0.14cm,
+                      minimum height=0.88cm, text width=2.77cm, align=flush left, font=\rmfamily\footnotesize}}
+  \def\yes{\ding{51}}
+  \def\no{\textcolor{black!50}{\ding{55}}}
+  \def\ns{\textcolor{black!50}{---}}
+  % column groups and headers
+  \node[cc, fill=black!10, minimum width=3.05cm, minimum height=1.45cm] at (0,0) {\strut Implementation};
+  \node[cc, fill=white, minimum width=3.2cm, minimum height=0.55cm, font=\rmfamily\bfseries\footnotesize] at (3.05,0) {\strut Shared With Prior Work};
+  \node[cc, fill=sa!35, minimum width=7.65cm, minimum height=0.55cm, font=\rmfamily\bfseries\footnotesize] at (6.25,0) {\strut Added by This Work};
+  \foreach \x/\w/\h in {3.05/1.55/{\strut On GPUs}, 4.6/1.65/{\strut Many Nodes}, 6.25/3.5/{\strut Terms Move\\\strut Between Processes},
+                        9.75/2.25/{\strut More Terms Than\\\strut GPU Memory}, 12.0/1.9/{\strut Split Chosen\\\strut at Run Time}}
+    \node[cc, fill=black!10, minimum width=\w cm, minimum height=0.9cm] at (\x,-0.55) {\h};
+  % one row per implementation
+  \foreach \k/\n/\a/\b/\c/\d/\e in {
+      0/{\strut cuPauliProp\\\strut Distributed Mode}/\yes/\yes/{At Every Gate}/\no/{Not Public},
+      1/{\strut ORQA}/\no/\yes/{At Every Branching Gate}/\ns/{Fixed Function},
+      2/{\strut MonoProp}/\no/\yes/\ns/\ns/\ns,
+      3/{\strut SPD}/{\yes\ (1 GPU)}/\no/{None (One Device)}/\no/\ns,
+      4/{\strut PauliPropagation.jl,\\\strut ppvm, Qiskit pauli-prop}/\no/\no/{None (One Device)}/\ns/\ns}
+  {
+    \node[nc, fill=white] at (0,{-1.45-0.88*\k}) {\n};
+    \node[cc, fill=white, minimum width=1.55cm] at (3.05,{-1.45-0.88*\k}) {\strut\a};
+    \node[cc, fill=white, minimum width=1.65cm] at (4.6,{-1.45-0.88*\k}) {\strut\b};
+    \node[cc, fill=white, minimum width=3.5cm] at (6.25,{-1.45-0.88*\k}) {\strut\c};
+    \node[cc, fill=white, minimum width=2.25cm] at (9.75,{-1.45-0.88*\k}) {\strut\d};
+    \node[cc, fill=white, minimum width=1.9cm] at (12.0,{-1.45-0.88*\k}) {\strut\e};
+  }
+  % this work
+  \node[nc, fill=sa!35, font=\rmfamily\bfseries\footnotesize] at (0,-5.85) {\strut SectorQ};
+  \node[cc, fill=sa!35, minimum width=1.55cm] at (3.05,-5.85) {\strut\yes};
+  \node[cc, fill=sa!35, minimum width=1.65cm] at (4.6,-5.85) {\strut\yes};
+  \node[cc, fill=sa!35, minimum width=3.5cm, font=\rmfamily\itshape\bfseries\footnotesize, text=dred] at (6.25,-5.85) {\strut Only at Window Boundaries};
+  \node[cc, fill=sa!35, minimum width=2.25cm] at (9.75,-5.85) {\strut\yes\ (Host Memory)};
+  \node[cc, fill=sa!35, minimum width=1.9cm] at (12.0,-5.85) {\strut\yes};
+  \draw[navyf, line width=0.9pt] (0,-5.85) rectangle (13.9,-6.73);
+  \node[note, anchor=west] at (0,-7.02) {\textcolor{black!50}{---} : Not Stated in the Sources Used Here};
+\end{tikzpicture}

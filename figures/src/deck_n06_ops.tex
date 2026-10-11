@@ -1,0 +1,70 @@
+% What one gate does to the list of terms (deck, the three operations of README 2.2). Three panels, read
+% from left to right; in every panel the rows before the operation are on top and the rows after it below.
+%   1  branch    a rotation with generator Q turns the term P into cos(theta) P and sin(theta) (P xor Q)
+%                (P anticommutes with Q; example: a rotation about X turns Z into cos(theta) Z + sin(theta) Y)
+%   2  merge     two rows with the same Pauli string become one row, their coefficients add
+%   3  truncate  a row whose coefficient is below the cutoff is dropped
+% A color marks the term that a panel follows (P, the new term P xor Q, the two rows that merge); the other
+% rows of the list are white, the dropped row is tinted. All coefficients, strings and the cutoff 0.01 are
+% an illustration; the figure carries no measured numbers.
+\begin{tikzpicture}[x=1cm, y=1cm, font=\rmfamily\footnotesize]
+  \tikzset{rw/.style={draw=black!70, line width=0.35pt, anchor=north west, inner sep=0pt, minimum height=0.52cm,
+                      text height=0.3cm, text depth=0.09cm, font=\rmfamily\small},
+           op/.style={draw=black, line width=0.45pt, inner sep=0pt, minimum width=3.1cm, minimum height=0.62cm,
+                      font=\rmfamily\footnotesize}}
+  \foreach \x in {0,4.85,9.7}
+    \node[frame, anchor=north west, minimum width=4.2cm, minimum height=7.1cm] at (\x,0) {};
+  \draw[fat] (4.27,-3.5) -- (4.79,-3.5);
+  \draw[fat] (9.12,-3.5) -- (9.64,-3.5);
+  % ================= 1: branch =================
+  \node[num] at (0.47,-0.5) {1};
+  \node[lttl, anchor=base west] at (0.7,-0.62) {Branch};
+  \node[rw, fill=sa, minimum width=2.3cm] at (0.95,-1.6) {$P$};
+  \draw[arr] (2.1,-2.2) -- (2.1,-3.17);
+  \node[op, fill=genc] at (2.1,-3.5) {Rotation, Generator $Q$};
+  \draw[arr] (2.1,-3.83) -- (2.1,-4.47);
+  \node[rw, fill=white, minimum width=1.0cm] at (0.95,-4.55) {cos\,$\theta$};
+  \node[rw, fill=sa, minimum width=1.3cm] at (1.95,-4.55) {$P$};
+  \node[rw, fill=white, minimum width=1.0cm] at (0.95,-5.07) {sin\,$\theta$};
+  \node[rw, fill=sb, minimum width=1.3cm] at (1.95,-5.07) {$P \oplus Q$};
+  \node[note, anchor=base] at (2.1,-6.52) {Z $\rightarrow$ cos\,$\theta$ $\cdot$ Z + sin\,$\theta$ $\cdot$ Y};
+  % ================= 2: merge =================
+  \begin{scope}[xshift=4.85cm]
+    \node[num] at (0.47,-0.5) {2};
+    \node[lttl, anchor=base west] at (0.7,-0.62) {Merge};
+    \foreach \k/\c in {0/0.20, 1/0.15}
+    {
+      \node[rw, fill=white, minimum width=1.0cm] at (0.95,{-1.34-0.52*\k}) {\c};
+      \node[rw, fill=sc, minimum width=1.3cm] at (1.95,{-1.34-0.52*\k}) {X Z};
+    }
+    \draw[arr] (2.1,-2.46) -- (2.1,-3.17);
+    \node[op, fill=white] at (2.1,-3.5) {Same Pauli String};
+    \draw[arr] (2.1,-3.83) -- (2.1,-4.73);
+    \node[rw, fill=white, minimum width=1.0cm] at (0.95,-4.81) {0.35};
+    \node[rw, fill=sc, minimum width=1.3cm] at (1.95,-4.81) {X Z};
+    \node[note, anchor=base] at (2.1,-6.52) {0.20 + 0.15 = 0.35};
+  \end{scope}
+  % ================= 3: truncate =================
+  \begin{scope}[xshift=9.7cm]
+    \node[num] at (0.47,-0.5) {3};
+    \node[lttl, anchor=base west] at (0.7,-0.62) {Truncate};
+    \foreach \k/\c/\p/\f in {0/0.35/X Z/sc, 1/0.12/Y I/white, 2/0.004/Z X/white}
+    {
+      \node[rw, fill=white, minimum width=1.0cm] at (0.95,{-1.08-0.52*\k}) {\c};
+      \node[rw, fill=\f, minimum width=1.3cm] at (1.95,{-1.08-0.52*\k}) {\p};
+    }
+    \draw[arr] (2.1,-2.72) -- (2.1,-3.17);
+    \node[op, fill=white] at (2.1,-3.5) {Cutoff = 0.01};
+    \draw[arr] (2.1,-3.83) -- (2.1,-4.21);
+    \foreach \k/\c/\p/\f in {0/0.35/X Z/sc, 1/0.12/Y I/white}
+    {
+      \node[rw, fill=white, minimum width=1.0cm] at (0.95,{-4.29-0.52*\k}) {\c};
+      \node[rw, fill=\f, minimum width=1.3cm] at (1.95,{-4.29-0.52*\k}) {\p};
+      \node[rw, fill=white, minimum width=0.42cm] at (3.25,{-4.29-0.52*\k}) {\ding{51}};
+    }
+    \node[rw, fill=badc, minimum width=1.0cm] at (0.95,-5.33) {0.004};
+    \node[rw, fill=badc, minimum width=1.3cm] at (1.95,-5.33) {Z X};
+    \node[rw, fill=badc, minimum width=0.42cm, text=dred] at (3.25,-5.33) {\ding{55}};
+    \node[note, anchor=base] at (2.1,-6.52) {0.004 < 0.01};
+  \end{scope}
+\end{tikzpicture}

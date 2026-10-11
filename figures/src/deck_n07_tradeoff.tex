@@ -1,0 +1,73 @@
+% Deck figure n07: existing distributed execution gives up either communication or memory.
+%   left    cuPauliProp's distributed mode as it is (default): after every gate all GPUs merge and redistribute
+%           globally. 22 collective calls per gate on every GPU; the setting with 22.5 million terms takes 2.9 s
+%           on 1 GPU and 71 s on 16 GPUs (README Sections 1.3 and 2.4; logs/pp_prof1-59470347.out and
+%           pp_prof4n-59470888.out, the logs that design_comm.tex cites).
+%   right   the same mode with the merge deferred until a truncation needs it: the copies of equal terms stay in
+%           GPU memory until then. 2 of the 7 circuits do not fit 16 GPUs at their largest setting
+%           (README Sections 1.5 and 4.4, requirement R3 of Section 2.6).
+%   bottom  what SectorQ does instead (README Sections 1.4, 3.2 and 3.3).
+% The row "22.5M Terms | 2.9 s on 1 GPU, 71 s on 16 GPUs" is written as two rows: as one row it does not fit
+% the frame at the font size of the style.
+% The blocks inside the GPUs are a sketch: gray = merged terms, hatched = copies that are not merged yet.
+\begin{tikzpicture}[x=1cm, y=1cm, font=\rmfamily\footnotesize]
+  \tikzset{tb/.style={draw=black!70, line width=0.3pt, anchor=west, inner sep=0pt, minimum width=0.3cm, minimum height=0.3cm},
+           cp/.style={draw=black!70, line width=0.3pt, anchor=west, inner sep=0pt, minimum width=0.36cm, minimum height=0.3cm,
+                      fill=black!8, postaction={pattern=north east lines, pattern color=black!55}},
+           mt/.style={draw=black!70, line width=0.3pt, anchor=west, inner sep=0pt, minimum width=0.36cm, minimum height=0.3cm,
+                      fill=black!22},
+           rc/.style={draw=black!70, line width=0.35pt, anchor=north west, inner sep=0pt, minimum height=0.42cm,
+                      text height=0.26cm, text depth=0.08cm, font=\rmfamily\footnotesize}}
+  % ================= left: merge at every gate, across all GPUs =================
+  \node[frame, anchor=north west, minimum width=6.05cm, minimum height=5.8cm] at (0,0) {};
+  \node[ttl, anchor=north] at (3.025,-0.06) {Merge at Every Gate, Across All GPUs};
+  \node[key, anchor=north] at (3.025,-0.52) {Gives Up Communication};
+  \foreach \g/\x in {0/0.15, 1/1.633, 2/3.117, 3/4.6}
+  {
+    \node[gpu, anchor=north west, minimum width=1.3cm, minimum height=1.25cm] at (\x,-1.05) {};
+    \node[cttl, anchor=north] at ({\x+0.65},-1.07) {GPU \g};
+    \foreach \i in {0,1,2,3}
+      \node[tb, fill=black!22] at ({\x+0.05+0.3*\i},-1.93) {};
+    \draw[dfat, dred] ({\x+0.65},-2.35) -- ({\x+0.65},-2.9);
+  }
+  \node[draw=dred, line width=0.9pt, fill=badc, anchor=north west, minimum width=5.75cm, minimum height=0.95cm] at (0.15,-2.9) {};
+  \node[cttl] at (3.025,-3.17) {Global Merge and Redistribution};
+  \node[note] at (3.025,-3.59) {After Every Gate, All GPUs Wait};
+  % measured
+  \node[rc, fill=black!10, minimum width=4.3cm] at (0.15,-4.24) {Collective Calls per Gate, per GPU};
+  \node[rc, fill=white, minimum width=1.45cm, text=dred, font=\rmfamily\bfseries\footnotesize] at (4.45,-4.24) {22};
+  \node[rc, fill=black!10, minimum width=4.3cm] at (0.15,-4.66) {22.5M Terms on 1 GPU};
+  \node[rc, fill=white, minimum width=1.45cm] at (4.45,-4.66) {2.9 s};
+  \node[rc, fill=black!10, minimum width=4.3cm] at (0.15,-5.08) {22.5M Terms on 16 GPUs};
+  \node[rc, fill=white, minimum width=1.45cm, text=dred, font=\rmfamily\bfseries\footnotesize] at (4.45,-5.08) {71 s};
+  % ================= right: merge only before truncation =================
+  \node[frame, anchor=north west, minimum width=6.05cm, minimum height=5.8cm] at (7.85,0) {};
+  \node[ttl, anchor=north] at (10.875,-0.06) {Merge Only Before Truncation};
+  \node[key, anchor=north] at (10.875,-0.52) {Gives Up Memory};
+  \foreach \g/\x in {0/8.0, 1/9.483, 2/10.967, 3/12.45}
+  {
+    \node[gpu, anchor=north west, minimum width=1.3cm, minimum height=2.8cm] at (\x,-1.05) {};
+    \node[cttl, anchor=north] at ({\x+0.65},-1.07) {GPU \g};
+    \foreach \r in {0,...,4}
+      \foreach \i in {0,1,2}
+        \node[cp] at ({\x+0.11+0.36*\i},{-1.66-0.3*\r}) {};
+    \node[mt] at ({\x+0.11},-3.16) {};
+    \node[cp] at ({\x+0.47},-3.16) {};
+    \node[cp] at ({\x+0.83},-3.16) {};
+    \foreach \i in {0,1,2}
+      \node[mt] at ({\x+0.11+0.36*\i},-3.46) {};
+  }
+  \node[cp] at (8.35,-4.46) {};
+  \node[note, anchor=west] at (8.78,-4.46) {Unmerged Copies Stay in GPU Memory};
+  % measured
+  \node[rc, fill=black!10, minimum width=4.3cm] at (8.0,-5.08) {Circuits That Do Not Fit 16 GPUs};
+  \node[rc, fill=white, minimum width=1.45cm, text=dred, font=\rmfamily\bfseries\footnotesize] at (12.3,-5.08) {2 of 7};
+  % ================= between the two =================
+  \draw[dfat] (6.17,-2.6) -- (7.73,-2.6);
+  \node[note] at (6.95,-1.9) {One Must};
+  \node[note] at (6.95,-2.23) {Be Given Up};
+  % ================= SectorQ =================
+  \node[draw=dblue, line width=0.9pt, fill=dblue!18, anchor=north west, minimum width=13.9cm, minimum height=1.0cm] at (0,-6.05) {};
+  \node[lttl] at (6.95,-6.34) {SectorQ: Merge at Every Gate, Inside a Sector};
+  \node[note] at (6.95,-6.78) {No Terms Move Between GPUs During a Window};
+\end{tikzpicture}

@@ -648,6 +648,14 @@ def gladder(G, prefix, suffix):
     return sorted((m.group(1) for m in map(pat.match, G) if m), key=float, reverse=True)
 
 
+def greached(G, prefix, suffix, cutoffs):
+    """`cutoffs` without the tail that no run reached: a ladder stops at its first failure, the steps after it were not started."""
+    out = list(cutoffs)
+    while out and (G.get(f"{prefix}.{out[-1]}.{suffix}") or {}).get("status") in (None, "skipped_after_failure"):
+        out.pop()
+    return out
+
+
 def gwhy(G, prefix, coef, suffix):
     """Why a run has no time. A run that was not started takes the reason of the step of its ladder that failed."""
     s = G.get(f"{prefix}.{coef}.{suffix}")
@@ -782,10 +790,13 @@ def cut_ticks(G, c, cutoffs, extra=None):
     return out
 
 
-def g_single_node(G, c="ki", title="Kicked Ising"):
-    """One node (4 GPUs, 64 cores): SectorQ and every other implementation, time against the problem size."""
+def g_single_node(G, c="ki", title="Kicked Ising", ax=None):
+    """One node (4 GPUs, 64 cores): SectorQ and every other implementation, time against the problem size.
+    With `ax` (a panel of another figure, make_deck_figures.py) only the panel is drawn: no legend, no file."""
     cutoffs = gladder(G, f"eng.{c}", "g4") or gladder(G, f"eng.{c}", "g1")
-    fig, ax = plt.subplots(figsize=(15.2, 5.6))
+    fig = None
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(15.2, 5.6))
     lines = [("ours", "g4", "-", "SectorQ (4 GPUs)"), ("ours", "g1", "--", "SectorQ (1 GPU)"),
              ("cupp", "g4", "-", "cuPauliProp (4 GPUs)"), ("cupp", "g1", "--", "cuPauliProp (1 GPU)"),
              ("defer", "g4", "-", "cuPauliProp, dedup deferred (4 GPUs)"), ("spd", "n1", "--", "SPD (1 GPU)"),
@@ -800,6 +811,8 @@ def g_single_node(G, c="ki", title="Kicked Ising"):
     ax.set_xticklabels(cut_ticks(G, c, cutoffs))
     ax.set_xlim(-0.4, len(cutoffs) - 0.6)
     ax.set_ylim(0.06, 5000)
+    if fig is None:
+        return rows
     sq_legend(fig, ax, 1.1, 4)
     save(fig, "eval_single_node.png")
     return rows
@@ -816,10 +829,13 @@ def big_run(big, c, coef, g):
     return default_run(big, BIG_NAME[c], float(coef), g)
 
 
-def g_weak(G, big=()):
+def g_weak(G, big=(), axes=None):
     """Weak scaling: the cutoff is lowered with the GPU count. One panel per circuit and load, one line per implementation.
-    The large load goes on to the GPU counts of the scaling jobs (SectorQ only: the other implementations were not run there)."""
-    fig, axes = plt.subplots(3, 2, figsize=(15.6, 12.4), gridspec_kw={"wspace": 0.14, "hspace": 0.52})
+    The large load goes on to the GPU counts of the scaling jobs (SectorQ only: the other implementations were not run there).
+    With `axes` (panels of another figure, make_deck_figures.py; axes[circuit][load]) only the panels are drawn: no legend, no file."""
+    fig = None
+    if axes is None:
+        fig, axes = plt.subplots(3, 2, figsize=(15.6, 12.4), gridspec_kw={"wspace": 0.14, "hspace": 0.52})
     rows = []
     more = [g for g in sorted(BIG_WEAK) if any(big_run(big, c, BIG_WEAK[g], g) for c, _ in G3)]
     for r, (load, cuts) in enumerate((("S", WEAK_S), ("L", WEAK_G))):
@@ -859,18 +875,23 @@ def g_weak(G, big=()):
             ax.set_xlim(-0.35, len(counts) - 0.65)
             ax.set_ylim((1.5, 500) if load == "S" else (15, 1500))
             ax.set_title(f"({'abcdef'[2 * j + r]}) {title}, {'small' if load == 'S' else 'large'} load", fontsize=14.5, pad=8)
+    if fig is None:
+        return rows
     sq_legend(fig, axes[0][0], 0.945, 6)
     save(fig, "eval_weak.png")
     return rows
 
 
-def g_strong(G, c="ki", cutoffs=("1e-4", "3e-5", "1e-5", "3e-6", "1e-6")):
+def g_strong(G, c="ki", cutoffs=("1e-4", "3e-5", "1e-5", "3e-6", "1e-6"), axes=None):
     """Strong scaling in the form of ScaleQsim: one panel per GPU count, time against the problem size; below each cutoff
-    the speedup of SectorQ over cuPauliProp's distributed mode on the same GPUs."""
+    the speedup of SectorQ over cuPauliProp's distributed mode on the same GPUs.
+    With `axes` (one panel per GPU count of another figure, make_deck_figures.py) only the panels are drawn."""
     panels = ((4, "g4", "n1", "4 GPUs (1 node)"), (8, "g8", "n2", "8 GPUs (2 nodes)"), (16, "g16", "n4", "16 GPUs (4 nodes)"))
     panels = [p for p in panels if any(gok(G.get(f"eng.{c}.{x}.{p[1]}")) for x in cutoffs)]
-    fig, axes = plt.subplots(1, len(panels), figsize=(5.2 * len(panels), 4.9), gridspec_kw={"wspace": 0.2}, squeeze=False)
-    axes = axes[0]
+    fig = None
+    if axes is None:
+        fig, axes = plt.subplots(1, len(panels), figsize=(5.2 * len(panels), 4.9), gridspec_kw={"wspace": 0.2}, squeeze=False)
+        axes = axes[0]
     rows = []
     for j, (g, gs, ns, title) in enumerate(panels):
         ax = axes[j]
@@ -888,21 +909,26 @@ def g_strong(G, c="ki", cutoffs=("1e-4", "3e-5", "1e-5", "3e-6", "1e-6")):
         ax.set_xlim(-0.4, len(cutoffs) - 0.6)
         ax.set_ylim(0.3, 4000)
         ax.set_title(f"({'abc'[j]}) {title}", fontsize=14.5, pad=8)
+    if fig is None:
+        return rows
     sq_legend(fig, axes[0], 1.1, 3 if len(panels) < 3 else 6)
     save(fig, "eval_strong.png")
     return rows
 
 
-def g_circuits(G, g=16):
+def g_circuits(G, g=16, axes=None, which=None):
     """Seven circuits on 16 GPUs: SectorQ against cuPauliProp's two distributed modes, time against the problem size.
-    Every cutoff of a panel has its tick; below it the speedup of SectorQ over cuPauliProp's distributed mode."""
-    fig, axes = plt.subplots(4, 2, figsize=(15.6, 15.4), gridspec_kw={"wspace": 0.14, "hspace": 0.5})
-    flat = [a for row in axes for a in row]
+    Every cutoff of a panel has its tick; below it the speedup of SectorQ over cuPauliProp's distributed mode.
+    With `axes` (panels of another figure, make_deck_figures.py) only the circuits `which` are drawn, one per panel."""
+    fig, flat = None, axes
+    if axes is None:
+        fig, axes = plt.subplots(4, 2, figsize=(15.6, 15.4), gridspec_kw={"wspace": 0.14, "hspace": 0.5})
+        flat = [a for row in axes for a in row]
     rows = []
-    for j, (c, name) in enumerate(G7):
+    for j, (c, name) in enumerate(G7 if which is None else [(c, dict(G7)[c]) for c in which]):
         ax = flat[j]
         cutoffs = gladder(G, f"eng.{c}", f"g{g}")
-        cutoffs = [x for x in cutoffs if "." not in x and x not in ("15e-7", "12e-7")]
+        cutoffs = greached(G, f"eng.{c}", f"g{g}", [x for x in cutoffs if "." not in x and x not in ("15e-7", "12e-7")])
         got = {}
         for kind in ("ours", "cupp", "defer"):
             recs, pts, fail = sq_line(ax, G, kind, c, cutoffs, f"g{g}", label=SQ_NAME[kind] if j == 0 else None, lw=3.8 if kind == "ours" else 3.0, ms=9)
@@ -914,21 +940,26 @@ def g_circuits(G, g=16):
             extra.append("(" + times(b_["wall"], a_["wall"]).replace("×", "x") + ")" if gok(a_) and gok(b_) else ("(OOM)" if gok(a_) and stopped else ""))
         sq_axes(ax, "Cutoff / Speedup of SectorQ", "Simulation Time (s)" if j % 2 == 0 else None, size=14)
         ax.set_xticks(range(len(cutoffs)))
-        ax.set_xticklabels([f"{x}\n{e}" for x, e in zip(cutoffs, extra)], fontsize=11 if len(cutoffs) <= 8 else 9.4)
+        ax.set_xticklabels([f"{x}\n{e}" for x, e in zip(cutoffs, extra)], fontsize=11 if len(cutoffs) <= 8 else (9.4 if len(cutoffs) <= 12 else 8.6))
         ax.set_xlim(-0.4, len(cutoffs) - 0.6)
         ax.set_ylim(0.2, 3000)
         ax.set_title(f"({'abcdefg'[j]}) {name.replace(chr(10), ' ')}", fontsize=14.5, pad=8)
+    if fig is None:
+        return rows
     flat[7].axis("off")
     sq_legend(fig, flat[0], 0.93, 4)
     save(fig, "eval_circuits.png")
     return rows
 
 
-def g_scaleout(G, big=(), c="ki", title="Kicked Ising"):
-    """Scale-out of SectorQ: time against the problem size, one line per GPU count (1-16 GPUs: campaign g, more: jobs e15)."""
-    cutoffs = [x for x in gladder(G, f"eng.{c}", "g16") if x not in ("15e-7", "12e-7")][4:]         # from cutoff 1e-4
+def g_scaleout(G, big=(), c="ki", title="Kicked Ising", ax=None):
+    """Scale-out of SectorQ: time against the problem size, one line per GPU count (1-16 GPUs: campaign g, more: jobs e15).
+    With `ax` (a panel of another figure, make_deck_figures.py) only the panel is drawn: no legend, no file."""
+    cutoffs = greached(G, f"eng.{c}", "g16", [x for x in gladder(G, f"eng.{c}", "g16") if x not in ("15e-7", "12e-7")])[4:]         # from cutoff 1e-4
     colors = {1: "#1f77b4", 2: "#d62728", 4: "#FFA500", 8: "#5b4a8a", 16: "#2ca02c", 32: "#8c564b", 64: "#e377c2", 128: "#7f7f7f", 256: "#17becf"}
-    fig, ax = plt.subplots(figsize=(10.4, 4.9))
+    fig = None
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(max(10.4, 1.2 * len(cutoffs)), 4.9))           # room for the three-line tick labels
     rows = []
     for g in list(GPUS_G) + sorted(BIG_WEAK):
         if g > 16:
@@ -950,6 +981,8 @@ def g_scaleout(G, big=(), c="ki", title="Kicked Ising"):
     ax.set_xticklabels(cut_ticks(G, c, cutoffs))
     ax.set_xlim(-0.4, len(cutoffs) - 0.6)
     ax.set_ylim(0.5, 4000)
+    if fig is None:
+        return rows
     sq_legend(fig, ax, 1.09 if len(rows) > 5 else 1.03, 5, extra=True, size=13)
     save(fig, "eval_scaleout.png")
     return rows
@@ -976,10 +1009,13 @@ SIZE_PARTS = [("Gate Application (Library Calls)", "operations", OURS), ("Exchan
               ("Idle GPU", "idle", "#B9BDC4"), ("Waiting for Other Nodes", "waiting", "#8E96A3"), ("Other", "other", "#E3E4E8")]
 
 
-def g_breakdown_sizes(G, g=16, cutoffs=("1e-4", "3e-5", "1e-5", "3e-6", "1e-6")):
+def g_breakdown_sizes(G, g=16, cutoffs=("1e-4", "3e-5", "1e-5", "3e-6", "1e-6"), axes=None, height=0.66):
     """SectorQ on 16 GPUs: shares of the run time as the problem grows (sweep runs; times summed over the GPU workers
-    are divided by the number of workers)."""
-    fig, axes = plt.subplots(1, 3, figsize=(15.6, 3.1), gridspec_kw={"wspace": 0.34})
+    are divided by the number of workers).
+    With `axes` (three panels of another figure, make_deck_figures.py) only the panels are drawn, with bars of `height`."""
+    fig = None
+    if axes is None:
+        fig, axes = plt.subplots(1, 3, figsize=(15.6, 3.1), gridspec_kw={"wspace": 0.34})
     out = []
     for j, (c, title) in enumerate(G3):
         ax = axes[j]
@@ -998,7 +1034,7 @@ def g_breakdown_sizes(G, g=16, cutoffs=("1e-4", "3e-5", "1e-5", "3e-6", "1e-6"))
             out.append((title, coef, r["wall"], share))
             left, i = 0.0, len(labels)
             for name, key, col in SIZE_PARTS:
-                ax.barh(i, share[key] * 100, left=left, color=col, height=0.66, label=name if (j == 0 and i == 0) else None)
+                ax.barh(i, share[key] * 100, left=left, color=col, height=height, label=name if (j == 0 and i == 0) else None)
                 if share[key] >= 0.07:
                     ax.text(left + share[key] * 50, i, f"{share[key] * 100:.0f}%", ha="center", va="center", fontsize=11,
                             color="white" if key in ("operations", "exchange", "waiting") else INK)
@@ -1012,6 +1048,8 @@ def g_breakdown_sizes(G, g=16, cutoffs=("1e-4", "3e-5", "1e-5", "3e-6", "1e-6"))
         ax.set_title(title, fontsize=14, fontweight="bold", pad=8)
         ax.tick_params(length=0)
     axes[0].set_ylabel("Cutoff (run time)")
+    if fig is None:
+        return out
     fig.legend(*axes[0].get_legend_handles_labels(), loc="upper center", ncol=7, bbox_to_anchor=(0.5, 1.13), fontsize=11.5, columnspacing=1.4, handlelength=1.2)
     save(fig, "eval_breakdown.png")
     return out
@@ -1057,9 +1095,12 @@ SIZE_LINES = [("ours", "eng", "g16", "-", "SectorQ (16 GPUs)"), ("ours", "eng", 
               ("julia", "julia", "n1", "-", "PauliPropagation.jl (64 cores)"), ("ppvm", "ppvm", "n1", "-", "ppvm (64 cores)")]
 
 
-def g_qubits(G):
-    """Qubit sweep: total magnetization of the LxL TFIM (one observable term per qubit), time against the number of qubits."""
-    fig, axes = plt.subplots(1, 2, figsize=(15.6, 5.4), sharey=True)
+def g_qubits(G, axes=None):
+    """Qubit sweep: total magnetization of the LxL TFIM (one observable term per qubit), time against the number of qubits.
+    With `axes` (two panels of another figure, make_deck_figures.py) only the panels are drawn; returns the legend entries."""
+    fig = None
+    if axes is None:
+        fig, axes = plt.subplots(1, 2, figsize=(15.6, 5.4), sharey=True)
     for ax, x in zip(axes, ("1e-3", "1e-4")):
         for kind, tag, suffix, ls, label in SIZE_LINES:
             size_line(ax, G, [f"m.{tag}.L{L}.{x}.{suffix}" for L in SIZE_L + (45,)], kind, label, ls)
@@ -1069,20 +1110,26 @@ def g_qubits(G):
         ax.set_xlim(-0.4, len(SIZE_L) - 0.4)
         ax.set_ylim(0.1, 3000)
         ax.set_title(f"cutoff {x}", fontsize=15, fontweight="bold")
-    sq_legend(fig, axes[0], 1.2, 4, extra=False)
+    if fig is not None:
+        sq_legend(fig, axes[0], 1.2, 4, extra=False)
     h, n = axes[0].get_legend_handles_labels()
-    for leg in fig.legends:
+    for leg in (fig.legends if fig is not None else ()):
         leg.remove()
     h.append(plt.Line2D([0], [0], color="black", marker="x", markersize=10, markeredgewidth=2.6, linestyle="none"))
     n.append("stops here: out of memory, over 20 min, or qubits not supported")
+    if fig is None:
+        return h, n
     fig.legend(h, n, loc="upper center", ncol=4, bbox_to_anchor=(0.5, 1.2), fontsize=12.5, columnspacing=1.4, handlelength=2.4, frameon=False)
     fig.subplots_adjust(wspace=0.05)
     save(fig, "eval_qubits.png")
 
 
-def g_depth(G, x="3e-5"):
-    """Depth sweep: kicked Ising on 127 qubits, time against the number of Trotter steps."""
-    fig, ax = plt.subplots(figsize=(11.6, 5.2))
+def g_depth(G, x="3e-5", ax=None):
+    """Depth sweep: kicked Ising on 127 qubits, time against the number of Trotter steps.
+    With `ax` (a panel of another figure, make_deck_figures.py) only the panel is drawn; returns the legend entries."""
+    fig = None
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(11.6, 5.2))
     lines = [l for l in SIZE_LINES if l[1] not in ("ppvm",)]
     for kind, tag, suffix, ls, label in lines:
         size_line(ax, G, [f"d.{tag}.s{s}.{x}.{suffix}" for s in STEPS_D], kind, label, ls)
@@ -1094,14 +1141,19 @@ def g_depth(G, x="3e-5"):
     h, n = ax.get_legend_handles_labels()
     h.append(plt.Line2D([0], [0], color="black", marker="x", markersize=10, markeredgewidth=2.6, linestyle="none"))
     n.append("stops here: out of memory")
+    if fig is None:
+        return h, n
     fig.legend(h, n, loc="upper center", ncol=3, bbox_to_anchor=(0.5, 1.22), fontsize=12.5, columnspacing=1.4, handlelength=2.4, frameon=False)
     save(fig, "eval_depth.png")
 
 
-def g_accuracy_time(G):
+def g_accuracy_time(G, axes=None):
     """Accuracy against the exact value (30-qubit TFIM): time against the cutoff; below each cutoff the error of the
-    value that all implementations with the same truncation rule return (MonoProp truncates by its own rule)."""
-    fig, axes = plt.subplots(1, 2, figsize=(15.6, 5.4), sharey=True)
+    value that all implementations with the same truncation rule return (MonoProp truncates by its own rule).
+    With `axes` (panels of another figure, make_deck_figures.py) only the panels are drawn; returns the legend entries."""
+    fig = None
+    if axes is None:
+        fig, axes = plt.subplots(1, 2, figsize=(15.6, 5.4), sharey=True)
     lines = [("ours", "eng", "g16", "-", "SectorQ (16 GPUs)"), ("ours", "eng", "g4", "--", "SectorQ (4 GPUs)"), ("ours", "eng", "g1", ":", "SectorQ (1 GPU)"),
              ("cupp", "ref", "g1", ":", "cuPauliProp (1 GPU)"), ("spd", "spd", "n1", ":", "SPD (1 GPU)"), ("orqa", "orqa", "n4", "-", "ORQA, reproduction (4 nodes)"),
              ("monoprop", "monoprop", "n4", "-", "MonoProp (4 nodes, own truncation)"), ("julia", "julia", "n1", "-", "PauliPropagation.jl (64 cores)")]
@@ -1121,6 +1173,8 @@ def g_accuracy_time(G):
     h, n = axes[0].get_legend_handles_labels()
     h.append(plt.Line2D([0], [0], color="black", marker="x", markersize=10, markeredgewidth=2.6, linestyle="none"))
     n.append("stops here: out of memory or over 20 min")
+    if fig is None:
+        return h, n
     fig.legend(h, n, loc="upper center", ncol=3, bbox_to_anchor=(0.5, 1.2), fontsize=12.5, columnspacing=1.4, handlelength=2.4, frameon=False)
     fig.subplots_adjust(wspace=0.05)
     save(fig, "eval_accuracy.png")
