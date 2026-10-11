@@ -147,7 +147,7 @@ dedup을 미룬 cuPauliProp은 이 연구가 구성한 가장 강한 기준선�
 3. 이 성질에서 구간 동안 항을 주고받지 않는 다중 GPU 실행, GPU memory를 넘는 실행, 넘치는 sector의 분할, 구간 경계 checkpoint를 끌어내어 하나의 SectorQ로 구현하였다(3.4절, 3.6절).
 4. 회로 7종에서 단일 GPU 실행, cuPauliProp 분산 모드, 외부 구현 다섯 가지와 같은 답을 내는 것을 확인하고, 속도, 필요한 GPU 수, 도달 범위를 비교하였다. exact 값을 아는 30 qubit 회로에서 cutoff에 따른 오차를 재었다(4절).
 
-적용 범위는 다음과 같다. 작은 문제는 GPU를 늘려도 덜 빨라진다(kicked Ising cutoff 1e-4, 최대 2,250만 항: 1 GPU 1.72초, 16 GPU 0.81초, 이유는 4.4절). 이런 문제에서 SectorQ의 이득은 cuPauliProp 분산 모드가 내는 조율 비용이 없다는 데 있다. GPU 수만큼 시간이 줄어드는 것은 1억 항이 넘는 문제이다(16 GPU에서 13–15배). 측정은 128 GPU까지이고, 관측량은 Z 하나 또는 edge의 합이다. 가장 강한 기준선과의 속도 차이는 16 GPU가 있어야 들어가는 설정에서 2.2–4.6배이며, 더 큰 차이는 필요한 GPU 수와 도달 범위에 있다. GPU 1장 안에서는 다른 연산을 쓰는 SPD가 더 빠른 설정이 있다(4.2절). kicked Ising(θ=π/4)의 값은 측정한 cutoff 범위에서 수렴하지 않았다. 이 회로에서 주장하는 것은 같은 cutoff에서 같은 답을 더 빠르게, 더 적은 GPU로, 더 낮은 cutoff까지 낸다는 것이다. sector 단위 처리, out-of-core 실행, checkpoint는 각각 database의 분할 실행에 원형이 있다(2.5절). 이 연구가 제시하는 것은 gate가 key를 계속 바꾸는 데이터에서 분할이 유지되는 key이다.
+적용 범위는 다음과 같다. 작은 문제는 GPU를 늘려도 덜 빨라진다(kicked Ising cutoff 1e-4, 최대 2,250만 항: 1 GPU 1.72초, 16 GPU 0.81초, 이유는 4.4절). 이런 문제에서 SectorQ의 이득은 cuPauliProp 분산 모드가 내는 조율 비용이 없다는 데 있다. GPU 수만큼 시간이 줄어드는 것은 1억 항이 넘는 문제이다(16 GPU에서 13–15배). 측정은 256 GPU까지이고, 32 GPU 이상에서는 host memory를 채우는 크기의 문제를 아직 재지 않았다(4.4절). 관측량은 Z 하나, edge의 합, 또는 전체 자화이다. 가장 강한 기준선과의 속도 차이는 16 GPU가 있어야 들어가는 설정에서 2.2–4.6배이며, 더 큰 차이는 필요한 GPU 수와 도달 범위에 있다. GPU 1장 안에서는 다른 연산을 쓰는 SPD가 더 빠른 설정이 있다(4.2절). kicked Ising(θ=π/4)의 값은 측정한 cutoff 범위에서 수렴하지 않았다. 이 회로에서 주장하는 것은 같은 cutoff에서 같은 답을 더 빠르게, 더 적은 GPU로, 더 낮은 cutoff까지 낸다는 것이다. sector 단위 처리, out-of-core 실행, checkpoint는 각각 database의 분할 실행에 원형이 있다(2.5절). 이 연구가 제시하는 것은 gate가 key를 계속 바꾸는 데이터에서 분할이 유지되는 key이다.
 
 ## 2. 배경
 
@@ -1453,7 +1453,7 @@ host memory는 더 쓴다(가장 바쁜 노드에서 kicked Ising 3e-6이 26 →
 
 - 측정은 256 GPU까지이다. 32–256 GPU에서 잰 문제는 host memory의 6–24%만 쓰며, 이 GPU 수에서 용량을 채우는 문제는 아직 재지 않았다(4.4절). 구간당 sector 수의 상한(256개)은 GPU 수와 문제 크기에 맞추어 정해야 하는데 그 규칙이 아직 없다.
 - qubit 수는 1,024까지이다. cuPauliProp 라이브러리가 1,056 qubit부터 연산과 expansion을 만들지 않으며, SectorQ는 gate 적용에 그 연산을 쓴다(4.4절).
-- 가장 강한 기준선(dedup을 미룬 cuPauliProp)과의 속도 차이는 16 GPU가 있어야 들어가는 설정에서 2.2–4.6배, 32–128 GPU의 cutoff 1e-5에서 3.2–5.4배이다. 1,024 qubit의 전체 자화(cutoff 1e-3)에서는 1.4배이다. 이 기준선은 GPU가 늘어 메모리가 넉넉해질수록 dedup을 더 미룰 수 있다. SectorQ의 gate 적용은 cuPauliProp의 단일 GPU 연산이므로 그 시간이 하한이다(4.6절).
+- 가장 강한 기준선(dedup을 미룬 cuPauliProp)과의 속도 차이는 16 GPU가 있어야 들어가는 설정에서 2.2–4.6배, 32–256 GPU의 cutoff 1e-5에서 3.2–5.4배이다. 1,024 qubit의 전체 자화(cutoff 1e-3)에서는 1.4배이다. 이 기준선은 GPU가 늘어 메모리가 넉넉해질수록 dedup을 더 미룰 수 있다. SectorQ의 gate 적용은 cuPauliProp의 단일 GPU 연산이므로 그 시간이 하한이다(4.6절).
 - GPU 1장 안에서는 다른 연산을 쓰는 SPD가 더 빠른 설정이 있다(kicked Ising cutoff 3e-5에서 최대 2.9배, 4.2절. 전체 자화의 256–529 qubit에서 3.6–4.2배, 4.4절). SectorQ는 연산 자체를 바꾸지 않는다. 제자리 rotation kernel(3.7절 성질 6)은 구현하지 않았다. GPU 한 장이 한 번에 다루는 항 수(40 GB에 약 1억)도 cuPauliProp의 연산이 정한다.
 - 2초 안에 끝나는 작은 설정에서는 CPU 구현인 MonoProp이 SectorQ보다 빠르다(4.2–4.3절). SectorQ는 rotation마다 연산을 한 번씩 호출하며 그 고정 비용이 약 0.4초이다(4.11절).
 - 작은 문제는 GPU를 늘려도 덜 빨라진다(수백만 항에서 16 GPU가 1.4–2.1배, 4.4절). 한 GPU를 넘는 문제도 작으면 일찍 포화한다(cutoff 1e-5는 32 GPU에서 64 GPU로 1.5–1.6배, 64 GPU에서 128 GPU로 1.1–1.4배, 4.4절). SectorQ는 항 수가 sector 목표보다 적은 동안 GPU 하나만 쓴다.
@@ -1496,7 +1496,7 @@ host memory는 더 쓴다(가장 바쁜 노드에서 kicked Ising 3e-6이 26 →
 | `analysis/summarize.py`, `ownership.py`, `balance_rows.py` | cuPauliProp 계측 요약, 행의 균형 |
 | `jobs/` | 실험 스크립트(6.3절) |
 | `logs/` | 실험의 원시 로그 |
-| `figures/` | 이 문서의 그림. `figures/build.sh`가 TikZ 소스(`figures/src/`)와 `make_eval_figures.py`로 PNG를 만든다. `make_eval_figures.py --g`는 캠페인 g의 기록과 32–128 GPU의 로그에서 그림 6–15를 그린다 |
+| `figures/` | 이 문서의 그림. `figures/build.sh`가 TikZ 소스(`figures/src/`)와 `make_eval_figures.py`로 PNG를 만든다. `make_eval_figures.py --g`는 캠페인 g의 기록과 32–256 GPU의 로그에서 그림 6–15를 그린다 |
 
 `bin/`, `results/`(gate별 원자료 약 480 MB), `third_party/`는 저장소에 포함되지 않는다. 원자료는 Perlmutter의 `/pscratch/sd/s/sgkim/kcj/pauliprop/results`에 있다.
 
@@ -1547,7 +1547,7 @@ thrust 코드는 `-gencode arch=compute_80,code=sm_80`로 빌드한다. 실행�
 
 작업은 `sbatch jobs/*.sh`로 낸다(`-A m5320_g -C gpu -q debug`). `e5`–`e10`은 측정 당시의 시험용 binary(`bin/pp_engine_dd*`)를 가리킨다. 최종 소스로 빌드한 SectorQ로 다시 돌리려면 `PP_BIN=bin/pp_engine`을 준다. `e8`의 `--busy-window`는 기각하여 최종 소스에 없다. `inter_run*.sh`는 interactive 할당 안에서 `PP_JOB=<할당 번호> bash jobs/inter_runN.sh`로 실행한다.
 
-4.1–4.3절, 4.4절의 1–16 GPU 부분, 4.5–4.8절의 표와 그림 6–15는 캠페인 g의 값이다(그림 7과 12의 32–128 GPU는 `e15`). 위 표에서 이 절들을 가리키는 앞선 스크립트(`inter_run4`–`inter_run6`, `e3`, `e4`, `e10`)의 값은 이 문서의 표에 더 쓰지 않는다. 4.9–4.11절은 그 로그의 값 그대로이다. `e12`와 `e13`(4–128 GPU의 앞선 측정)의 값은 이 문서의 표에 더 쓰지 않는다. 캠페인 g의 실행 기록(`queue_g/done/`)과 로그(`logs/g/`)는 아직 저장소에 넣지 않았으며 Perlmutter의 작업 디렉터리에 있다. 전체 표는 `python3 analysis/campaign_g.py`로, 이 문서의 표는 `python3 analysis/readme_g.py`로 다시 만든다.
+4.1–4.3절, 4.4절의 1–16 GPU 부분, 4.5–4.8절의 표와 그림 6–15는 캠페인 g의 값이다(그림 7과 12의 32–256 GPU는 `e15`). 위 표에서 이 절들을 가리키는 앞선 스크립트(`inter_run4`–`inter_run6`, `e3`, `e4`, `e10`)의 값은 이 문서의 표에 더 쓰지 않는다. 4.9–4.11절은 그 로그의 값 그대로이다. `e12`와 `e13`(4–128 GPU의 앞선 측정)의 값은 이 문서의 표에 더 쓰지 않는다. 캠페인 g의 실행 기록(`queue_g/done/`)과 로그(`logs/g/`)는 아직 저장소에 넣지 않았으며 Perlmutter의 작업 디렉터리에 있다. 전체 표는 `python3 analysis/campaign_g.py`로, 이 문서의 표는 `python3 analysis/readme_g.py`로 다시 만든다.
 
 `e12`와 `e13`은 같은 스크립트를 노드 수만 바꾸어 낸다(`sbatch -N <노드 수> -J pp_e13_g<GPU 수> jobs/e13_scaling.sh`, 16 노드부터는 `-q regular`). `e12`의 SectorQ 실행 시간은 쓰지 않는다. 그 판(`bin/pp_engine_scal`)은 행을 고르는 표본을 노드마다 20만 개씩 모아, 그 단계가 1 노드 0.4초에서 32 노드 15–45초로 늘었다. `e13`은 표본을 전체 20만 개로 되돌린 현재 소스(`bin/pp_engine_scal2`)로 다시 잰 것이다. `e12`의 cuPauliProp 실행과 기대값은 영향을 받지 않는다. 전체 표는 `python3 analysis/scaling_table.py`로 본다.
 
@@ -1614,7 +1614,7 @@ interactive 할당 안에서는 `jobs/inter.sh`를 source한 뒤 `eng <노드 �
 
 | 순서 | 남은 실험 | 받치는 주장 |
 |---|---|---|
-| 1 | 256–1,024 GPU (지금은 128 GPU까지) | 규모. 기본 모드와의 차이는 64 GPU까지 벌어진다(16 GPU 4.5–7.0배, 32 GPU 7.3–14배, 64 GPU 12–25배, 128 GPU 12–20배, 4.4절) |
+| 1 | 32–512 GPU에서 메모리 한계까지의 sweep (지금은 256 GPU, cutoff 1e-6까지) | 규모. 32–256 GPU에서 잰 문제는 host memory의 6–24%만 쓴다. 기본 모드와의 차이는 64 GPU까지 벌어진다(16 GPU 4.5–7.0배, 32 GPU 7.3–14배, 64 GPU 12–25배, 128 GPU 12–20배, 256 GPU 13–23배, 4.4절) |
 | 2 | 노드 사이 교환을 여러 thread로, sector가 GPU에 들어가면 host로 내리지 않기 | 남은 비용. 교환의 비중은 GPU 수와 함께 커진다(64 GPU에서 21–33%, 4.4절) |
 | 3 | 제자리 rotation kernel | GPU당 항 수(약 7배는 추정치이다) |
 | 4 | 회로 7종의 논문용 크기와 관측량 확정(IBM 실험의 weight-10, weight-17, 자화). XXZ, QAOA, ansatz는 지금의 큰 설정도 1–3초에 끝난다 | 일반성 |
