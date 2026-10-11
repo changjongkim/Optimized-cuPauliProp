@@ -1001,6 +1001,105 @@ def g_accuracy(G):
     accuracy()
 
 
+# ---- circuit size and accuracy (campaign g, lists todo_e and todo_f) ---------------------------------------------------
+SIZE_L = (6, 8, 11, 16, 23, 32)                     # 36 ... 1,024 qubits; the library takes no more than 1,024
+STEPS_D = (4, 8, 12, 16, 20, 28, 40, 60)
+ACC_CUTS = ("1e-3", "3e-4", "1e-4", "3e-5", "1e-5", "3e-6", "1e-6", "3e-7", "1e-7")
+EXACT_G = {4: 0.802867136639, 6: 0.790133273060}
+WHY_SIZE = {"oom": "out of memory", "tl": "over 20 min", "predicted_tl": "over 20 min", "fail": "not supported"}
+
+
+def size_line(ax, G, ids, kind, label, ls="-"):
+    """One implementation over a ladder of item ids: a line through the finished runs and a cross where it stops."""
+    recs = [G.get(i) for i in ids]
+    pts = [(k, s["wall"]) for k, s in enumerate(recs) if gok(s)]
+    col, mk = SQ[kind]
+    if not pts:
+        return
+    ours = kind == "ours"
+    ax.plot([a for a, _ in pts], [b for _, b in pts], color=col, marker=mk, markersize=9 if ours else 8, linewidth=3.4 if ours else 2.6,
+            linestyle=ls, label=label, zorder=4 if ours else 3, solid_capstyle="round")
+    nxt = pts[-1][0] + 1
+    if nxt < len(recs) and recs[nxt] is not None and not gok(recs[nxt]):
+        ax.plot([nxt], [pts[-1][1]], color=col, marker="x", markersize=10, markeredgewidth=2.6, linestyle="none", zorder=5)
+
+
+SIZE_LINES = [("ours", "eng", "g16", "-", "SectorQ (16 GPUs)"), ("ours", "eng", "g4", "--", "SectorQ (4 GPUs)"), ("ours", "eng", "g1", ":", "SectorQ (1 GPU)"),
+              ("cupp", "cupp", "g16", "-", "cuPauliProp (16 GPUs)"), ("defer", "defer", "g16", "-", "cuPauliProp, dedup deferred (16 GPUs)"),
+              ("cupp", "ref", "g1", ":", "cuPauliProp (1 GPU)"), ("spd", "spd", "n1", ":", "SPD (1 GPU)"),
+              ("orqa", "orqa", "n4", "-", "ORQA, reproduction (4 nodes)"), ("monoprop", "monoprop", "n4", "-", "MonoProp (4 nodes)"),
+              ("julia", "julia", "n1", "-", "PauliPropagation.jl (64 cores)"), ("ppvm", "ppvm", "n1", "-", "ppvm (64 cores)")]
+
+
+def g_qubits(G):
+    """Qubit sweep: total magnetization of the LxL TFIM (one observable term per qubit), time against the number of qubits."""
+    fig, axes = plt.subplots(1, 2, figsize=(15.6, 5.4), sharey=True)
+    for ax, x in zip(axes, ("1e-3", "1e-4")):
+        for kind, tag, suffix, ls, label in SIZE_LINES:
+            size_line(ax, G, [f"m.{tag}.L{L}.{x}.{suffix}" for L in SIZE_L + (45,)], kind, label, ls)
+        sq_axes(ax, "# of Qubits", "Simulation Time (s)" if ax is axes[0] else None)
+        ax.set_xticks(range(len(SIZE_L)))
+        ax.set_xticklabels([f"{L * L:,}" for L in SIZE_L])
+        ax.set_xlim(-0.4, len(SIZE_L) - 0.4)
+        ax.set_ylim(0.1, 3000)
+        ax.set_title(f"cutoff {x}", fontsize=15, fontweight="bold")
+    sq_legend(fig, axes[0], 1.2, 4, extra=False)
+    h, n = axes[0].get_legend_handles_labels()
+    for leg in fig.legends:
+        leg.remove()
+    h.append(plt.Line2D([0], [0], color="black", marker="x", markersize=10, markeredgewidth=2.6, linestyle="none"))
+    n.append("stops here: out of memory, over 20 min, or qubits not supported")
+    fig.legend(h, n, loc="upper center", ncol=4, bbox_to_anchor=(0.5, 1.2), fontsize=12.5, columnspacing=1.4, handlelength=2.4, frameon=False)
+    fig.subplots_adjust(wspace=0.05)
+    save(fig, "eval_qubits.png")
+
+
+def g_depth(G, x="3e-5"):
+    """Depth sweep: kicked Ising on 127 qubits, time against the number of Trotter steps."""
+    fig, ax = plt.subplots(figsize=(11.6, 5.2))
+    lines = [l for l in SIZE_LINES if l[1] not in ("ppvm",)]
+    for kind, tag, suffix, ls, label in lines:
+        size_line(ax, G, [f"d.{tag}.s{s}.{x}.{suffix}" for s in STEPS_D], kind, label, ls)
+    sq_axes(ax, "# of Trotter Steps", "Simulation Time (s)")
+    ax.set_xticks(range(len(STEPS_D)))
+    ax.set_xticklabels([str(s) for s in STEPS_D])
+    ax.set_xlim(-0.4, len(STEPS_D) - 0.6)
+    ax.set_ylim(0.01, 2000)
+    h, n = ax.get_legend_handles_labels()
+    h.append(plt.Line2D([0], [0], color="black", marker="x", markersize=10, markeredgewidth=2.6, linestyle="none"))
+    n.append("stops here: out of memory")
+    fig.legend(h, n, loc="upper center", ncol=3, bbox_to_anchor=(0.5, 1.22), fontsize=12.5, columnspacing=1.4, handlelength=2.4, frameon=False)
+    save(fig, "eval_depth.png")
+
+
+def g_accuracy_time(G):
+    """Accuracy against the exact value (30-qubit TFIM): time against the cutoff; below each cutoff the error of the
+    value that all implementations with the same truncation rule return (MonoProp truncates by its own rule)."""
+    fig, axes = plt.subplots(1, 2, figsize=(15.6, 5.4), sharey=True)
+    lines = [("ours", "eng", "g16", "-", "SectorQ (16 GPUs)"), ("ours", "eng", "g4", "--", "SectorQ (4 GPUs)"), ("ours", "eng", "g1", ":", "SectorQ (1 GPU)"),
+             ("cupp", "ref", "g1", ":", "cuPauliProp (1 GPU)"), ("spd", "spd", "n1", ":", "SPD (1 GPU)"), ("orqa", "orqa", "n4", "-", "ORQA, reproduction (4 nodes)"),
+             ("monoprop", "monoprop", "n4", "-", "MonoProp (4 nodes, own truncation)"), ("julia", "julia", "n1", "-", "PauliPropagation.jl (64 cores)")]
+    for ax, steps in zip(axes, (4, 6)):
+        for kind, tag, suffix, ls, label in lines:
+            size_line(ax, G, [f"acc.{tag}.s{steps}.{x}.{suffix}" for x in ACC_CUTS], kind, label, ls)
+        ticks = []
+        for x in ACC_CUTS:
+            vals = [G[i]["expectation"] for i in (f"acc.eng.s{steps}.{x}.g16", f"acc.eng.s{steps}.{x}.g4", f"acc.eng.s{steps}.{x}.g1") if gok(G.get(i))]
+            ticks.append(f"{x}\n({abs(vals[0] - EXACT_G[steps]):.1e})".replace("e-0", "e-") if vals else f"{x}\n")
+        sq_axes(ax, "Cutoff (Error against the Exact Value)", "Simulation Time (s)" if ax is axes[0] else None)
+        ax.set_xticks(range(len(ACC_CUTS)))
+        ax.set_xticklabels(ticks, fontsize=10.5)
+        ax.set_xlim(-0.4, len(ACC_CUTS) - 0.6)
+        ax.set_ylim(0.01, 2000)
+        ax.set_title(f"{steps} Trotter steps", fontsize=15, fontweight="bold")
+    h, n = axes[0].get_legend_handles_labels()
+    h.append(plt.Line2D([0], [0], color="black", marker="x", markersize=10, markeredgewidth=2.6, linestyle="none"))
+    n.append("stops here: out of memory or over 20 min")
+    fig.legend(h, n, loc="upper center", ncol=3, bbox_to_anchor=(0.5, 1.2), fontsize=12.5, columnspacing=1.4, handlelength=2.4, frameon=False)
+    fig.subplots_adjust(wspace=0.05)
+    save(fig, "eval_accuracy.png")
+
+
 def main_g():
     G = campaign_g()
     big = many("pp_e15_g*-*.out")
@@ -1011,7 +1110,9 @@ def main_g():
     scaleout = g_scaleout(G, big)
     parts = g_breakdown(G)
     sizes = g_breakdown_sizes(G)
-    g_accuracy(G)
+    g_qubits(G)
+    g_depth(G)
+    g_accuracy_time(G)
     if "--print" in sys.argv:
         f = lambda s: "-" if s is None else (secs(s["wall"]) if gok(s) else s["status"])
         show = lambda pts, stop: "  ".join(f"{x}: {secs(w)}" for x, w in pts) + (f"  | stops at {stop[0]} ({stop[1]})" if stop else "")
@@ -1059,10 +1160,8 @@ def main():
         return
     e12, e13 = many("pp_e12_g*-*.out"), many("pp_e13_g*-*.out")
     if "--old" not in sys.argv:
-        # the figures of the README: background, 1-16 GPUs from campaign g, 4-128 GPUs from the job sets e12 and e13
+        # the figures of the README: background, then campaign g (1-16 GPUs) with the scaling jobs e15 (32-128 GPUs)
         background()
-        scaling(e13)
-        scaling_baselines(e13, e12)
         return main_g()
     # the evaluation figures before campaign g, from the earlier logs (they overwrite eval_breakdown*.png and eval_accuracy.png)
     run4, run5, e3 = parse("inter_run4.out"), parse("inter_run5.out"), parse("pp_e3-59475516.out")

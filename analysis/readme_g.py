@@ -137,7 +137,8 @@ def b_progress():
     n = lambda st: sum(1 for s in mine.values() if s["status"] == st and not s.get("reused"))
     reused = sum(1 for s in mine.values() if s.get("reused"))
     return (f"실행 {len(items):,}건 가운데 {len(items) - opened:,}건이 끝났다(완료 {n('ok'):,}, 메모리 부족 {n('oom')}, 시간 초과 {n('tl') + n('predicted_tl')}, "
-            f"더 쉬운 칸에서 실패하여 돌리지 않음 {n('skipped_after_failure')}, 캠페인 f에서 가져온 기준선 실행 {reused}). 남은 {opened:,}건은 측정 중이다.")
+            f"더 쉬운 칸에서 실패하여 돌리지 않음 {n('skipped_after_failure')}, qubit 수의 상한에 걸림 {n('fail')}, 캠페인 f에서 가져온 기준선 실행 {reused})."
+            + (f" 남은 {opened:,}건은 측정 중이다." if opened else ""))
 
 
 def b_agree():
@@ -349,7 +350,7 @@ def b_reach():
                 x = min(done, key=float)
                 row.append(f"{x} ({ko_terms(facts(c, x)[0])})" + (" *" if still else ""))
             rows.append(row)
-    return table(["회로", "방식"] + [f"{g} GPU" for g in GPUS], rows, ["---", "---"] + ["---:"] * len(GPUS)) + "\n\n\\* 더 작은 cutoff의 실행이 아직 측정 중이다."
+    return table(["회로", "방식"] + [f"{g} GPU" for g in GPUS], rows, ["---", "---"] + ["---:"] * len(GPUS)) + ("\n\n\\* 더 작은 cutoff의 실행이 아직 측정 중이다." if any("*" in str(c) for r in rows for c in r) else "")
 
 
 def b_largest(g=16):
@@ -551,7 +552,7 @@ def b_conv():
             row.append(f"{x} ({sec(state[f'conv.{tag}.t{t}.{x}.g{g}']['wall'])})" + (" *" if still else ""))
         rows.append(row)
     out.append("**끝낸 가장 작은 cutoff**(괄호는 그 실행의 시간).\n\n" + table(["rotation 각도", "SectorQ, GPU 1장", "SectorQ, 16 GPU", "cuPauliProp, GPU 1장", "cuPauliProp 분산 기본, 16 GPU"], rows)
-               + "\n\n\\* 더 작은 cutoff의 실행이 아직 측정 중이다.")
+               + ("\n\n\\* 더 작은 cutoff의 실행이 아직 측정 중이다." if any(i not in state for i in ids if i.startswith("conv.")) else ""))
     return "\n\n".join(out)
 
 
@@ -669,10 +670,92 @@ def b_large():
     return "\n\n".join(out)
 
 
+# ---- circuit size (qubits, depth) and accuracy against the exact value: lists todo_e and todo_f ----------------------------
+SIZE_L = (6, 8, 11, 16, 23, 32)                 # 36 ... 1,024 qubits
+STEPS_D = (4, 8, 12, 16, 20, 28, 40, 60)
+ACC_CUTS = ("1e-3", "3e-4", "1e-4", "3e-5", "1e-5", "3e-6", "1e-6", "3e-7", "1e-7")
+FAIL_SIZE = dict(FAIL, fail="지원 안 함")
+# (name, resources, id tag, suffix, suffix of the SectorQ run on the same resources)
+SIZE_ROWS = (("**SectorQ**", "16 GPU", "eng", "g16", None), ("**SectorQ**", "4 GPU", "eng", "g4", None), ("**SectorQ**", "GPU 1장", "eng", "g1", None),
+             ("cuPauliProp 분산 (기본)", "16 GPU", "cupp", "g16", "g16"), ("cuPauliProp 분산 (dedup 미룸)", "16 GPU", "defer", "g16", "g16"),
+             ("cuPauliProp 분산 (기본)", "4 GPU", "cupp", "g4", "g4"), ("cuPauliProp 분산 (dedup 미룸)", "4 GPU", "defer", "g4", "g4"),
+             ("cuPauliProp", "GPU 1장", "ref", "g1", "g1"), ("SPD", "GPU 1장", "spd", "n1", "g1"),
+             ("ORQA (재현)", "4 노드", "orqa", "n4", "g16"), ("MonoProp", "4 노드", "monoprop", "n4", "g16"),
+             ("PauliPropagation.jl", "64 thread", "julia", "n1", "g4"), ("ppvm", "64 thread", "ppvm", "n1", "g4"))
+
+
+def size_cell(item_id, against=None):
+    s = state.get(item_id)
+    if s is None:
+        return ""
+    if not ok(s):
+        return FAIL_SIZE.get(s["status"], s["status"])
+    return sec(s["wall"]) + (" (%s)" % mult(s["wall"] / against["wall"]) if ok(against) else "")
+
+
+def size_table(first, cols, head, make_id, rows=SIZE_ROWS):
+    """Rows: implementations; columns: sizes. make_id(tag, column, suffix) -> item id."""
+    out = [first] if first else []
+    for name, res, tag, suffix, mine in rows:
+        cells = [size_cell(make_id(tag, c, suffix), state.get(make_id("eng", c, mine)) if mine else None) for c in cols]
+        if any(cells):
+            out.append([name, res] + cells)
+    return table(["구현", "자원"] + head, out, ["---", "---"] + ["---:"] * len(cols))
+
+
+def b_qubits():
+    """Total magnetization of the LxL TFIM over the number of qubits."""
+    parts = []
+    for x in ("1e-3", "1e-4"):
+        vals = []
+        for L in SIZE_L:
+            v = next((state[i]["expectation"] for i in (f"m.eng.L{L}.{x}.g16", f"m.eng.L{L}.{x}.g4", f"m.eng.L{L}.{x}.g1") if ok(state.get(i))), None)
+            vals.append("" if v is None else "%.4f" % (v / (L * L)))
+        parts.append(f"**cutoff {x}.** 실행 시간이다.\n\n" + size_table(["자리당 자화 (합 / qubit 수)", ""] + vals, SIZE_L, [f"{L * L:,} qubit" for L in SIZE_L],
+                                                                 lambda tag, L, suffix: f"m.{tag}.L{L}.{x}.{suffix}"))
+    return "\n\n".join(parts)
+
+
+def b_qubits_site():
+    """The same lattice with Z on the centre site (the number of terms stops growing with the lattice)."""
+    q = lambda x: (lambda tag, L, suffix: (f"qw.eng.L{L}.{x}.{suffix}" if tag == "eng" and L >= 23 else f"q.{tag}.L{L}.{x}.{suffix}"))
+    head = [f"{L * L:,} qubit" for L in SIZE_L]
+    return ("**cutoff 1e-4.**\n\n" + size_table(None, SIZE_L, head, q("1e-4")) + "\n\n**cutoff 1e-5.**\n\n" + size_table(None, SIZE_L, head, q("1e-5")))
+
+
+def b_depth():
+    return size_table(None, STEPS_D, [f"{s} step" for s in STEPS_D], lambda tag, st, suffix: f"d.{tag}.s{st}.3e-5.{suffix}")
+
+
+def b_acc():
+    """30-qubit TFIM against the exact value: the error by cutoff and the time of every implementation."""
+    parts = []
+    same = (("**SectorQ**", "16 GPU", "eng", "g16"), ("**SectorQ**", "4 GPU", "eng", "g4"), ("**SectorQ**", "GPU 1장", "eng", "g1"), ("cuPauliProp", "GPU 1장", "ref", "g1"),
+            ("SPD", "GPU 1장", "spd", "n1"), ("ORQA (재현)", "4 노드", "orqa", "n4"), ("PauliPropagation.jl", "64 thread", "julia", "n1"))
+    err = lambda v, steps: ("%.1e" % abs(v - cg.EXACT[steps])).replace("e-0", "e-")
+    for steps in (4, 6):
+        errs = []
+        for x in ACC_CUTS:
+            v = next((state[i]["expectation"] for i in (f"acc.eng.s{steps}.{x}.g{g}" for g in (16, 4, 1)) if ok(state.get(i))), None)
+            errs.append("" if v is None else err(v, steps))
+        rows = [["오차 (아래 일곱 줄 공통)", ""] + errs]
+        for name, res, tag, suffix in same:
+            rows.append([name, res] + [size_cell(f"acc.{tag}.s{steps}.{x}.{suffix}") for x in ACC_CUTS])
+        for n in (4, 1):
+            cells = []
+            for x in ACC_CUTS:
+                r = state.get(f"acc.monoprop.s{steps}.{x}.n{n}")
+                cells.append(size_cell(f"acc.monoprop.s{steps}.{x}.n{n}") + (" (오차 %s)" % err(r["expectation"], steps) if ok(r) else ""))
+            rows.append(["MonoProp (자체 truncation)", f"{n} 노드"] + cells)
+        parts.append(f"**{steps} step** (exact {cg.EXACT[steps]:.6f}).\n\n" + table(["구현", "자원"] + list(ACC_CUTS), rows, ["---", "---"] + ["---:"] * len(ACC_CUTS)))
+    return "\n\n".join(parts)
+
+
 BLOCKS = {"large": b_large, "single": b_single, "gain": b_gain, "progress": b_progress, "agree": b_agree, "speed": b_speed, "single_node": b_single_node, "node_mult": b_node_mult,
           "multi_mult": b_multi_mult, "strong_sota": b_strong_sota, "same_error": b_same_error, "given": b_given,
           "threads": b_threads, "gpus": b_gpus, "reach": b_reach, "largest": b_largest, "strong": b_strong, "weak": b_weak, "parts": b_parts,
-          "base_parts": b_base_parts, "params": b_params, "vram": b_vram, "exact": b_exact, "ckpt": b_ckpt, "conv": b_conv}
+          "base_parts": b_base_parts, "params": b_params, "vram": b_vram, "exact": b_exact, "ckpt": b_ckpt, "conv": b_conv,
+          "acc": b_acc, "qubits": b_qubits, "qubits_site": b_qubits_site, "depth": b_depth}
 
 
 def main():
