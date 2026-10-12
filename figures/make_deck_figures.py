@@ -629,10 +629,12 @@ def stops(reasons):
 
 
 
-def d_circuits_all():
+def circuits16(name, per_term=False):
     """All seven circuits on 16 GPUs in one picture as wide as a slide (1744 x 580 px there). Two rows of panels whose
     widths follow their numbers of cutoffs, so that the tick labels have one size: the three main circuits above,
-    the other four below. One legend line, one x label, the y axis once per row."""
+    the other four below. One legend line, one x label, the y axis once per row.
+    per_term: the same runs as the time divided by the number of terms (ns): a flat line is a time that grows in
+    proportion to the problem. Returns {(circuit, kind): {cutoff: value plotted}}."""
     which = ("ki", "tfim", "noise", "tfimsq", "xxz", "qaoa", "hea")
     widths = ((6, 6, 5), (4, 4, 5, 6))                  # cutoffs per panel (slide_ladder)
     fig = plt.figure(figsize=(17.44, 5.8), layout="constrained")
@@ -647,27 +649,45 @@ def d_circuits_all():
     for r in scaling_jobs():
         if r["kind"] == "engine" and mf.ok(r) and r.get("boundary"):
             more.setdefault({v: k for k, v in mf.BIG_NAME.items()}.get(r["circuit"]), {})[r["opt"]["--coef"]] = r["boundary"]
-    rows = mf.g_circuits(campaign(), axes=panels, which=which, keep=slide_ladder, sizes=more)
+    G = campaign()
+    rows = mf.g_circuits(G, axes=panels, which=which, keep=slide_ladder, sizes=more)
+    shown = {}
     for j, ax in enumerate(panels):
+        c = which[j]
         for t in ax.get_xticklabels():
             t.set_fontsize(13.5)
         ax.set_title(ax.get_title(), fontsize=15, pad=6)
-        ax.set_ylabel("Time (s)" if j in first else "", fontsize=15, fontweight="bold")      # the full label is longer than a panel is tall
+        ax.set_ylabel(("Time per Term (ns)" if per_term else "Time (s)") if j in first else "", fontsize=15, fontweight="bold")      # the full label is longer than a panel is tall
         ax.tick_params(axis="y", labelsize=12.5, labelleft=(j in first))
-        ax.set_yticks([1, 10, 100, 1000])
         ax.set_xlabel("")
         ticks = [t.get_text().split("\n")[0] for t in ax.get_xticklabels()]
-        size_ticks(ax, which[j], peaks_of(which[j], ticks), 16)
-        ours, cupp = dict(rows[3 * j][2]), dict(rows[3 * j + 1][2])
-        for x in ticks:
-            if x in ours and x in cupp:
-                value(ax, ticks.index(x), cupp[x], mf.times(cupp[x], ours[x]), dy=8, size=13)
+        size_ticks(ax, c, peaks_of(c, ticks), 16)
+        times = {kind: dict(rows[3 * j + k][2]) for k, kind in enumerate(("ours", "cupp", "defer"))}
+        if per_term:
+            for line in list(ax.lines):
+                line.remove()
+            for kind in ("ours", "cupp", "defer"):
+                at = [(i, times[kind][x] / mf.gterms(G, c, x) * 1e9) for i, x in enumerate(ticks) if x in times[kind] and mf.gterms(G, c, x)]
+                col, mk = mf.SQ[kind]
+                ax.plot([a for a, _ in at], [b for _, b in at], color=col, marker=mk, markersize=9.5, linewidth=3.6 if kind == "ours" else 3.0,
+                        label=mf.SQ_NAME[kind] if j == 0 else None, zorder=4 if kind == "ours" else 3, solid_capstyle="round")
+                shown[c, kind] = {ticks[a]: b for a, b in at}
+            ax.set_ylim(10, 60000)
+            ax.set_yticks([10, 100, 1000, 10000])
+        else:
+            ax.set_yticks([1, 10, 100, 1000])
+            for kind in times:
+                shown[c, kind] = {x: times[kind][x] for x in ticks if x in times[kind]}
+            for x in ticks:
+                if x in times["ours"] and x in times["cupp"]:
+                    value(ax, ticks.index(x), times["cupp"][x], mf.times(times["cupp"][x], times["ours"][x]), dy=8, size=13)
     fig.supxlabel(XL_NEED, fontsize=15, fontweight="bold")
     e = entries(fig, panels[0])
     if mf.STOPS:
         e[-1] = (e[-1][0], stops(r[3][1] for r in rows if r[3]))
-    e += [(Patch(facecolor=BEYOND, edgecolor="#B5BCC4"), "does not fit on the 16 GPUs"),
-          (Line2D([0], [0], color="none"), "N×: cuPauliProp / SectorQ time")]
+    e += [(Patch(facecolor=BEYOND, edgecolor="#B5BCC4"), "does not fit on the 16 GPUs")]
+    if not per_term:
+        e += [(Line2D([0], [0], color="none"), "N×: cuPauliProp / SectorQ time")]
     fig.legend([a for a, _ in e], [b for _, b in e], loc="upper center", bbox_to_anchor=(0.5, 1 - 0.07 / 5.8), ncol=len(e), fontsize=13,
                columnspacing=1.3, handlelength=2.0, handletextpad=0.5, borderpad=0, borderaxespad=0, frameon=False)
     fig.draw_without_rendering()
@@ -676,7 +696,16 @@ def d_circuits_all():
         for ax in panels:
             for t in ax.get_xticklabels():
                 t.set_fontsize(size)
-    finish(fig, "d_circuits_all", place=False)
+    finish(fig, name, place=False)
+    return shown
+
+
+def d_circuits_all():
+    return circuits16("d_circuits_all")
+
+
+def d_cost_all():
+    return circuits16("d_cost_all", per_term=True)
 
 
 def circuits_big(g, ladder=("1e-4", "3e-5", "1e-5", "5e-6", "3e-6", "2e-6", "1e-6", "7e-7", "5e-7", "3e-7", "2e-7")):
@@ -913,7 +942,7 @@ def d_variability():
     finish(fig, "d_variability", top - 0.1 / H, wgap=0.16)
 
 
-FIGURES = [n02, n11, n13, n14, n16, d_single_node, d_strong, d_qubits, d_breakdown, d_circuits_a, d_circuits_b, d_circuits_all, d_circuits_g128, d_scaleout, d_reach, d_weak, d_depth,
+FIGURES = [n02, n11, n13, n14, n16, d_single_node, d_strong, d_qubits, d_breakdown, d_circuits_a, d_circuits_b, d_circuits_all, d_cost_all, d_circuits_g128, d_scaleout, d_reach, d_weak, d_depth,
            d_accuracy, d_variability]
 
 if __name__ == "__main__":
