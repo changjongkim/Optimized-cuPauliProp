@@ -197,6 +197,22 @@ def stagger(ax, size, lines=2):
     ax.grid(True, which="minor", axis="x", color="#B8B8B8", linewidth=0.6, linestyle="--")
 
 
+def one_row(ax, size):
+    """The x tick labels of a panel with many ticks stay on one row: every tick has the first line of its label (the
+    GPU count) and every second tick the second line (the cutoff) below it. The second lines are the labels of minor
+    ticks at the same places, so that shrink_ticks compares them with each other only."""
+    ticks = list(ax.get_xticks())
+    labels = [t.get_text().split("\n") for t in ax.get_xticklabels()]
+    ax.set_xticks(ticks)
+    ax.set_xticklabels([l[0] for l in labels], fontsize=size)
+    ax.xaxis.remove_overlapping_locs = False                    # the minor ticks are at the places of major ticks
+    ax.set_xticks(ticks[0::2], minor=True)
+    ax.set_xticklabels([l[1] for l in labels[0::2]], minor=True, fontsize=size)
+    major = ax.xaxis.get_major_ticks()[0]
+    ax.tick_params(axis="x", which="minor", length=0, labelsize=size,
+                   pad=major.get_pad() + major.tick1line.get_markersize() + 1.22 * size)        # one text line below the GPU counts
+
+
 def value(ax, x, y, s, dx=0, dy=9, ha="center", size=13):
     """A measured value printed at its point (offsets in points); the check looks at every one of them."""
     t = ax.annotate(s, (x, y), xytext=(dx, dy), textcoords="offset points", ha=ha, va="bottom" if dy >= 0 else "top",
@@ -587,7 +603,7 @@ def d_weak():
                     t.set_fontsize(11)
             else:
                 ax.xaxis.label.set_fontsize(14)
-                stagger(ax, 10.5)
+                one_row(ax, 11.5)
     e = entries(fig, grid[0][0])
     top = strip(fig, [e[:3], e[3:]], size=13)
     finish(fig, "d_weak", top - 0.08 / H, wgap=0.1)
