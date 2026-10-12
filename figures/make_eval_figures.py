@@ -720,6 +720,7 @@ SQ = {"ours": ("#1f77b4", "o"), "cupp": ("#d62728", "^"), "defer": ("#8c564b", "
 SQ_NAME = {"ours": "SectorQ", "cupp": "cuPauliProp", "defer": "cuPauliProp, dedup deferred", "orqa": "ORQA (reproduction)", "monoprop": "MonoProp",
            "spd": "SPD", "julia": "PauliPropagation.jl", "ppvm": "ppvm", "qiskit": "Qiskit pauli-prop"}
 SHORT_WHY = {"oom": "out of memory", "tl": "over 40 min", "predicted_tl": "over 40 min"}
+STOPS = True      # a cross where an implementation stops; False (the deck figures): its line just ends at the last finished run
 
 
 def sq_axes(ax, xlabel=None, ylabel=None, log=True, size=16):
@@ -771,14 +772,14 @@ def sq_line(ax, G, kind, c, cutoffs, suffix, label=None, ls="-", lw=3.6, ms=9.5,
         ax.plot([p[0] for p in pts], [p[1] for p in pts], color=col, marker=mk, markersize=ms, linewidth=lw, linestyle=ls, label=label,
                 zorder=4 if kind == "ours" else 3, solid_capstyle="round")
     fail = sq_fail(G, kind, c, cutoffs, suffix, recs)
-    if pts and fail and mark_end:           # the implementation stops here: a cross at the height of its last point
+    if pts and fail and mark_end and STOPS:           # the implementation stops here: a cross at the height of its last point
         ax.plot([xs[fail[0]]], [pts[-1][1]], color=col, marker="x", markersize=ms + 1, markeredgewidth=2.6, linestyle="none", zorder=5)
     return recs, pts, fail
 
 
 def sq_legend(fig, ax, y, ncol, extra=True, size=13.5):
     handles, names = ax.get_legend_handles_labels()
-    if extra:
+    if extra and STOPS:
         handles.append(plt.Line2D([0], [0], color="black", marker="x", markersize=10, markeredgewidth=2.6, linestyle="none"))
         names.append("stops here: out of memory or over 40 min")
     fig.legend(handles, names, loc="upper center", ncol=ncol, bbox_to_anchor=(0.5, y), fontsize=size, columnspacing=1.6, handlelength=2.4, frameon=False)
@@ -887,7 +888,7 @@ def g_weak(G, big=(), axes=None):
                 if pts:
                     ax.plot([p[0] for p in pts], [p[1] for p in pts], color=col, marker=mk, markersize=10, linewidth=3.8 if kind == "ours" else 3.0,
                             label=SQ_NAME[kind] if (r == 0 and j == 0) else None, zorder=4 if kind == "ours" else 3)
-                    if stop is not None and stop > pts[-1][0]:
+                    if STOPS and stop is not None and stop > pts[-1][0]:
                         ax.plot([stop], [pts[-1][1]], color=col, marker="x", markersize=11, markeredgewidth=2.6, linestyle="none", zorder=5)
             sq_axes(ax, "# of GPUs (Cutoff)", "Simulation Time (s)" if r == 0 else None)
             ax.set_xticks(range(len(counts)))
@@ -1018,7 +1019,7 @@ def g_scaleout(G, big=(), c="ki", title="Kicked Ising", ax=None):
             continue
         ax.plot([p[0] for p in pts], [p[1] for p in pts], color=colors[g], marker="s", markersize=10, linewidth=3.8, label=f"{g} GPU" + ("s" if g > 1 else ""))
         fail = next((i for i in range(pts[-1][0] + 1, len(recs)) if recs[i] is not None), None)
-        if fail is not None:
+        if STOPS and fail is not None:
             ax.plot([fail], [pts[-1][1]], color=colors[g], marker="x", markersize=11, markeredgewidth=2.6, linestyle="none", zorder=5)
         rows.append((g, [(cutoffs[i], w) for i, w in pts]))
     sq_axes(ax, "Cutoff (# of Terms) (Size of Terms)", "Simulation Time (s)")
@@ -1129,7 +1130,7 @@ def size_line(ax, G, ids, kind, label, ls="-"):
     ax.plot([a for a, _ in pts], [b for _, b in pts], color=col, marker=mk, markersize=9 if ours else 8, linewidth=3.4 if ours else 2.6,
             linestyle=ls, label=label, zorder=4 if ours else 3, solid_capstyle="round")
     nxt = pts[-1][0] + 1
-    if nxt < len(recs) and recs[nxt] is not None and not gok(recs[nxt]):
+    if STOPS and nxt < len(recs) and recs[nxt] is not None and not gok(recs[nxt]):
         ax.plot([nxt], [pts[-1][1]], color=col, marker="x", markersize=10, markeredgewidth=2.6, linestyle="none", zorder=5)
 
 
@@ -1160,8 +1161,9 @@ def g_qubits(G, axes=None):
     h, n = axes[0].get_legend_handles_labels()
     for leg in (fig.legends if fig is not None else ()):
         leg.remove()
-    h.append(plt.Line2D([0], [0], color="black", marker="x", markersize=10, markeredgewidth=2.6, linestyle="none"))
-    n.append("stops here: out of memory, over 20 min, or qubits not supported")
+    if STOPS:
+        h.append(plt.Line2D([0], [0], color="black", marker="x", markersize=10, markeredgewidth=2.6, linestyle="none"))
+        n.append("stops here: out of memory, over 20 min, or qubits not supported")
     if fig is None:
         return h, n
     fig.legend(h, n, loc="upper center", ncol=4, bbox_to_anchor=(0.5, 1.2), fontsize=12.5, columnspacing=1.4, handlelength=2.4, frameon=False)
@@ -1184,8 +1186,9 @@ def g_depth(G, x="3e-5", ax=None):
     ax.set_xlim(-0.4, len(STEPS_D) - 0.6)
     ax.set_ylim(0.01, 2000)
     h, n = ax.get_legend_handles_labels()
-    h.append(plt.Line2D([0], [0], color="black", marker="x", markersize=10, markeredgewidth=2.6, linestyle="none"))
-    n.append("stops here: out of memory")
+    if STOPS:
+        h.append(plt.Line2D([0], [0], color="black", marker="x", markersize=10, markeredgewidth=2.6, linestyle="none"))
+        n.append("stops here: out of memory")
     if fig is None:
         return h, n
     fig.legend(h, n, loc="upper center", ncol=3, bbox_to_anchor=(0.5, 1.22), fontsize=12.5, columnspacing=1.4, handlelength=2.4, frameon=False)
@@ -1216,8 +1219,9 @@ def g_accuracy_time(G, axes=None):
         ax.set_ylim(0.01, 2000)
         ax.set_title(f"{steps} Trotter steps", fontsize=15, fontweight="bold")
     h, n = axes[0].get_legend_handles_labels()
-    h.append(plt.Line2D([0], [0], color="black", marker="x", markersize=10, markeredgewidth=2.6, linestyle="none"))
-    n.append("stops here: out of memory or over 20 min")
+    if STOPS:
+        h.append(plt.Line2D([0], [0], color="black", marker="x", markersize=10, markeredgewidth=2.6, linestyle="none"))
+        n.append("stops here: out of memory or over 20 min")
     if fig is None:
         return h, n
     fig.legend(h, n, loc="upper center", ncol=3, bbox_to_anchor=(0.5, 1.2), fontsize=12.5, columnspacing=1.4, handlelength=2.4, frameon=False)

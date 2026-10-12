@@ -47,6 +47,7 @@ BLUE = mf.SQ["ours"][0]
 LINK = "#8C8C8C"                                    # a line that only connects points of different implementations
 HALO = [patheffects.withStroke(linewidth=3.4, foreground="white")]
 CROSS = dict(color="black", marker="x", markersize=10, markeredgewidth=2.6, linestyle="none")
+mf.STOPS = False         # no crosses in the deck figures: a line ends at the last run that finished
 SIZES = {}
 _G = []
 
@@ -74,6 +75,7 @@ def strip(fig, rows, size=13.0, ncol=None, pad=0.07, side=0.18, handle=2.4, apar
     widest item fits the figure with `side` inches left at both ends. Returns the lower edge of the strip as a
     fraction of the figure height."""
     w, h = fig.get_size_inches()
+    rows = [row for row in rows if row]                 # a line of the strip may be empty when the crosses are not drawn
     while True:
         fig.draw_without_rendering()
         r = fig.canvas.get_renderer()
@@ -107,7 +109,7 @@ def entries(fig, ax):
     leg = fig.legends[-1]
     note = leg.get_texts()[-1].get_text()
     leg.remove()
-    return list(zip(h, n)) + [(Line2D([0], [0], **CROSS), note)]
+    return list(zip(h, n)) + ([(Line2D([0], [0], **CROSS), note)] if mf.STOPS else [])
 
 
 def tight(fig, r, hide=()):
@@ -528,11 +530,12 @@ def slide_ladder(G, c, cutoffs, g):
     """The cutoffs of a panel on a slide, few enough for one line of tick labels with the number of terms and their
     size: from 1e-4 down, the steps 1e-k and 3e-k, the last cutoff each implementation finished, and the last step
     of the ladder (where SectorQ stops)."""
-    last = set()
+    last, done_any = set(), set()
     for kind in ("ours", "cupp", "defer"):
         done = [x for x, rec in zip(cutoffs, mf.sq_runs(G, kind, c, cutoffs, f"g{g}")) if mf.gok(rec)]
         last.update(done[-1:])
-    return [x for x in cutoffs if float(x) <= 1.0000001e-4 and (x[0] in "13" or x in last or x == cutoffs[-1])]
+        done_any.update(done)
+    return [x for x in cutoffs if float(x) <= 1.0000001e-4 and (x[0] in "13" or x in last or x == cutoffs[-1]) and (mf.STOPS or x in done_any)]
 
 
 def d_circuits(name, which, legend_cell, scale=1.0):
@@ -663,7 +666,8 @@ def d_circuits_all():
                 value(ax, ticks.index(x), cupp[x], mf.times(cupp[x], ours[x]), dy=8, size=13)
     fig.supxlabel(XL_NEED, fontsize=15, fontweight="bold")
     e = entries(fig, panels[0])
-    e[-1] = (e[-1][0], stops(r[3][1] for r in rows if r[3]))
+    if mf.STOPS:
+        e[-1] = (e[-1][0], stops(r[3][1] for r in rows if r[3]))
     e += [(Patch(facecolor=BEYOND, edgecolor="#B5BCC4"), f"more than the 16 GPUs have ({mf.data_size(16 * GPU_USED)})"),
           (Line2D([0], [0], color="none"), "N×: cuPauliProp / SectorQ time")]
     fig.legend([a for a, _ in e], [b for _, b in e], loc="upper center", bbox_to_anchor=(0.5, 1 - 0.07 / 5.8), ncol=len(e), fontsize=13,
@@ -696,7 +700,7 @@ def circuits_big(g, ladder=("1e-4", "3e-5", "1e-5", "5e-6", "3e-6", "2e-6", "1e-
         return done[0] if done else (order[0] if order else None)
 
     kinds = ("ours", "cupp", "defer")
-    cuts = {c: [x for x in ladder if any(run(k, c, x) for k in kinds)] for c, _ in mf.G3}
+    cuts = {c: [x for x in ladder if any(run(k, c, x) if mf.STOPS else mf.ok(run(k, c, x)) for k in kinds)] for c, _ in mf.G3}
     fig = plt.figure(figsize=(17.44, 5.8), layout="constrained")
     fig.get_layout_engine().set(w_pad=0.05, h_pad=0.04, wspace=0.03, rect=(0, 0, 1, 0.935))     # the legend line above
     grid = fig.add_gridspec(1, 3, width_ratios=[len(cuts[c]) for c, _ in mf.G3])
@@ -713,7 +717,7 @@ def circuits_big(g, ladder=("1e-4", "3e-5", "1e-5", "5e-6", "3e-6", "2e-6", "1e-
                 ax.plot([q[0] for q in pts], [q[1] for q in pts], color=col, marker=mk, markersize=11, linewidth=4.0 if kind == "ours" else 3.2,
                         label=mf.SQ_NAME[kind] if j == 0 else None, zorder=4 if kind == "ours" else 3, solid_capstyle="round")
                 fail = next((i for i in range(pts[-1][0] + 1, len(recs)) if recs[i] is not None), None)
-                if fail is not None:
+                if fail is not None and mf.STOPS:
                     ax.plot([fail], [pts[-1][1]], color=col, marker="x", markersize=12, markeredgewidth=2.8, linestyle="none", zorder=5)
                     why.add("out of memory" if recs[fail]["fatal"] else "over 40 min")
             rows[c, kind] = {cuts[c][i]: w for i, w in pts}
@@ -734,7 +738,8 @@ def circuits_big(g, ladder=("1e-4", "3e-5", "1e-5", "5e-6", "3e-6", "2e-6", "1e-
                 value(ax, i, rows[c, "cupp"][x], mf.times(rows[c, "cupp"][x], rows[c, "ours"][x]), dy=9, size=14)
     fig.supxlabel(XL_NEED, fontsize=15, fontweight="bold")
     e = entries(fig, panels[0])
-    e[-1] = (e[-1][0], stops(why))
+    if mf.STOPS:
+        e[-1] = (e[-1][0], stops(why))
     e += [(Patch(facecolor=BEYOND, edgecolor="#B5BCC4"), f"more than the {g} GPUs have ({mf.data_size(g * GPU_USED)})"),
           (Line2D([0], [0], color="none"), "N×: cuPauliProp / SectorQ time")]
     fig.legend([a for a, _ in e], [b for _, b in e], loc="upper center", bbox_to_anchor=(0.5, 1 - 0.07 / 5.8), ncol=len(e), fontsize=13,
