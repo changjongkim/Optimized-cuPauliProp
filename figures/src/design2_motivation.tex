@@ -1,183 +1,185 @@
-% Motivation (slide 2 of the deck), second style (the look of the ScaleQsim paper).
-% What the figure shows:
-%   Left:   the rule. The same term (Pauli string X Z Y I) is created on two GPUs with the coefficients 0.7e-4
-%           and 0.6e-4; the cutoff is 1e-4. (1) Truncating on each GPU drops both pieces, the term is lost and the
-%           answer is wrong. (2) Merging first gives 1.3e-4, which is above the cutoff, the term is kept.
-%           Table: kicked Ising with 22.5 million terms; without a merge across GPUs the value is 0.1675 on
-%           4 GPUs and 0.189 on 16 GPUs, the correct value is 0.1531.
-%   Right:  the two existing ways to merge across GPUs. (1) cuPauliProp's distributed mode merges and
-%           redistributes globally after every gate: 22 collective calls per gate on every GPU, 2.9 s on 1 GPU
-%           and 71 s on 16 GPUs for the same 22.5 million terms. (2) Merging only before a truncation keeps the
-%           unmerged copies in GPU memory: 2 of the 7 circuits run out of memory on 16 GPUs.
-%           Below the two boxes: what each way gives up.
-%   Bottom: what is needed (a new term and its merge partner always on the same GPU) and what SectorQ does.
-% Message (one sentence): the same term is created on different GPUs and must be merged before it is truncated,
-% and the two existing ways to do that give up either communication or memory.
-% The two coefficients are an illustration (the cutoff is that of the measured setting); every other number is
+% Motivation (slide 2 of the deck), second style (the look of the ScaleQsim paper), drawn with pictures.
+% What the figure shows, for a reader who does not know the field:
+%   Left:   the same term (Pauli string X Z Y I) lies in two pieces on two GPUs, sizes 0.7 and 0.6 (in units of
+%           1e-4); the cutoff is 1.0. (1) If each GPU decides alone, both pieces are below the cutoff, both are
+%           dropped, the term is lost and the answer is wrong. (2) If the pieces are merged first, the term has
+%           size 1.3, which is above the cutoff, and it is kept.
+%           Measured without a merge across GPUs: 0.1675 on 4 GPUs and 0.189 on 16 GPUs, the correct value is 0.1531.
+%   Right:  the two existing ways to merge across GPUs, and what each costs.
+%           (1) cuPauliProp's distributed mode: all GPUs stop and merge after every gate (22 calls to all GPUs
+%               per gate); the same job takes 2.9 s on 1 GPU and 71 s on 16 GPUs. Price: time.
+%           (2) Merging only before a truncation: the unmerged copies pile up in GPU memory until it is full;
+%               2 of the 7 circuits run out of memory on 16 GPUs. Price: memory.
+%   Bottom: what is needed (all pieces of a term on the same GPU) and what SectorQ does.
+% Message (one sentence): when the list is spread over GPUs, the same term lies in pieces on different GPUs: each
+% piece alone looks too small and is thrown away, so the GPUs must merge first, and the two existing ways to do
+% that cost either time or memory.
+% Visual language (shared with design2_background.tex): a term is a vertical bar on a baseline, its height is the
+% size of its coefficient, its color is its Pauli string, its label stands under it; the cutoff is a dashed red
+% line with the word "Cutoff" at its end; a dropped term is a faded bar (gray label) with a red cross; a merged
+% term shows its two parts by a thin dashed line.
+% The sizes 0.7 and 0.6 are an illustration (the cutoff is that of the measured setting); every other number is
 % measured (the sources of the figures deck/n03 and deck/n07 cite the logs).
-% Colors: blue cell = the Pauli string of the term, gray cell = a term, hatched cell = an unmerged copy,
-% khaki = a GPU, teal = the global step, yellow = what is needed, green = the good outcome,
-% red = the dropped pieces, the wrong values and what each existing way gives up.
+% Colors: blue bar = the term X Z Y I; in the memory picture one color per term, hatched = an unmerged copy;
+% khaki = a GPU, teal = the step in which all GPUs take part, yellow = an action or a price, green = the good outcome;
+% red = the cutoff, the dropped pieces, the lost term, the calls between GPUs, the 16-GPU time, "Full", "2 of 7".
+% Canvas: 17.6 cm x 8.95 cm. Bars: 0.44 cm wide, 1.38 cm high per unit of size (the same scale in all three
+% bar pictures); time bars: 2.75 cm for 71 s, 0.112 cm for 2.9 s. No text is smaller than \footnotesize.
+% Each numbered box is drawn in a scope whose origin is its top left corner.
 \begin{tikzpicture}[x=1cm, y=1cm, font=\rmfamily\bfseries\footnotesize]
   \tikzset{
     ptl/.style={font=\rmfamily\bfseries\fontsize{13}{15}\selectfont, inner sep=1.5pt},       % panel title
     ct/.style={ctitle, align=left},                                                         % component title
-    an/.style={font=\rmfamily\bfseries\itshape\small, inner sep=1.5pt, align=center},       % annotation, 9 pt
-    % table cells: header 8 pt (hb one tier, hT two tiers high), value 9 pt (db) or 10 pt (vb)
-    hb/.style={th, font=\rmfamily\bfseries\footnotesize, minimum height=0.42cm, text height=0.25cm, text depth=0.08cm},
-    hh/.style={hb, minimum height=0.38cm, text height=0.24cm, text depth=0.07cm},
-    hT/.style={draw=black, fill=thblue, text=white, font=\rmfamily\bfseries\footnotesize, anchor=north west, inner sep=0pt,
-               minimum height=0.76cm, line width=0.4pt, align=center},
-    db/.style={td, font=\rmfamily\bfseries\small, minimum height=0.42cm, text height=0.26cm, text depth=0.08cm},
-    vb/.style={td, font=\rmfamily\bfseries\normalsize, minimum height=0.44cm, text height=0.27cm, text depth=0.08cm},
-    lb/.style={hb, minimum height=0.44cm, text height=0.26cm, text depth=0.09cm},           % a label cell (blue)
-    vT/.style={draw=black, fill=white, font=\rmfamily\bfseries\normalsize, anchor=north west, inner sep=0pt,
-               minimum height=0.76cm, line width=0.4pt, align=center},
-    % cells inside a GPU: a term, an unmerged copy
-    tm/.style={draw=black!80, line width=0.35pt, inner sep=0pt, anchor=north west, fill=black!22,
-               minimum width=0.24cm, minimum height=0.28cm},
-    hc/.style={tm, fill=none, preaction={fill=white}, pattern=north east lines, pattern color=black!65},
-    % block arrows
+    an/.style={font=\rmfamily\bfseries\itshape\small, inner sep=1.5pt, align=center},       % remark, 9 pt
+    lab/.style={font=\rmfamily\bfseries\footnotesize, inner sep=1pt},                       % label under a bar
+    val/.style={font=\rmfamily\bfseries\small, inner sep=1pt},                              % size above a bar
+    big/.style={font=\rmfamily\bfseries\normalsize, inner sep=1.5pt, align=center},
+    tbar/.style={draw=black, line width=0.5pt},                                             % a term
+    base/.style={draw=black, line width=0.7pt},                                             % the line the terms stand on
+    cut/.style={draw=dred, line width=1.2pt, dash pattern=on 3.2pt off 2.2pt},              % the cutoff
+    cutl/.style={font=\rmfamily\bfseries\itshape\small, text=dred, inner sep=1.5pt},
+    xx/.style={draw=dred, line width=1.9pt, line cap=round},                                % cross on a dropped term
+    lost/.style={draw=dred, fill=dred!10, text=dred, line width=0.9pt, font=\rmfamily\bfseries\fontsize{9}{10.4}\selectfont,
+                 align=center, inner sep=1.2pt},
+    kept/.style={draw=black, fill=tune, line width=0.7pt, font=\rmfamily\bfseries\fontsize{9}{10.4}\selectfont,
+                 align=center, inner sep=1.2pt},
+    tag/.style={act, font=\rmfamily\bfseries\large, minimum height=0.68cm, minimum width=3.00cm,
+               text height=0.27cm, text depth=0.09cm},
+    copy/.style={draw=black, line width=0.4pt, pattern=north east lines, pattern color=black!65},
     fatd/.style={double arrow, fill=dred, draw=dred, line width=0.3pt, inner xsep=0pt, inner ysep=0.075cm,
-                 minimum height=0.58cm, double arrow head extend=0.10cm, double arrow tip angle=90, rotate=90},
-    fatb/.style={barrow, inner xsep=0pt, inner ysep=0.10cm, minimum width=0pt, minimum height=0.42cm,
-                 single arrow head extend=0.17cm, rotate=-90, anchor=tip},
+                 minimum height=0.62cm, double arrow head extend=0.10cm, double arrow tip angle=90, rotate=90},
     fatr/.style={barrow, inner ysep=0.13cm, single arrow head extend=0.17cm, minimum height=0.80cm, anchor=tip},
-    vs/.style={double arrow, fill=black, draw=black, text=white, font=\rmfamily\bfseries\itshape\footnotesize,
-               line width=0.3pt, inner xsep=2pt, inner ysep=0.065cm, double arrow head extend=0.10cm,
-               double arrow tip angle=90},
-    bar/.style={draw=black!85, fill=nB, line width=0.6pt, rounded corners=3pt},
-    lost/.style={draw=dred, fill=dred!12, text=dred, line width=1.0pt, font=\rmfamily\bfseries\normalsize, align=center,
-                 inner sep=2pt},
-    kept/.style={draw=black, fill=tune, line width=0.8pt, font=\rmfamily\bfseries\normalsize, align=center, inner sep=2pt},
+    mbar/.style={draw=black!85, fill=nB, line width=0.6pt, rounded corners=3pt},
+    brc/.style={decorate, decoration={brace, amplitude=3.5pt}, line width=0.8pt},
   }
-  \def\xm{{\color{dred}\ding{55}}}
+  \def\bu{1.38}       % height of a bar per unit of size, in cm
+  \def\bw{0.22}       % half the width of a bar, in cm
+  \def\tl#1#2{\rule[-0.07cm]{0pt}{0.30cm}#1\\\rule[-0.07cm]{0pt}{0.30cm}#2}     % two lines of the same height
   % =====================================================================================================
-  % LEFT: the rule
+  % LEFT: the same term on two GPUs, and the two outcomes
   % =====================================================================================================
-  \draw[pan] (0,0) rectangle (7.25,-7.58);
-  \node[ptl, anchor=base west] at (0.14,-0.48) {The Rule: Merge Before Truncate};
-  % ---- the same term on two GPUs
-  \draw[comp] (0.15,-0.72) rectangle (7.10,-2.56);
-  \foreach \g/\c/\x in {0/0.7e-4/0.25, 1/0.6e-4/3.68}
+  \draw[pan] (0,0) rectangle (7.35,-7.78);
+  \node[ptl, anchor=base west] at (0.14,-0.48) {The Same Term Lies on Two GPUs};
+  % ---- the two pieces, both below the cutoff
+  \draw[comp] (0.15,-0.70) rectangle (7.20,-3.14);
+  \def\yb{-2.68}
+  \foreach \gi/\gx/\sz in {0/0.27/0.7, 1/2.78/0.6}
   {
-    \node[gpu, anchor=north west, minimum width=3.32cm, minimum height=1.31cm] at (\x,-0.80) {};
-    \node[stitle] at ({\x+1.66},-1.00) {GPU \g};
-    \node[hb, minimum width=1.50cm] at ({\x+0.08},-1.20) {Coefficient};
-    \node[hb, minimum width=1.66cm] at ({\x+1.58},-1.20) {Pauli String};
-    \node[db, minimum width=1.50cm] at ({\x+0.08},-1.62) {\c};
-    \node[db, minimum width=1.66cm, fill=sa] at ({\x+1.58},-1.62) {X Z Y I};
+    \node[gpu, anchor=north west, minimum width=2.35cm, minimum height=2.28cm] at (\gx,-0.78) {};
+    \node[ctitle] at ({\gx+1.175},-1.00) {GPU \gi};
+    \draw[tbar, fill=sa] ({\gx+1.175-\bw},\yb) rectangle ({\gx+1.175+\bw},{\yb+\bu*\sz});
+    \draw[base] ({\gx+0.40},\yb) -- ({\gx+1.95},\yb);
+    \node[val, anchor=south] at ({\gx+1.175},{\yb+\bu*\sz+0.03}) {\sz};
+    \node[lab, anchor=north] at ({\gx+1.175},{\yb-0.05}) {X Z Y I};
   }
-  \node[an] at (3.625,-2.34) {The Same Term Is Created on Two GPUs};
-  % ---- the truncation
-  \node[fatb] at (2.60,-3.00) {};
-  \node[an, anchor=west] at (2.96,-2.79) {Cutoff = 1e-4};
-  % ---- 1: truncate on each GPU
-  \begin{scope}[shift={(0.15,-3.02)}]
-    \draw[comp] (0,0) rectangle (6.95,-1.48);
-    \node[num] at (0.29,-0.28) {1};
-    \node[ctitle, anchor=west] at (0.52,-0.28) {Truncate on Each GPU};
-    \foreach \c/\y in {0.7e-4/-0.54, 0.6e-4/-0.96}
+  \draw[cut] (0.39,{\yb+\bu}) -- (5.27,{\yb+\bu});
+  \node[cutl, font=\rmfamily\bfseries\itshape\normalsize, anchor=west] at (5.27,{\yb+\bu}) {Cutoff 1.0};
+  \node[ann, anchor=north] at (6.17,-1.86) {(Sizes in Units\\of 1e-4)};
+  % ---- 1: each GPU decides alone
+  \begin{scope}[shift={(0.15,-3.26)}]
+    \def\yb{-2.45}
+    \draw[comp] (0,0) rectangle (3.465,-3.70);
+    \node[num] at (0.30,-0.30) {1};
+    \node[ct, anchor=north west] at (0.54,-0.06) {Each GPU\\Decides Alone};
+    \foreach \bx/\sz in {0.80/0.7, 2.05/0.6}
     {
-      \node[db, minimum width=0.94cm] at (0.12,\y) {\c};
-      \node[db, minimum width=1.16cm, fill=sa] at (1.06,\y) {X Z Y I};
-      \node[db, minimum width=0.38cm, fill=dred!12] at (2.22,\y) {\xm};
+      \begin{scope}[opacity=0.3]
+        \draw[tbar, fill=sa] ({\bx-\bw},\yb) rectangle ({\bx+\bw},{\yb+\bu*\sz});
+      \end{scope}
+      \draw[xx] ({\bx-0.26},{\yb+\bu*\sz/2-0.26}) -- ({\bx+0.26},{\yb+\bu*\sz/2+0.26});
+      \draw[xx] ({\bx-0.26},{\yb+\bu*\sz/2+0.26}) -- ({\bx+0.26},{\yb+\bu*\sz/2-0.26});
+      \node[lab, text=black!45, anchor=north] at (\bx,{\yb-0.05}) {X Z Y I};
     }
-    \draw[arr] (2.70,-0.96) -- (4.20,-0.96);
-    \node[ann] at (3.38,-0.77) {Both Below};
-    \node[ann] at (3.36,-1.18) {the Cutoff};
-    \node[lost, anchor=north west, minimum width=2.55cm, minimum height=1.22cm] at (4.28,-0.13) {Term Lost:\\Wrong Answer};
+    \draw[base] (0.18,\yb) -- (3.285,\yb);
+    \draw[cut] (0.18,{\yb+\bu}) -- (3.285,{\yb+\bu});
+    \node[cutl, anchor=north east] at (3.30,{\yb+\bu-0.03}) {Cutoff};
+    \node[lost, minimum width=3.225cm, minimum height=0.74cm] at (1.7325,-3.285) {\tl{Term Lost:}{Wrong Answer}};
   \end{scope}
-  % ---- 2: merge, then truncate
-  \begin{scope}[shift={(0.15,-4.58)}]
-    \draw[comp] (0,0) rectangle (6.95,-1.48);
-    \node[num] at (0.29,-0.28) {2};
-    \node[ctitle, anchor=west] at (0.52,-0.28) {Merge, Then Truncate};
-    \node[txt, font=\rmfamily\bfseries\small] at (1.36,-0.74) {0.7e-4 + 0.6e-4 =};
-    \node[db, minimum width=0.94cm] at (0.31,-0.96) {1.3e-4};
-    \node[db, minimum width=1.16cm, fill=sa] at (1.25,-0.96) {X Z Y I};
-    \draw[arr] (2.70,-0.96) -- (4.20,-0.96);
-    \node[ann] at (3.38,-0.77) {Above};
-    \node[ann] at (3.36,-1.18) {the Cutoff};
-    \node[kept, anchor=north west, minimum width=2.55cm, minimum height=1.22cm] at (4.28,-0.13) {Term Kept:\\Correct};
+  % ---- 2: merge first
+  \begin{scope}[shift={(3.735,-3.26)}]
+    \def\yb{-2.45}
+    \draw[comp] (0,0) rectangle (3.465,-3.70);
+    \node[num] at (0.30,-0.30) {2};
+    \node[ct, anchor=west] at (0.54,-0.30) {Merge First};
+    \draw[tbar, fill=sa] ({0.80-\bw},\yb) rectangle ({0.80+\bw},{\yb+\bu*1.3});
+    \draw[line width=0.5pt, dash pattern=on 1.6pt off 1.4pt] ({0.80-\bw},{\yb+\bu*0.7}) -- ({0.80+\bw},{\yb+\bu*0.7});
+    \draw[base] (0.18,\yb) -- (3.285,\yb);
+    \node[lab, anchor=north] at (0.80,{\yb-0.05}) {X Z Y I};
+    \draw[cut] (0.18,{\yb+\bu}) -- (3.285,{\yb+\bu});
+    \node[cutl, anchor=north east] at (3.30,{\yb+\bu-0.03}) {Cutoff};
+    \node[big, anchor=west] at (1.14,{\yb+\bu*1.3-0.07}) {0.7 + 0.6 = 1.3};
+    \node[kept, minimum width=3.225cm, minimum height=0.74cm] at (1.7325,-3.285) {\tl{Term Kept:}{Correct}};
   \end{scope}
   % ---- measured
-  \node[draw=black, fill=pan2, line width=0.4pt, anchor=north west, inner sep=0pt, minimum width=2.05cm, minimum height=1.20cm,
-        align=center, font=\rmfamily\bfseries\footnotesize] at (0.15,-6.20) {Measured:\\Kicked Ising,\\22.5M Terms};
-  \node[hh, minimum width=2.88cm] at (2.20,-6.20) {No Merge};
-  \node[hh, minimum width=1.44cm] at (2.20,-6.58) {4 GPUs};
-  \node[hh, minimum width=1.44cm] at (3.64,-6.58) {16 GPUs};
-  \node[hT, minimum width=2.02cm] at (5.08,-6.20) {Correct Value};
-  \node[vb, minimum width=1.44cm, text=dred] at (2.20,-6.96) {0.1675};
-  \node[vb, minimum width=1.44cm, text=dred] at (3.64,-6.96) {0.189};
-  \node[vb, minimum width=2.02cm] at (5.08,-6.96) {0.1531};
+  \node[ann] at (3.675,-7.38) {Measured Without Merging: 0.1675 on 4 GPUs,\\0.189 on 16 --- Correct Is 0.1531};
   % =====================================================================================================
-  % RIGHT: the two existing ways
+  % RIGHT: the two existing ways to merge, and the price of each
   % =====================================================================================================
-  \begin{scope}[shift={(7.45,0)}]
-    \draw[pan] (0,0) rectangle (10.15,-7.58);
-    \node[ptl, anchor=base west] at (0.14,-0.48) {Two Existing Ways to Merge Across GPUs};
+  \begin{scope}[shift={(7.50,0)}]
+    \draw[pan] (0,0) rectangle (10.10,-7.78);
+    \node[ptl, anchor=base west] at (0.14,-0.48) {Two Existing Ways to Merge, Each With a Price};
     % ---- 1: merge across all GPUs after every gate
-    \begin{scope}[shift={(0.15,-0.72)}]
-      \draw[comp] (0,0) rectangle (5.05,-6.08);
-      \node[ct, anchor=north west] at (0.08,-0.07) {Merge Across All GPUs\\After Every Gate};
-      \node[num] at (4.73,-0.32) {1};
-      \node[an, anchor=west] at (0.10,-1.09) {cuPauliProp Distributed Mode};
-      \foreach \g in {0,1,2,3}
+    \begin{scope}[shift={(0.15,-0.70)}]
+      \draw[comp] (0,0) rectangle (5.05,-6.96);
+      \node[num] at (0.30,-0.30) {1};
+      \node[ct, anchor=north west] at (0.54,-0.06) {Merge Across All GPUs\\After Every Gate};
+      \node[an, anchor=west] at (0.54,-1.13) {cuPauliProp Distributed Mode};
+      % all GPUs stop and merge
+      \foreach \gi in {0,1,2,3}
       {
-        \node[gpu, anchor=north west, minimum width=1.10cm, minimum height=0.94cm] at ({0.12+1.2367*\g},-1.30) {};
-        \node[txt] at ({0.12+1.2367*\g+0.55},-1.50) {GPU \g};
-        \foreach \i in {0,1,2,3}
-          \node[tm] at ({0.12+1.2367*\g+0.07+0.24*\i},-1.80) {};
-        \node[fatd] at ({0.12+1.2367*\g+0.55},-2.55) {};
+        \node[gpu, anchor=north west, minimum width=1.06cm, minimum height=0.62cm,
+              font=\rmfamily\bfseries\small, inner sep=0pt] at ({0.135+1.24*\gi},-1.42) {GPU \gi};
+        \node[fatd] at ({0.135+1.24*\gi+0.53},-2.37) {};
       }
-      \draw[bar] (0.12,-2.86) rectangle (4.93,-3.72);
-      \node[stitle] at (2.525,-3.09) {Global Merge and Redistribution};
-      \node[an] at (2.525,-3.48) {After Every Gate, All GPUs Wait};
-      \node[hT, minimum width=3.41cm] at (0.12,-3.88) {Collective Calls\\per Gate, per GPU};
-      \node[vT, minimum width=1.40cm] at (3.53,-3.88) {22};
-      \node[lb, minimum width=3.41cm] at (0.12,-4.64) {22.5M Terms on 1 GPU};
-      \node[vb, minimum width=1.40cm] at (3.53,-4.64) {2.9 s};
-      \node[lb, minimum width=3.41cm] at (0.12,-5.08) {22.5M Terms on 16 GPUs};
-      \node[vb, minimum width=1.40cm, text=dred] at (3.53,-5.08) {71 s};
-      \node[an] at (2.525,-5.79) {More GPUs, Slower};
+      \draw[mbar] (0.135,-2.70) rectangle (4.915,-3.62);
+      \node[ctitle] at (2.525,-2.94) {All GPUs Stop and Merge};
+      \node[an] at (2.525,-3.37) {22 Calls to All GPUs per Gate};
+      % the picture of time: 2.75 cm for 71 s, 0.112 cm for 2.9 s
+      \node[an, anchor=west] at (0.14,-3.97) {Time for the Same Job};
+      \node[val, anchor=east] at (1.38,-4.44) {1 GPU};
+      \node[val, anchor=east] at (1.38,-5.02) {16 GPUs};
+      \draw[draw=black, line width=0.5pt, fill=black!55] (1.45,-4.23) rectangle (1.562,-4.65);
+      \draw[draw=black, line width=0.5pt, fill=dred] (1.45,-4.81) rectangle (4.20,-5.23);
+      \draw[line width=0.9pt] (1.45,-4.13) -- (1.45,-5.33);
+      \node[big, anchor=west] at (1.62,-4.44) {2.9 s};
+      \node[big, text=dred, anchor=west] at (4.23,-5.02) {71 s};
+      \node[an, font=\rmfamily\bfseries\itshape\normalsize] at (2.525,-5.66) {More GPUs, Slower};
+      \node[tag] at (2.525,-6.42) {Price: Time};
     \end{scope}
     % ---- 2: merge only before truncation
-    \begin{scope}[shift={(5.40,-0.72)}]
-      \draw[comp] (0,0) rectangle (4.60,-6.08);
-      \node[ct, anchor=north west] at (0.08,-0.07) {Merge Only\\Before Truncation};
-      \node[num] at (4.28,-0.32) {2};
-      \foreach \g in {0,1,2,3}
+    \begin{scope}[shift={(5.35,-0.70)}]
+      \draw[comp] (0,0) rectangle (4.60,-6.96);
+      \node[num] at (0.30,-0.30) {2};
+      \node[ct, anchor=north west] at (0.54,-0.06) {Merge Only\\Before Truncation};
+      % the memory of one GPU, filled with unmerged copies
+      \node[gpu, anchor=north west, minimum width=2.24cm, minimum height=3.44cm] at (0.30,-1.10) {};
+      \node[stitle, font=\rmfamily\bfseries\small] at (1.42,-1.34) {GPU Memory};
+      \draw[draw=black, line width=0.6pt, fill=white] (0.45,-1.60) rectangle (2.39,-4.44);
+      \foreach \ci/\cf in {0/sa, 1/sb, 2/sc, 3/sd}
       {
-        \node[gpu, anchor=north west, minimum width=1.00cm, minimum height=3.24cm] at ({0.12+1.12*\g},-1.04) {};
-        \node[txt] at ({0.12+1.12*\g+0.50},-1.25) {GPU \g};
-        \foreach \r in {0,...,7}
-          \foreach \i in {0,1,2}
-            \node[hc, minimum width=0.28cm, minimum height=0.27cm] at ({0.12+1.12*\g+0.08+0.28*\i},{-1.48-0.27*\r}) {};
-        \node[tm, minimum width=0.28cm, minimum height=0.27cm] at ({0.12+1.12*\g+0.08},-3.64) {};
-        \node[hc, minimum width=0.28cm, minimum height=0.27cm] at ({0.12+1.12*\g+0.36},-3.64) {};
-        \node[hc, minimum width=0.28cm, minimum height=0.27cm] at ({0.12+1.12*\g+0.64},-3.64) {};
-        \foreach \i in {0,1,2}
-          \node[tm, minimum width=0.28cm, minimum height=0.27cm] at ({0.12+1.12*\g+0.08+0.28*\i},-3.91) {};
+        \draw[tbar, line width=0.4pt, fill=\cf] ({0.50+0.46*\ci},-4.39) rectangle ++(0.46,0.30);
+        \foreach \ri in {1,...,8}
+          \path[copy, preaction={fill=\cf!50}] ({0.50+0.46*\ci},{-4.39+0.30*\ri}) rectangle ++(0.46,0.30);
       }
-      \node[hc, minimum width=0.40cm, minimum height=0.40cm, anchor=west] at (0.62,-4.68) {};
-      \node[an, anchor=west, align=left] at (1.12,-4.68) {Unmerged Copies\\Stay in GPU Memory};
-      \node[hT, minimum width=3.30cm] at (0.12,-5.10) {Circuits That Run Out of\\Memory on 16 GPUs};
-      \node[vT, minimum width=1.06cm, text=dred] at (3.42,-5.10) {2 of 7};
+      \draw[draw=dred, line width=2.2pt] (0.45,-1.60) -- (2.76,-1.60);
+      \node[big, font=\rmfamily\bfseries\itshape\normalsize, text=dred, anchor=west] at (2.78,-1.60) {Full};
+      \draw[brc] (2.68,-1.94) -- (2.68,-4.06);
+      \node[val, anchor=west, align=left] at (2.90,-3.00) {Unmerged\\Copies};
+      \node[val, anchor=west] at (2.90,-4.24) {Terms};
+      \draw[line width=0.8pt] (2.62,-4.24) -- (2.84,-4.24);
+      \node[an] at (2.30,-4.82) {Copies Pile Up in GPU Memory};
+      \node[val, align=center] at (2.30,-5.46) {{\color{dred}2 of 7} Circuits Run Out\\of Memory on 16 GPUs};
+      \node[tag] at (2.30,-6.42) {Price: Memory};
     \end{scope}
-    % ---- what each way gives up
-    \node[vs] (vs) at (5.59,-7.19) {One Must Be Given Up};
-    \node[bigkey, anchor=east] at ([xshift=-0.18cm]vs.west) {Gives Up Communication};
-    \node[bigkey, anchor=west] at ([xshift=0.18cm]vs.east) {Gives Up Memory};
   \end{scope}
   % =====================================================================================================
   % BOTTOM: what is needed, and SectorQ
   % =====================================================================================================
-  \draw[pan2] (0,-7.73) rectangle (17.60,-8.98);
-  \node[box, fill=actc, font=\rmfamily\bfseries\normalsize, minimum width=7.20cm, minimum height=0.97cm] at (3.76,-8.355)
-    {Needed: A New Term and Its Merge Partner\\Always on the Same GPU};
-  \node[fatr] at (8.42,-8.355) {};
-  \node[box, fill=tune, minimum width=8.88cm, minimum height=0.97cm] at (13.00,-8.355) {};
-  \node[ctitle] at (13.00,-8.14) {SectorQ: Merge at Every Gate, Inside a Sector};
-  \node[an] at (13.00,-8.58) {No Terms Move Between GPUs During a Window};
+  \draw[pan2] (0,-7.90) rectangle (17.60,-8.95);
+  \node[act, font=\rmfamily\bfseries\normalsize, minimum width=7.05cm, minimum height=0.89cm] at (3.675,-8.425)
+    {Needed: All Pieces of a Term\\on the Same GPU};
+  \node[fatr] at (8.22,-8.425) {};
+  \node[box, fill=tune, minimum width=9.10cm, minimum height=0.89cm] at (12.90,-8.425) {};
+  \node[ctitle] at (12.90,-8.23) {SectorQ: Merge at Every Gate, Inside a Sector};
+  \node[an] at (12.90,-8.64) {No Terms Move Between GPUs During a Window};
 \end{tikzpicture}
