@@ -22,6 +22,9 @@ source /pscratch/sd/s/sgkim/kcj/pauliprop/jobs/env.sh
 cd $PP_ROOT
 HOSTS=$(scontrol show hostnames $SLURM_JOB_NODELIST | paste -sd,)
 env/bin/python3 jobs/s_items.py --take          # runs that the scaling jobs e15 made in the meantime are not repeated
-echo "scale job $SLURM_JOB_ID: nodes=$SLURM_NNODES gpus=$((SLURM_NNODES * 4)) open=$(env/bin/python3 jobs/s_run.py --count)"
+# Job 59660398 (64 GPUs) hung at this count for its whole 2.5 hours and started no run. If the runner does not answer
+# within five minutes the job ends at once instead of holding its nodes.
+open=$(timeout 300 env/bin/python3 jobs/s_run.py --count) || { echo "the runner did not answer within 5 minutes on $(hostname); the job gives its nodes back"; exit 1; }
+echo "scale job $SLURM_JOB_ID: nodes=$SLURM_NNODES gpus=$((SLURM_NNODES * 4)) open=$open"
 env/bin/python3 jobs/s_run.py --job $SLURM_JOB_ID --hosts $HOSTS
 echo "done after ${SECONDS}s; open=$(env/bin/python3 jobs/s_run.py --count)"
