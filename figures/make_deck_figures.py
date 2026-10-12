@@ -283,10 +283,12 @@ def check(fig, name):
     return len(bad)
 
 
-def finish(fig, name, top=None, **kw):
-    """Fills the picture, lets no two tick labels meet, checks, writes."""
-    fit(fig, top, **kw)
-    if shrink_ticks(fig):
+def finish(fig, name, top=None, place=True, **kw):
+    """Fills the picture, lets no two tick labels meet, checks, writes. `place=False`: the figure places its own
+    panels (constrained layout)."""
+    if place:
+        fit(fig, top, **kw)
+    if shrink_ticks(fig) and place:
         fit(fig, top, **kw)
     n = check(fig, name)
     os.makedirs(OUT, exist_ok=True)
@@ -577,6 +579,51 @@ def d_circuits_b():
     d_circuits("d_circuits_b", ("xxz", "qaoa", "hea"), True)
 
 
+def d_circuits_all():
+    """All seven circuits on 16 GPUs in one picture as wide as a slide (1744 x 580 px there). Two rows of panels whose
+    widths follow their numbers of cutoffs, so that the tick labels have one size: the three main circuits above,
+    the other four below. One legend line, one x label, the y axis once per row."""
+    which = ("ki", "tfim", "noise", "tfimsq", "xxz", "qaoa", "hea")
+    widths = ((6, 6, 5), (4, 4, 5, 6))                  # cutoffs per panel (slide_ladder)
+    fig = plt.figure(figsize=(17.44, 5.8), layout="constrained")
+    fig.get_layout_engine().set(w_pad=0.05, h_pad=0.04, wspace=0.03, hspace=0.07, rect=(0, 0, 1, 0.935))     # the legend line above
+    outer = fig.add_gridspec(2, 1)
+    panels, first = [], []
+    for r, ratio in enumerate(widths):
+        sub = outer[r].subgridspec(1, len(ratio), width_ratios=ratio)
+        first.append(len(panels))
+        panels += [fig.add_subplot(sub[0, i]) for i in range(len(ratio))]
+    more = {}                                           # terms of the problems only more than 16 GPUs finished
+    for r in scaling_jobs():
+        if r["kind"] == "engine" and mf.ok(r) and r.get("boundary"):
+            more.setdefault({v: k for k, v in mf.BIG_NAME.items()}.get(r["circuit"]), {})[r["opt"]["--coef"]] = r["boundary"]
+    rows = mf.g_circuits(campaign(), axes=panels, which=which, keep=slide_ladder, sizes=more)
+    for j, ax in enumerate(panels):
+        for t in ax.get_xticklabels():
+            t.set_fontsize(12)
+        ax.set_title(ax.get_title(), fontsize=15, pad=6)
+        ax.set_ylabel("Time (s)" if j in first else "", fontsize=15, fontweight="bold")      # the full label is longer than a panel is tall
+        ax.tick_params(axis="y", labelsize=12.5, labelleft=(j in first))
+        ax.set_yticks([1, 10, 100, 1000])
+        ax.set_xlabel("")
+        ticks = [t.get_text().split("\n")[0] for t in ax.get_xticklabels()]
+        ours, cupp = dict(rows[3 * j][2]), dict(rows[3 * j + 1][2])
+        for x in ticks:
+            if x in ours and x in cupp:
+                value(ax, ticks.index(x), cupp[x], mf.times(cupp[x], ours[x]), dy=8, size=13)
+    fig.supxlabel("Cutoff (# of Terms) (Size of Terms)", fontsize=15, fontweight="bold")
+    e = entries(fig, panels[0]) + [(Line2D([0], [0], color="none"), "N×: cuPauliProp time / SectorQ time")]
+    fig.legend([a for a, _ in e], [b for _, b in e], loc="upper center", bbox_to_anchor=(0.5, 1 - 0.07 / 5.8), ncol=len(e), fontsize=14,
+               columnspacing=1.8, handlelength=2.4, handletextpad=0.6, borderpad=0, borderaxespad=0, frameon=False)
+    fig.draw_without_rendering()
+    if shrink_ticks(fig):                                   # one size of tick labels in all panels
+        size = min(t.get_fontsize() for ax in panels for t in ax.get_xticklabels())
+        for ax in panels:
+            for t in ax.get_xticklabels():
+                t.set_fontsize(size)
+    finish(fig, "d_circuits_all", place=False)
+
+
 def d_scaleout():
     fig, ax = plt.subplots(figsize=(W, H))
     mf.g_scaleout(campaign(), scaling_jobs(), ax=ax)
@@ -734,7 +781,7 @@ def d_variability():
     finish(fig, "d_variability", top - 0.1 / H, wgap=0.16)
 
 
-FIGURES = [n02, n11, n13, n14, n16, d_single_node, d_strong, d_qubits, d_breakdown, d_circuits_a, d_circuits_b, d_scaleout, d_reach, d_weak, d_depth,
+FIGURES = [n02, n11, n13, n14, n16, d_single_node, d_strong, d_qubits, d_breakdown, d_circuits_a, d_circuits_b, d_circuits_all, d_scaleout, d_reach, d_weak, d_depth,
            d_accuracy, d_variability]
 
 if __name__ == "__main__":
