@@ -586,7 +586,7 @@ def b_gain():
 
 
 # 32-256 GPUs: the scaling jobs (jobs/e15_scaling.sh), one log per GPU count
-BIG = (32, 64, 128, 256)
+BIG = (32, 64, 128, 256, 512)
 BIG_WEAK = {32: "3.4e-6", 64: "2.3e-6", 128: "1.6e-6", 256: "1.15e-6"}
 CIRC = {"ki": "ki_lab", "tfim": "tfim_hh", "noise": "ki_noisy"}
 LADDER_BIG = ("1e-4", "3e-5", "1e-5", "5e-6", "3e-6", "2e-6", "1e-6")      # the cutoffs of the cuPauliProp ladders of the scale campaign
@@ -638,6 +638,18 @@ def big_run(kind, c, coef, g, tuned=False, gmax=None):
     return None
 
 
+def big_any(kind, c, coef, g):
+    """SectorQ's run of one problem: with the default settings where there is one; else (512 GPUs, where the ladder ran
+    only with a higher sector limit) the run of the scale campaign, marked with a dagger. Returns (run, mark)."""
+    r = big_run(kind, c, coef, g)
+    if r is not None:
+        return r, ""
+    hits = [q for q in big_runs().get(g, []) if q["kind"] == kind and q["circuit"] == CIRC[c] and abs(q["coef"] / float(coef) - 1) < 1e-9
+            and not q["tuned"] and mf.ok(q)]
+    wide = [q for q in hits if q["opt"].get("--gmax") == "12"] + [q for q in hits if q["opt"].get("--gmax") == "10"]
+    return (wide[0], "†") if wide else (None, "")
+
+
 def big_cell(r, g, against=None):
     if g not in big_runs():
         return "대기 중"
@@ -662,13 +674,13 @@ def b_large():
             s = state.get(f"eng.{c}.{x}.g{g}")
             row.append(cell(f"eng.{c}.{x}.g{g}") + (f" ({mult(t1 / s['wall'])})" if t1 and ok(s) and g > 1 else ""))
         for g in BIG:
-            r = big_run("engine", c, x, g)
-            row.append(big_cell(r, g, t1 if (r and mf.ok(r)) else None))
+            r, mark = big_any("engine", c, x, g)
+            row.append(big_cell(r, g, t1 if (r and mf.ok(r)) else None) + mark)
         rows.append(row)
     out.append("**Strong scaling.** 같은 문제를 GPU 수만 바꾸어 실행한 SectorQ의 시간이다. 괄호는 1 GPU 대비이다.\n\n"
                + table(["문제"] + [f"{g} GPU" for g in small + BIG], rows))
     # weak scaling, the large load
-    rows = [["cutoff"] + [cg.WEAK["L"][g] for g in small] + [BIG_WEAK[g] for g in BIG]]
+    rows = [["cutoff"] + [cg.WEAK["L"][g] for g in small] + [BIG_WEAK.get(g, "") for g in BIG]]
     for c in MAIN:
         base, row = None, [KO[c]]
         for g in small:
@@ -678,11 +690,11 @@ def b_large():
             base = rate if g == 1 else base
             row.append(f"{sec(s['wall'])} ({100 * rate / base:.0f}%)" if rate and base else cell(s))
         for g in BIG:
-            r = big_run("engine", c, BIG_WEAK[g], g)
+            r = big_run("engine", c, BIG_WEAK[g], g) if g in BIG_WEAK else None
             if g in big_runs() and r and mf.ok(r) and r.get("checks") and base:
                 row.append(f"{sec(r['wall'])} ({100 * r['checks'] / r['wall'] / g / base:.0f}%)")
             else:
-                row.append(big_cell(r, g))
+                row.append(big_cell(r, g) if g in BIG_WEAK else "")
         rows.append(row)
     out.append("**Weak scaling (큰 부하).** GPU 수에 맞추어 cutoff를 낮춘 SectorQ의 실행 시간이다. 괄호는 GPU 한 장이 1초에 처리한 항 수를 1 GPU와 비교한 것이다.\n\n"
                + table(["회로"] + [f"{g} GPU" for g in small + BIG], rows))
@@ -694,9 +706,11 @@ def b_large():
                 e = state.get(f"eng.{c}.1e-5.g16")
                 rows.append([KO[c], g, cell(e), deferred_cell(c, "1e-5", 16, e), cell(f"cupp.{c}.1e-5.g16", e)])
             else:
-                e = big_run("engine", c, "1e-5", g)
+                e, mark = big_any("engine", c, "1e-5", g)
                 t = e["wall"] if (e and mf.ok(e)) else None
-                rows.append(["", g, big_cell(e, g), big_cell(big_run("cupp", c, "1e-5", g, tuned=True), g, t), big_cell(big_run("cupp", c, "1e-5", g), g, t)])
+                if e is None and big_run("cupp", c, "1e-5", g) is None:
+                    continue                        # this circuit was not run on this GPU count
+                rows.append(["", g, big_cell(e, g) + mark, big_cell(big_run("cupp", c, "1e-5", g, tuned=True), g, t), big_cell(big_run("cupp", c, "1e-5", g), g, t)])
     out.append("**cuPauliProp 분산 모드와의 비교 (cutoff 1e-5, 같은 노드).** 괄호는 SectorQ 대비이다.\n\n"
                + table(["회로", "GPU 수", "SectorQ", "cuPauliProp dedup 미룸", "cuPauliProp 기본"], rows, ["---", "---:", "---:", "---:", "---:"]))
     # the largest problem that cuPauliProp's default mode finishes on each GPU count (the ladders of the scale campaign)
@@ -709,15 +723,16 @@ def b_large():
             if not fin:
                 continue
             x = min(fin, key=lambda r: r["coef"])["opt"]["--coef"]
-            e = big_run("engine", c, x, g)
+            e, mark = big_any("engine", c, x, g)
             t = e["wall"] if (e and mf.ok(e)) else None
-            rows.append([KO[c] if first else "", g, f"{x} ({ko_terms(facts(c, x)[0])})", big_cell(e, g),
+            rows.append([KO[c] if first else "", g, f"{x} ({ko_terms(facts(c, x)[0])})", big_cell(e, g) + mark,
                          big_cell(big_run("cupp", c, x, g, tuned=True), g, t), big_cell(big_run("cupp", c, x, g), g, t), below("cupp", c, x, g)])
             first = False
     if rows:
         out.append("**cuPauliProp 기본 모드가 끝낸 가장 큰 문제에서의 비교 (같은 노드).** GPU 수마다 기본 모드가 끝낸 가장 작은 cutoff에서 세 방식의 시간이다. 괄호는 SectorQ 대비이다. 마지막 열은 기본 모드가 그 아래 cutoff에서 어떻게 되었는지이다.\n\n"
                    + table(["회로", "GPU 수", "cutoff (구간 경계의 항 수)", "SectorQ", "cuPauliProp dedup 미룸", "cuPauliProp 기본", "기본 모드의 그 아래 cutoff"], rows,
                            ["---", "---:", "---", "---:", "---:", "---:", "---"]))
+    out.append("† 512 GPU에서 기본 설정으로 재지 않은 문제는 sector 수의 상한을 올린 실행의 값이다(상한 4,096개와 chunk 65,536항, 없으면 상한 1,024개).")
     return "\n\n".join(out)
 
 

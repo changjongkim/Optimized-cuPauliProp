@@ -329,13 +329,17 @@ def many(pattern):
     return out
 
 
+# Runs that try a setting of the sector rules (the small-problem tests of 2026-10-12) are not results of the campaign.
+TEST_FLAGS = ("--min-bucket", "--min-bucket-early", "--early-per-node")
+
+
 def big_logs():
     """The runs on 32 GPUs and more: the scaling jobs e15 and the scale campaign (queue_s; one log per run in logs/s).
     A run that the campaign took over from e15 appears twice with the same values."""
     out = many("pp_e15_g*-*.out")
     for path in sorted(glob.glob(os.path.join(LOGS, "s", "*.out"))):
         out += parse(os.path.join("s", os.path.basename(path)))
-    return out
+    return [r for r in out if not any(k in r["opt"] for k in TEST_FLAGS)]
 
 
 def default_run(runs, circuit, coef, gpus):

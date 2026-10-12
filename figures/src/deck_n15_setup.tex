@@ -2,9 +2,9 @@
 %   left    one Perlmutter GPU node: four A100 GPUs with 40 GB each, of which a run uses 36 GB
 %           (--vram-frac 0.9), 64 CPU cores, 256 GiB of host memory
 %   right   the two groups of measurements: 1-4 nodes (1-16 GPUs) with SectorQ and every compared implementation,
-%           8-64 nodes (32, 64, 128, 256 GPUs) with SectorQ and cuPauliProp's distributed mode
+%           8-128 nodes (32, 64, 128, 256, 512 GPUs) with SectorQ and cuPauliProp's distributed mode
 %           (README Sections 1.5 and 4.4). A node icon is the node of the left frame in small: four GPUs
-%           over the host memory. The lower frame draws 64 nodes, the upper frame 4.
+%           over the host memory. The lower frame draws 128 nodes (at half width), the upper frame 4.
 %   bottom  circuits and rules of the evaluation (README Sections 1.5 and 4): 7 circuits with 64-127 qubits, a
 %           30-qubit circuit whose exact value is known, square lattices with 36-1,024 qubits; one run per
 %           setting, a limit of 40 minutes per run, the same list of operations for every implementation.
@@ -35,12 +35,12 @@
   \foreach \i in {0,1,2,3}
     \pic at ({6.63+0.9*\i},-0.85) {nd};
   \node[note, anchor=west] at (6.55,-1.36) {SectorQ and Every Compared Implementation};
-  % ================= 8-64 nodes =================
+  % ================= 8-128 nodes =================
   \node[frame, anchor=north west, minimum width=7.5cm, minimum height=4.05cm] at (6.4,-1.95) {};
-  \node[ttl, anchor=north west] at (6.52,-2.02) {8--64 Nodes (32--256 GPUs)};
+  \node[ttl, anchor=north west] at (6.52,-2.02) {8--128 Nodes (32--512 GPUs)};
   \foreach \r in {0,...,7}
-    \foreach \i in {0,...,7}
-      \pic at ({6.63+0.9*\i},{-2.8-0.34*\r}) {nd};
+    \foreach \i in {0,...,15}
+      \pic[xscale=0.5] at ({6.63+0.45*\i},{-2.8-0.34*\r}) {nd};
   \node[note, anchor=west] at (6.55,-5.65) {SectorQ and cuPauliProp Distributed Mode};
   % ================= circuits and rules =================
   \node[rc, fill=black!10, minimum width=1.5cm] at (0,-6.25) {Circuits};

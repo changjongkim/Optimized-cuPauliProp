@@ -616,7 +616,7 @@ def d_accuracy():
 # d_reach  the largest kicked Ising problem each implementation finished, by GPU count (16-256 GPUs)
 #   the size of a problem is its number of terms at window boundaries, taken from a SectorQ run of the same cutoff
 # ---------------------------------------------------------------------------------------
-REACH_GPUS = (16, 32, 64, 128, 256)
+REACH_GPUS = (16, 32, 64, 128, 256, 512)
 REACH_LADDER = ("1e-4", "3e-5", "1e-5", "5e-6", "3e-6", "2e-6", "1e-6")      # the cutoffs of cuPauliProp's ladders on 32 GPUs and more
 
 
@@ -654,22 +654,22 @@ def d_reach():
     for g in REACH_GPUS:
         x, n, host = R[g]["ours"]
         value(ax, pos[g], n, f"{short_count(n)}\n(Cutoff {x})", dy=11, size=13)
-        c, d = R[g]["cupp"][1], R[g]["defer"][1]
+        c, d = R[g]["cupp"][1], R[g].get("defer", (None, None))[1]
         value(ax, pos[g], c, short_count(c), dy=10, size=12.5)
-        if d != c:
+        if d and d != c:
             value(ax, pos[g], d, short_count(d), dy=-11, size=12.5)
         mid = math.sqrt(n * c)
         ax.annotate("", (pos[g] + 0.2, n), xytext=(pos[g] + 0.2, c), arrowprops=dict(arrowstyle="<->", color=mf.INK, linewidth=1.3, shrinkA=7, shrinkB=7), zorder=2)
         t = ax.text(pos[g] + 0.24, mid, f"{n / c:.0f}×", ha="left", va="center", fontsize=14.5, fontweight="bold", color=mf.INK, path_effects=HALO, zorder=6)
         t.set_gid("value")
         if "--print" in ARGS:
-            print(f"d_reach {g:3d} GPUs  SectorQ {x} {n:,} terms ({host:,.0f} GiB)  cuPauliProp {R[g]['cupp'][0]} {c:,}  deferred {R[g]['defer'][0]} {d:,}  ratio {n / c:.1f}")
+            print(f"d_reach {g:3d} GPUs  SectorQ {x} {n:,} terms ({host:,.0f} GiB)  cuPauliProp {R[g]['cupp'][0]} {c:,}  deferred {R[g].get('defer')}  ratio {n / c:.1f}")
     mf.sq_axes(ax, "# of GPUs (Host Memory SectorQ Used / Installed, GiB)", "Largest Finished Problem (# of Terms)")
     ax.set_xticks(range(len(REACH_GPUS)))
     ax.set_xticklabels([f"{g}\n({R[g]['ours'][2]:,.0f} / {g // 4 * 256:,})" for g in REACH_GPUS])
     ax.set_xlim(-0.5, len(REACH_GPUS) - 0.4)
-    ax.set_ylim(6e7, 9e11)
-    ax.yaxis.set_major_formatter(FuncFormatter(short_count))
+    ax.set_ylim(6e7, 2.4e12)
+    ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v / 1e12:g}T" if v >= 1e12 else short_count(v)))
     top = strip(fig, [list(zip(*ax.get_legend_handles_labels()))], size=13.5)
     finish(fig, "d_reach", top - 0.1 / H)
 
