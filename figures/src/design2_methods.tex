@@ -1,0 +1,168 @@
+% Four ways to simulate a quantum circuit on a classical computer (first slide of the short deck), second style
+% (the look of the ScaleQsim paper).
+% What the figure shows: one table with four columns of equal width, one per method, in this order:
+%   State Vector | Amplitude Sampling | Tensor Network | Pauli Propagation (highlighted, tag "This Work").
+% Every column has, top to bottom: the name of the method; a small picture of what the method keeps in memory
+%   State Vector:        a tall column of amplitude cells, 2^n of them
+%   Amplitude Sampling:  the circuit as a network of tensors (dots joined by lines, outputs fixed to 0 1 1 0),
+%                        contracted (block arrow) into one amplitude cell
+%   Tensor Network:      a chain of five small tensors joined by bonds, one free leg each
+%   Pauli Propagation:   a table of terms (coefficient, Pauli string)
+% and four rows with the same labels (blue cells at the far left): Keeps in Memory, Returns, Cost Grows With, Stops At.
+% Bottom strip: the first three follow the quantum state -> Pauli propagation follows the observable.
+% Message (one sentence): there are four ways to simulate a quantum circuit on a classical computer; three of them
+% keep (part of) the quantum state and are limited by the number of qubits or by entanglement, and Pauli propagation
+% keeps a list of terms of the observable, so its cost is set by the number of terms.
+% Colors: blue cells = amplitudes, orange dots = tensors of the circuit, violet boxes = tensors of the state,
+% pale yellow = this work, red = only the tag "This Work" and the key value "The Number of Terms Kept".
+% Geometry: label column x = 0.15..2.00; method column k (0..3) starts at x = 2.10 + 3.86 k and is 3.76 wide.
+% Rows: names -0.74..-1.30, picture -1.30..-3.86, then four text rows of 0.92 down to -7.54.
+\begin{tikzpicture}[x=1cm, y=1cm, font=\rmfamily\bfseries\small]
+  \def\B#1{\mbox{\boldmath$#1$}}
+  % one line or two lines of a cell; the struts give every line the same height, so the rows line up across columns
+  \def\one#1{\strut #1}
+  \def\two#1#2{\strut #1\\\strut #2}
+  \colorlet{hl}{actc!42}
+  \tikzset{
+    % name of a method (header row) and label of a row (first column): blue cells, white text
+    hname/.style={draw=black, fill=thblue, text=white, font=\rmfamily\bfseries\fontsize{11}{13}\selectfont, anchor=north west,
+                  inner sep=0pt, minimum width=3.76cm, minimum height=0.56cm, text height=0.26cm, text depth=0.08cm,
+                  line width=0.4pt},
+    rlab/.style={draw=black, fill=thblue, text=white, font=\rmfamily\bfseries\small, anchor=north west, inner sep=0pt,
+                 minimum width=1.85cm, minimum height=0.92cm, align=center, line width=0.4pt},
+    % a body cell of the table and its text
+    cell/.style={draw=black, fill=white, anchor=north west, inner sep=0pt, minimum width=3.76cm, minimum height=0.92cm,
+                 line width=0.4pt},
+    ct/.style={font=\rmfamily\bfseries\fontsize{9.5}{11.5}\selectfont, inner sep=0pt, align=center},
+    ckey/.style={font=\rmfamily\bfseries\fontsize{10.5}{12}\selectfont, text=dred, inner sep=0pt, align=center},
+    % pictures
+    amp/.style={draw=black!85, fill=sa!75, line width=0.4pt, anchor=north west, inner sep=0pt, minimum width=1.40cm,
+                minimum height=0.52cm},
+    wire/.style={line width=0.9pt},
+    dot/.style={circle, draw=black, fill=genc, line width=0.5pt, inner sep=0pt, minimum size=0.19cm},
+    tens/.style={draw=black, fill=sd, line width=0.6pt, rounded corners=1.5pt, inner sep=0pt, minimum size=0.42cm},
+    bondl/.style={line width=2.4pt},
+    hb/.style={th, font=\rmfamily\bfseries\small, minimum height=0.46cm, text height=0.25cm, text depth=0.08cm},
+    db/.style={td, font=\rmfamily\bfseries\small, minimum height=0.46cm, text height=0.25cm, text depth=0.08cm},
+    down/.style={barrow, inner ysep=0.12cm, single arrow head extend=0.17cm, minimum height=0.44cm, rotate=-90, anchor=tip},
+    sbox/.style={draw=black, fill=white, line width=0.6pt, font=\rmfamily\bfseries\fontsize{11}{13}\selectfont, align=center,
+                 inner sep=0pt, minimum width=8.00cm, minimum height=0.94cm},
+  }
+  % =====================================================================================================
+  % the panel and its title
+  % =====================================================================================================
+  \node[pan, anchor=north west, minimum width=17.60cm, minimum height=7.67cm] at (0,0) {};
+  \node[ptitle, font=\rmfamily\bfseries\fontsize{16}{19}\selectfont, anchor=base west] at (0.14,-0.50)
+    {Four Ways to Simulate a Quantum Circuit on a Classical Computer};
+  % =====================================================================================================
+  % the labels of the rows (first column)
+  % =====================================================================================================
+  \node[rlab, minimum height=3.48cm] at (0.15,-1.30) {\two{Keeps in}{Memory}};
+  \node[rlab] at (0.15,-4.78) {Returns};
+  \node[rlab] at (0.15,-5.70) {\two{Cost}{Grows With}};
+  \node[rlab] at (0.15,-6.62) {Stops At};
+  % =====================================================================================================
+  % the four columns: name, cell of the picture and its caption, three more rows
+  % #1 = left edge, #2 = fill, #3 = name, #4 = keeps in memory, #5 = returns, #6 = cost grows with, #7 = stops at
+  % =====================================================================================================
+  \def\col#1#2#3#4#5#6#7{
+    \node[hname] at (#1,-0.74) {#3};
+    \node[cell, fill=#2, minimum height=3.48cm] at (#1,-1.30) {};
+    \node[ct] at ({#1+1.88},-4.32) {#4};
+    \node[cell, fill=#2] at (#1,-4.78) {};  \node[ct] at ({#1+1.88},-5.24) {#5};
+    \node[cell, fill=#2] at (#1,-5.70) {};  #6
+    \node[cell, fill=#2] at (#1,-6.62) {};  \node[ct] at ({#1+1.88},-7.08) {#7};
+  }
+  \col{2.10}{white}{State Vector}
+      {\two{All \B{2^{n}}\hspace{0.03cm}Amplitudes}{of the State}}
+      {\one{The Whole State}}
+      {\node[ct] at (3.98,-6.16) {\two{Qubits:\ Memory}{Doubles per Qubit}};}
+      {\two{About 50 Qubits}{(40 Qubits = 17 TB)}}
+  \col{5.96}{white}{Amplitude Sampling}
+      {\two{The Circuit as Tensors,}{Contracted per Output}}
+      {\two{Amplitudes of the}{Chosen Outputs}}
+      {\node[ct] at (7.84,-6.16) {\two{Entanglement}{in the Circuit}};}
+      {\two{Deep, Highly Entangled}{Circuits}}
+  \col{9.82}{white}{Tensor Network}
+      {\two{The State as Small}{Connected Tensors}}
+      {\one{An Approximate State}}
+      {\node[ct] at (11.70,-6.16) {\two{Entanglement}{(Bond Size)}};}
+      {\two{Deep Circuits With}{2D Connections}}
+  \col{13.68}{hl}{Pauli Propagation}
+      {\two{A List of Pauli Terms}{of the Observable}}
+      {\two{The Expectation Value}{of an Observable}}
+      {\node[ckey] at (15.56,-6.16) {\two{The Number of}{Terms Kept}};}
+      {\two{Memory for the Terms:}{Many GPUs Needed}}
+  % the fourth column is this work: thicker frame
+  \draw[line width=1.9pt] (13.68,-0.74) rectangle (17.44,-7.54);
+  % =====================================================================================================
+  % picture 1: State Vector -- a tall column of amplitude cells
+  % =====================================================================================================
+  \begin{scope}[shift={(2.10,-1.30)}]
+    \node[amp] at (0.20,-0.24) {\large\B{\alpha_{000\ldots0}}};
+    \node[amp] at (0.20,-0.76) {\large\B{\alpha_{000\ldots1}}};
+    \node[amp] at (0.20,-1.28) {};
+    \foreach \d in {-0.12,0,0.12} \fill (0.90,{-1.54+\d}) circle[radius=0.028];
+    \node[amp] at (0.20,-1.80) {\large\B{\alpha_{111\ldots1}}};
+    \draw[decorate, decoration={brace, amplitude=4pt}, line width=0.8pt] (1.70,-0.26) -- (1.70,-2.30);
+    \node[ct, anchor=west] at (1.98,-1.28) {{\large\B{2^{n}}}\\[1pt]Amplitudes};
+  \end{scope}
+  % =====================================================================================================
+  % picture 2: Amplitude Sampling -- the circuit as a network of tensors, contracted into one amplitude
+  % =====================================================================================================
+  \begin{scope}[shift={(5.96,-1.30)}]
+    \foreach \y in {-0.22,-0.51,-0.80,-1.09}
+      \draw[wire] (0.52,\y) -- (3.00,\y);
+    \foreach \x/\ya/\yb in {1.07/-0.22/-0.51, 1.07/-0.80/-1.09, 1.62/-0.51/-0.80, 2.17/-0.22/-0.51, 2.17/-0.80/-1.09,
+                            2.72/-0.51/-0.80}
+    {
+      \draw[wire] (\x,\ya) -- (\x,\yb);
+      \node[dot] at (\x,\ya) {};
+      \node[dot] at (\x,\yb) {};
+    }
+    \foreach \y/\b in {-0.22/0, -0.51/1, -0.80/1, -1.09/0}
+    {
+      \node[dot] at (0.52,\y) {};
+      \node[font=\rmfamily\bfseries\footnotesize, inner sep=0pt] at (3.20,\y) {\b};
+    }
+    \node[down] at (1.88,-1.67) {};
+    \node[amp, minimum width=2.30cm, minimum height=0.80cm, font=\rmfamily\bfseries\small, align=center] at (0.73,-1.70)
+      {Amplitude of\\Output 0110...};
+  \end{scope}
+  % =====================================================================================================
+  % picture 3: Tensor Network -- a chain of five small tensors joined by bonds, one free leg each
+  % =====================================================================================================
+  \begin{scope}[shift={(9.82,-1.30)}]
+    \draw[bondl] (0.36,-1.38) -- (3.40,-1.38);
+    \foreach \i in {0,1,2,3,4}
+    {
+      \draw[wire] ({0.36+0.76*\i},-1.38) -- ({0.36+0.76*\i},-2.12);
+      \node[tens] at ({0.36+0.76*\i},-1.38) {};
+    }
+    \node[ct] (bond) at (1.88,-0.46) {Bond};
+    \draw[arr] (1.74,-0.66) -- (1.50,-1.29);
+    \draw[arr] (2.02,-0.66) -- (2.26,-1.29);
+  \end{scope}
+  % =====================================================================================================
+  % picture 4: Pauli Propagation -- a table of terms
+  % =====================================================================================================
+  \begin{scope}[shift={(13.68,-1.30)}]
+    \node[bigkey, font=\rmfamily\bfseries\itshape\normalsize] at (1.88,-0.31) {This Work};
+    \node[hb, minimum width=1.62cm] at (0.16,-0.58) {Coefficient};
+    \node[hb, minimum width=1.82cm] at (1.78,-0.58) {Pauli String};
+    \foreach \r/\c/\p in {1/0.35/{X\hspace{0.13cm}Z\hspace{0.13cm}I}, 2/0.12/{Y\hspace{0.13cm}I\hspace{0.13cm}Z},
+                          3/0.08/{Z\hspace{0.13cm}X\hspace{0.13cm}X}}
+    {
+      \node[db, minimum width=1.62cm] at (0.16,{-0.58-0.46*\r}) {\c};
+      \node[db, minimum width=1.82cm] at (1.78,{-0.58-0.46*\r}) {\p};
+    }
+  \end{scope}
+  % =====================================================================================================
+  % bottom strip: what each side follows
+  % =====================================================================================================
+  \node[pan2, anchor=north west, minimum width=17.60cm, minimum height=1.16cm] at (0,-7.79) {};
+  \node[sbox, anchor=west] at (0.15,-8.37) {The First Three Follow the Quantum State};
+  \node[barrow, inner ysep=0.13cm, single arrow head extend=0.18cm, minimum height=0.84cm] at (8.80,-8.37) {};
+  \node[sbox, anchor=east, fill=hl, line width=1.2pt] at (17.45,-8.37)
+    {Pauli Propagation Follows the Observable:\\100+ Qubits, Cost Set by the Terms Kept};
+\end{tikzpicture}

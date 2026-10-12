@@ -1,0 +1,114 @@
+% Prior work (deck, slide 3 "Prior Work"), second style (the look of the ScaleQsim paper).
+% What the figure shows: one table of the existing implementations of Pauli propagation and of SectorQ.
+% The rows are grouped by where the implementation runs (first column, a cell that spans its group, with a
+% small pictogram): one device -> many CPU nodes -> many GPUs. For every implementation the three right
+% columns give what this work adds: when terms move between processes, whether a run can hold more terms
+% than the GPU memory, and how the terms are split over the processes.
+%   One Device       SPD (1 GPU); PauliPropagation.jl, ppvm, Qiskit pauli-prop (1 node of CPU cores)
+%   Many CPU Nodes   ORQA (terms move at every branching gate, fixed distribution function); MonoProp
+%   Many GPUs        cuPauliProp distributed mode (terms move at every gate; the split is not public);
+%                    SectorQ (terms move only at window boundaries, sectors kept in host memory, split
+%                    chosen at run time)
+% Message (one sentence): existing implementations stay on one device, run on CPUs, or move terms between
+% all GPUs at every gate; SectorQ runs on many GPUs, moves terms only at window boundaries, holds more terms
+% than GPU memory, and chooses the split at run time.
+% Sources of the entries: the same as deck_n04_positioning.tex (README 1.3, 2.4, 2.5, 3.2 to 3.4, 4.2;
+% ORQA: arXiv 2506.13241). A dash is a property that the sources used here do not state. No measured numbers.
+% Colors: blue = header row, gray = the group of a row, white box = one device, peach/teal/yellow/lavender
+% boxes = nodes, khaki boxes = GPUs, yellow = this work, red = the key value of the figure.
+% Sizes: the canvas is 17.6 x 8.87 cm and is shown 1060 px wide on the slide, so the cell text is 10.5 pt
+% (11 pt in the row of this work, 12 pt for the key value); every cell has at most two lines.
+\begin{tikzpicture}[x=1cm, y=1cm, font=\rmfamily\bfseries\fontsize{10.5}{12.2}\selectfont]
+  \tikzset{
+    every node/.append style={execute at begin node=\frenchspacing},     % no wider space after a colon
+    % a cell: an (empty or centered) box of a given width; the text of the implementation column is put on top
+    c/.style={draw=black, fill=white, line width=0.5pt, anchor=north west, inner sep=0pt, align=center,
+              font=\rmfamily\bfseries\fontsize{10.5}{12.2}\selectfont, minimum height=1.00cm},
+    hd/.style={c, fill=thblue, text=white},
+    bd/.style={c, minimum height=0.54cm, font=\rmfamily\bfseries\fontsize{11}{12.6}\selectfont},
+    grp/.style={c, fill=pan2},
+    hl/.style={c, fill=actc!55, minimum height=1.10cm, font=\rmfamily\bfseries\fontsize{11}{12.6}\selectfont},
+    nm/.style={anchor=west, inner sep=0pt, align=left, font=\rmfamily\bfseries\fontsize{10.5}{12.2}\selectfont},
+    gname/.style={font=\rmfamily\bfseries\fontsize{11}{12.6}\selectfont, inner sep=0pt, align=center},
+    kv/.style={font=\rmfamily\bfseries\itshape\fontsize{12}{13.2}\selectfont, text=dred, inner sep=0pt, align=center},
+    pic/.style={draw=black!85, fill=white, line width=0.6pt, inner sep=0pt, minimum width=0.40cm, minimum height=0.40cm},
+  }
+  \def\ns{\textcolor{black!55}{---}}
+  % columns: left edge and width (the table is 17.40 cm wide, from 0.10 to 17.50)
+  \def\cxa{0.10}  \def\cwa{2.40}     % where it runs (the group)
+  \def\cxb{2.50}  \def\cwb{5.58}     % implementation
+  \def\cxc{8.08}  \def\cwc{3.27}     % when terms move between processes
+  \def\cxd{11.35} \def\cwd{3.45}     % holds more terms than GPU memory
+  \def\cxe{14.80} \def\cwe{2.70}     % how the terms are split
+  \def\cxr{17.50}                    % right edge of the table
+  \def\cgx{1.30}                     % center of the group column
+  % rows (top edge): band -0.76, header -1.30, implementations -2.30 ... -6.30 (1.00 cm each), this work -7.30
+  % (1.10 cm), end of the table -8.40
+  % =====================================================================================================
+  % panel and title
+  % =====================================================================================================
+  \draw[pan] (0,0) rectangle (17.60,-8.87);
+  \node[ptitle, font=\rmfamily\bfseries\LARGE, anchor=base west] at (0.10,-0.53)
+    {Existing Implementations of Pauli Propagation and SectorQ};
+  % =====================================================================================================
+  % band and header row
+  % =====================================================================================================
+  \node[bd, minimum width=7.98cm] at (\cxa,-0.76) {\strut Shared With Prior Work};
+  \node[bd, fill=actc, minimum width=9.42cm] at (\cxc,-0.76) {\strut Added by This Work};
+  \node[hd, minimum width=\cwa cm] at (\cxa,-1.30) {\strut Where It\\\strut Runs};
+  \node[hd, minimum width=\cwb cm] at (\cxb,-1.30) {\strut Implementation};
+  \node[hd, minimum width=\cwc cm] at (\cxc,-1.30) {\strut When Terms Move\\\strut Between Processes};
+  \node[hd, minimum width=\cwd cm] at (\cxd,-1.30) {\strut Holds More Terms\\\strut Than GPU Memory};
+  \node[hd, minimum width=\cwe cm] at (\cxe,-1.30) {\strut How the Terms\\\strut Are Split};
+  % =====================================================================================================
+  % the five existing implementations
+  % =====================================================================================================
+  \foreach \y/\n/\a/\b/\s in {
+      -2.30/{\strut SPD (1 GPU)}/{\strut Never: One Device}/{\strut No}/{\strut\ns},
+      -3.30/{\strut PauliPropagation.jl, ppvm,\\\strut Qiskit pauli-prop (1 Node, CPUs)}/{\strut Never: One Device}/{\strut\ns}/{\strut\ns},
+      -4.30/{\strut ORQA}/{\strut At Every\\\strut Branching Gate}/{\strut\ns}/{\strut Fixed Function},
+      -5.30/{\strut MonoProp}/{\strut\ns}/{\strut\ns}/{\strut\ns},
+      -6.30/{\strut cuPauliProp Distributed Mode}/{\strut At Every Gate}/{\strut No}/{\strut Not Public}}
+  {
+    \node[c, minimum width=\cwb cm] at (\cxb,\y) {};
+    \node[nm] at ({\cxb+0.16},{\y-0.50}) {\n};
+    \node[c, minimum width=\cwc cm] at (\cxc,\y) {\a};
+    \node[c, minimum width=\cwd cm] at (\cxd,\y) {\b};
+    \node[c, minimum width=\cwe cm] at (\cxe,\y) {\s};
+  }
+  % =====================================================================================================
+  % this work
+  % =====================================================================================================
+  \node[hl, minimum width=\cwb cm] at (\cxb,-7.30) {};
+  \node[nm, font=\rmfamily\bfseries\fontsize{11}{12.6}\selectfont] at ({\cxb+0.16},-7.85) {\strut SectorQ (This Work)};
+  \node[hl, minimum width=\cwc cm] at (\cxc,-7.30) {};
+  \node[hl, minimum width=\cwd cm] at (\cxd,-7.30) {\strut Yes: Host Memory};
+  \node[hl, minimum width=\cwe cm] at (\cxe,-7.30) {};
+  % the two cells of two lines without a descender in the last line: 0.035 cm lower, so that they look centered
+  \node[kv] at ({\cxc+0.5*\cwc},-7.885) {\strut Only at Window\\\strut Boundaries};
+  \node[gname] at ({\cxe+0.5*\cwe},-7.885) {\strut Chosen at\\\strut Run Time};
+  % =====================================================================================================
+  % the three groups: a cell that spans the rows of the group, a pictogram and the name
+  % =====================================================================================================
+  \node[grp, minimum width=\cwa cm, minimum height=2.00cm] at (\cxa,-2.30) {};
+  \node[grp, minimum width=\cwa cm, minimum height=2.00cm] at (\cxa,-4.30) {};
+  \node[grp, minimum width=\cwa cm, minimum height=2.10cm] at (\cxa,-6.30) {};
+  % one device: one box
+  \node[pic] at (\cgx,-3.00) {};
+  \node[gname] at (\cgx,-3.70) {\strut One Device};
+  % many CPU nodes: four node boxes
+  \foreach \i/\st in {0/node0, 1/node1, 2/node2, 3/node3}
+    \node[pic, \st] at ({\cgx+0.50*(\i-1.5)},-4.86) {};
+  \node[gname] at (\cgx,-5.64) {\strut Many CPU\\\strut Nodes};
+  % many GPUs: four GPU boxes
+  \foreach \i in {0,1,2,3}
+    \node[pic, gpu] at ({\cgx+0.50*(\i-1.5)},-7.02) {};
+  \node[gname] at (\cgx,-7.74) {\strut Many GPUs};
+  % heavier lines between the groups; the frame of this work
+  \draw[line width=1.1pt] (\cxa,-4.30) -- (\cxr,-4.30);
+  \draw[line width=1.1pt] (\cxa,-6.30) -- (\cxr,-6.30);
+  \draw[navy, line width=1.8pt] (\cxb,-7.30) rectangle (\cxr,-8.40);
+  % footnote
+  \node[ann, font=\rmfamily\bfseries\itshape\small, anchor=west] at (0.12,-8.65)
+    {\ns\ : Not Stated in the Sources Used Here};
+\end{tikzpicture}

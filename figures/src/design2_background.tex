@@ -1,0 +1,199 @@
+% Background of SectorQ (slide 1 of the deck), second style (the look of the ScaleQsim paper).
+% What the figure shows, for a reader who has never seen quantum simulation:
+%   left    the goal: a quantum circuit (127 qubits, 20 steps) and the one number that is wanted from it, the
+%           expectation value; the two ways to compute it (state vector: 2^n amplitudes, about 50 qubits;
+%           Pauli propagation: a list of terms, limited by the number of terms)
+%   middle  Pauli propagation: the three things every gate does to the list of terms.
+%           (1) branch: a rotation gate turns one term into two; (2) merge: terms with the same Pauli string are
+%           added; (3) truncate: terms whose coefficient is below the cutoff are dropped.
+%           The box under (1) and (2) says what a term is: a coefficient times a Pauli string.
+%   right   the list grows: terms kept and their size for the 127-qubit kicked Ising circuit at three cutoffs,
+%           against what one GPU holds; and the error at two cutoffs for a 30-qubit circuit with a known answer.
+%   bottom  the chain that follows: lower cutoff -> more terms kept -> more accurate answer -> more memory and time.
+% Message (one sentence): the measured value of a quantum circuit can be computed by tracking a list of terms;
+% every gate branches, merges and truncates that list, and the list grows to billions of terms, more than one
+% GPU holds.
+% Colors: blue = table header, orange = a rotation gate of the circuit, hatched = a Clifford gate, yellow rounded =
+% what a gate does, one color per Pauli string (Z blue, Y green, X Z violet, Y I teal, Z X gray), pale yellow = the
+% method used here, red = the dropped term and the capacity of one GPU.
+% Canvas: 17.8 cm x 9.05 cm (the tables set the width: no text is smaller than \footnotesize).
+% Each component of the middle panel is drawn in a scope whose origin is the top left corner of its box.
+% Block arrows are placed by their tip.
+\begin{tikzpicture}[x=1cm, y=1cm, font=\rmfamily\bfseries\footnotesize]
+  \def\B#1{\mbox{\boldmath$#1$}}
+  \def\tl#1#2{\strut #1\\\strut #2}      % two lines of the same height, whatever their letters
+  \tikzset{
+    hd/.style={th, font=\rmfamily\bfseries\footnotesize, minimum height=0.42cm, text height=0.24cm, text depth=0.08cm},
+    hH/.style={hd, minimum height=0.70cm},                 % header cell, two tiers high, one line of text
+    hT/.style={draw=black, fill=thblue, text=white, font=\rmfamily\bfseries\footnotesize, anchor=north west, inner sep=0pt,
+               minimum height=0.70cm, line width=0.4pt, align=center},   % header cell, two lines of text
+    bd/.style={td, font=\rmfamily\bfseries\footnotesize, minimum height=0.44cm, text height=0.24cm, text depth=0.08cm},
+    bm/.style={draw=black, fill=white, font=\rmfamily\bfseries\footnotesize, anchor=north west, inner sep=0pt,
+               minimum height=0.72cm, line width=0.4pt, align=center},   % body cell, two lines of text
+    gate/.style={draw=black, fill=genc, line width=0.5pt, inner sep=0pt, minimum width=0.38cm, minimum height=0.30cm},
+    zz/.style={draw=black, line width=0.5pt, inner sep=0pt, minimum width=0.28cm, preaction={fill=white},
+               pattern=north east lines, pattern color=black!60},
+    ct/.style={font=\rmfamily\bfseries\large, inner sep=1.5pt, text height=0.29cm, text depth=0.09cm},
+    nn/.style={num, minimum size=0.44cm, font=\sffamily\bfseries\footnotesize},
+    note/.style={font=\rmfamily\bfseries\itshape\small, inner sep=1.5pt, align=center},
+    ba/.style={barrow, inner ysep=0.11cm, single arrow head extend=0.15cm, minimum height=0.38cm, anchor=tip},
+    sbox/.style={box, font=\rmfamily\bfseries\small, minimum height=0.76cm},
+  }
+  \colorlet{hl}{actc!55}          % the method used here
+  \colorlet{drop}{dred!16}        % the dropped term
+  % =====================================================================================================
+  % LEFT: the goal
+  % =====================================================================================================
+  \node[pan, anchor=north west, minimum width=4.70cm, minimum height=7.95cm] at (0,0) {};
+  \node[ptitle, anchor=base west] at (0.12,-0.47) {Goal};
+  % ---- the circuit (the drawing of the Circuit box of design2_architecture.tex)
+  \node[comp, anchor=north west, minimum width=4.52cm, minimum height=2.88cm] at (0.09,-0.74) {};
+  \node[ctitle, anchor=north] at (2.35,-0.79) {Quantum Circuit};
+  \foreach \k/\y in {1/-1.50, 2/-1.87, 3/-2.24, 4/-2.61} {
+    \draw[line width=0.7pt] (0.80,\y) -- (3.92,\y);
+    \node[txt, anchor=east] at (0.80,\y) {$q_{\k}$};
+    \node[gate] at (1.22,\y) {};
+    \node[gate] at (3.46,\y) {};
+  }
+  \node[zz, minimum height=0.61cm] at (1.94,-1.685) {};
+  \node[zz, minimum height=0.61cm] at (1.94,-2.425) {};
+  \node[zz, minimum height=0.61cm] at (2.70,-2.055) {};
+  \node[txt] at (4.24,-2.055) {$\cdots$};
+  \node[gate] at (0.95,-2.98) {};
+  \node[txt, anchor=west] at (1.17,-2.98) {Rotation};
+  \node[zz, minimum height=0.30cm] at (2.74,-2.98) {};
+  \node[txt, anchor=west] at (2.91,-2.98) {Clifford};
+  \node[note] at (2.35,-3.37) {127 Qubits, 20 Steps};
+  \node[ba, rotate=-90, minimum height=0.44cm] at (2.35,-4.06) {};
+  % ---- the number that is wanted
+  \node[comp, anchor=north west, minimum width=4.52cm, minimum height=1.28cm] at (0.09,-4.06) {};
+  \node[ctitle, anchor=north] at (2.35,-4.11) {Expectation Value};
+  \node[note] at (2.35,-4.90) {One Number: the Average\\Result of a Measurement};
+  % ---- the two ways to compute it
+  \node[comp, anchor=north west, minimum width=4.52cm, minimum height=2.43cm] at (0.09,-5.42) {};
+  \node[ctitle] at (2.35,-5.66) {Two Ways to Compute It};
+  \def\lx{0.185} \def\ly{-5.90}
+  \node[hd, minimum width=1.60cm] at (\lx,\ly) {Method};
+  \node[hd, minimum width=1.51cm] at ({\lx+1.60},\ly) {Stores};
+  \node[hd, minimum width=1.22cm] at ({\lx+3.11},\ly) {Limit};
+  \node[bm, minimum width=1.60cm] at (\lx,{\ly-0.42}) {\tl{State}{Vector}};
+  \node[bm, minimum width=1.51cm] at ({\lx+1.60},{\ly-0.42}) {\tl{$2^n$}{Amplitudes}};
+  \node[bm, minimum width=1.22cm] at ({\lx+3.11},{\ly-0.42}) {\tl{About 50}{Qubits}};
+  \node[bm, fill=hl, minimum width=1.60cm] at (\lx,{\ly-1.14}) {\tl{Pauli}{Propagation}};
+  \node[bm, fill=hl, minimum width=1.51cm] at ({\lx+1.60},{\ly-1.14}) {\tl{A List}{of Terms}};
+  \node[bm, fill=hl, minimum width=1.22cm] at ({\lx+3.11},{\ly-1.14}) {\tl{Number}{of Terms}};
+  % =====================================================================================================
+  % MIDDLE: what every gate does to the list of terms
+  % =====================================================================================================
+  \node[ba] at (5.08,-4.00) {};
+  \node[pan, anchor=north west, minimum width=8.48cm, minimum height=7.95cm] at (5.08,0) {};
+  \node[ptitle, anchor=base west] at (5.20,-0.47) {Pauli Propagation:};
+  \node[ptitle, anchor=base west] at (5.20,-1.05) {Every Gate Does Three Things};
+  % a row of a term table: x, y of its top left corner, coefficient, Pauli string, color of the string
+  \def\term#1#2#3#4#5{%
+    \node[bd, minimum width=1.44cm] at (#1,#2) {#3};
+    \node[bd, fill=#5, minimum width=0.90cm] at ({#1+1.44},#2) {#4};}
+  \def\thead#1#2{%
+    \node[hH, minimum width=1.44cm] at (#1,#2) {Coefficient};
+    \node[hT, minimum width=0.90cm] at ({#1+1.44},#2) {\tl{Pauli}{String}};}
+  % ---- 1: branch ----
+  \begin{scope}[shift={(5.18,-1.28)}]
+    \node[comp, anchor=north west, minimum width=2.50cm, minimum height=5.45cm] at (0,0) {};
+    \node[ct] (t1) at (0.99,-0.33) {Branch};
+    \node[nn] at ([xshift=0.30cm]t1.east) {1};
+    \thead{0.08}{-0.66}
+    \term{0.08}{-1.36}{1.0}{Z}{sa}
+    \draw[arr] (1.25,-1.80) -- (1.25,-2.22);
+    \node[act, minimum width=2.34cm, minimum height=0.54cm] at (1.25,-2.49) {Rotation Gate};
+    \draw[arr] (1.25,-2.76) -- (1.25,-3.18);
+    \term{0.08}{-3.18}{$\cos\theta$}{Z}{sa}
+    \term{0.08}{-3.62}{$\sin\theta$}{Y}{sb}
+    \node[note] at (1.25,-4.76) {\tl{One Term}{Becomes Two}};
+  \end{scope}
+  \node[ba, minimum height=0.39cm] at (8.07,-4.00) {};
+  % ---- 2: merge ----
+  \begin{scope}[shift={(8.07,-1.28)}]
+    \node[comp, anchor=north west, minimum width=2.50cm, minimum height=5.45cm] at (0,0) {};
+    \node[ct] (t2) at (0.99,-0.33) {Merge};
+    \node[nn] at ([xshift=0.30cm]t2.east) {2};
+    \thead{0.08}{-0.66}
+    \term{0.08}{-1.36}{0.20}{X Z}{sd}
+    \term{0.08}{-1.80}{0.15}{X Z}{sd}
+    \draw[arr] (1.25,-2.24) -- (1.25,-2.66);
+    \node[act, minimum width=2.34cm, minimum height=0.54cm] at (1.25,-2.93) {Same Pauli String};
+    \draw[arr] (1.25,-3.20) -- (1.25,-3.62);
+    \term{0.08}{-3.62}{0.35}{X Z}{sd}
+    \node[note] at (1.25,-4.76) {\tl{Equal Strings}{Are Added}};
+  \end{scope}
+  \node[ba, minimum height=0.39cm] at (10.96,-4.00) {};
+  % ---- 3: truncate ----
+  \begin{scope}[shift={(10.96,-1.28)}]
+    \node[comp, anchor=north west, minimum width=2.50cm, minimum height=6.57cm] at (0,0) {};
+    \node[ct] (t3) at (0.99,-0.33) {Truncate};
+    \node[nn] at ([xshift=0.30cm]t3.east) {3};
+    \thead{0.08}{-0.66}
+    \term{0.08}{-1.36}{0.35}{X Z}{sd}
+    \term{0.08}{-1.80}{0.12}{Y I}{rowc}
+    \term{0.08}{-2.24}{0.004}{Z X}{black!12}
+    \draw[arr] (1.25,-2.68) -- (1.25,-3.10);
+    \node[act, minimum width=2.34cm, minimum height=0.54cm] at (1.25,-3.37) {Cutoff = 0.01};
+    \draw[arr] (1.25,-3.64) -- (1.25,-4.06);
+    % the result: a mark, the coefficient, the string
+    \foreach \c/\s/\f/\y in {0.35/{X Z}/sd/-4.06, 0.12/{Y I}/rowc/-4.50} {
+      \node[bd, minimum width=0.38cm] at (0.08,\y) {\ding{51}};
+      \node[bd, minimum width=1.06cm] at (0.46,\y) {\c};
+      \node[bd, fill=\f, minimum width=0.90cm] at (1.52,\y) {\s};
+    }
+    \node[bd, fill=drop, text=dred, minimum width=0.38cm] at (0.08,-4.94) {\ding{55}};
+    \node[bd, fill=drop, minimum width=1.06cm] at (0.46,-4.94) {0.004};
+    \node[bd, fill=drop, minimum width=0.90cm] at (1.52,-4.94) {Z X};
+    \node[note] at (1.25,-5.98) {\tl{Small Terms}{Are Dropped}};
+  \end{scope}
+  % ---- what a term is ----
+  \node[pan2, anchor=north west, minimum width=5.39cm, minimum height=1.00cm] at (5.18,-6.85) {};
+  \node[note, anchor=west] at (5.40,-7.35) {A Term \B{=}};
+  \node[hd, anchor=west, minimum width=1.42cm, minimum height=0.46cm] at (6.92,-7.35) {Coefficient};
+  \node[txt] at (8.52,-7.35) {\B{\times}};
+  \node[hd, anchor=west, minimum width=1.60cm, minimum height=0.46cm] at (8.70,-7.35) {Pauli String};
+  % =====================================================================================================
+  % RIGHT: the list grows
+  % =====================================================================================================
+  \node[ba] at (13.94,-4.00) {};
+  \node[pan, anchor=north west, minimum width=3.86cm, minimum height=7.95cm] at (13.94,0) {};
+  \node[ptitle, anchor=base west] at (14.06,-0.47) {The List Grows};
+  % ---- terms kept and their size
+  \node[comp, anchor=north west, minimum width=3.68cm, minimum height=3.62cm] at (14.03,-0.74) {};
+  \node[stitle] at (15.87,-1.02) {127-Qubit Kicked Ising};
+  \def\rx{14.12} \def\ry{-1.28}
+  \node[hd, minimum width=0.90cm] at (\rx,\ry) {Cutoff};
+  \node[hd, minimum width=1.64cm] at ({\rx+0.90},\ry) {Terms Kept};
+  \node[hd, minimum width=0.96cm] at ({\rx+2.54},\ry) {Size};
+  \foreach \c/\t/\s [count=\i from 0] in {1e-4/{22.5 Million}/{0.9 GB}, 1e-5/{1.4 Billion}/{56 GB}, 1e-6/{100.1 Billion}/{4.0 TB}} {
+    \node[bd, minimum height=0.46cm, minimum width=0.90cm] at (\rx,{\ry-0.42-0.46*\i}) {\c};
+    \node[bd, minimum height=0.46cm, minimum width=1.64cm] at ({\rx+0.90},{\ry-0.42-0.46*\i}) {\t};
+    \node[bd, minimum height=0.46cm, minimum width=0.96cm] at ({\rx+2.54},{\ry-0.42-0.46*\i}) {\s};
+  }
+  \node[bigkey] at (15.87,-3.72) {One GPU (40 GB) Holds\\About 100 Million Terms};
+  % ---- accuracy
+  \node[comp, anchor=north west, minimum width=3.68cm, minimum height=3.37cm] at (14.03,-4.48) {};
+  \node[stitle, align=center] at (15.87,-4.94) {More Terms Kept,\\More Accurate};
+  \node[note] at (15.87,-5.72) {30-Qubit Circuit\\With a Known Answer};
+  \def\ry{-6.20}
+  \node[hd, minimum width=1.60cm] at (\rx,\ry) {Cutoff};
+  \node[hd, minimum width=1.90cm] at ({\rx+1.60},\ry) {Error};
+  \foreach \c/\e [count=\i from 0] in {1e-3/0.019, 1e-7/0.00007} {
+    \node[bd, minimum height=0.46cm, minimum width=1.60cm] at (\rx,{\ry-0.42-0.46*\i}) {\c};
+    \node[bd, minimum height=0.46cm, minimum width=1.90cm] at ({\rx+1.60},{\ry-0.42-0.46*\i}) {\e};
+  }
+  % =====================================================================================================
+  % BOTTOM: the chain that follows
+  % =====================================================================================================
+  \node[pan2, anchor=north west, minimum width=17.80cm, minimum height=1.00cm] at (0,-8.05) {};
+  \node[sbox, minimum width=2.30cm] at (1.77,-8.55) {Lower Cutoff};
+  \node[ba, minimum height=0.62cm] at (3.59,-8.55) {};
+  \node[sbox, fill=sd!45, minimum width=2.90cm] at (5.09,-8.55) {More Terms Kept};
+  \node[ba, minimum height=0.62cm] at (7.21,-8.55) {};
+  \node[sbox, fill=tune, minimum width=3.60cm] at (9.06,-8.55) {More Accurate Answer};
+  \node[ba, minimum height=0.62cm] at (11.53,-8.55) {};
+  \node[sbox, fill=actc, minimum width=5.60cm] at (14.38,-8.55) {More Memory and Time:\\Many GPUs and Nodes Are Needed};
+\end{tikzpicture}
