@@ -870,7 +870,9 @@ def b_reach_big(c="ki"):
         steps = [i for i in steps if (scale_state(i["id"]) or {}).get("status") != "superseded"]       # run again under another name
         if not steps:
             return None
-        first = max(steps, key=lambda i: i["coef"])
+        top = max(i["coef"] for i in steps)
+        same = [i for i in steps if i["coef"] > top * 0.999]              # the same cutoff in several lists
+        first = next((i for i in same if scale_state(i["id"])), same[0])  # the one that has run
         st = scale_state(first["id"])
         return ".".join(first["id"].split(".")[2:-1]), (st["status"] if st else None)
 

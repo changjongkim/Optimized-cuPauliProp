@@ -745,8 +745,8 @@ SQ = {"ours": ("#1f77b4", "o"), "cupp": ("#d62728", "^"), "defer": ("#8c564b", "
 SQ_NAME = {"ours": "SectorQ", "cupp": "cuPauliProp", "defer": "cuPauliProp, dedup deferred", "orqa": "ORQA (reproduction)", "monoprop": "MonoProp",
            "spd": "SPD", "julia": "PauliPropagation.jl", "ppvm": "ppvm", "qiskit": "Qiskit pauli-prop"}
 SHORT_WHY = {"oom": "out of memory", "tl": "over 40 min", "predicted_tl": "over 40 min"}
-STOPS = True      # a cross where an implementation stops; False (the deck figures): its line just ends at the last finished run
-SIZES = True      # the size of the terms in bytes as a third line under a cutoff; False (the deck figures): the number of terms only
+STOPS = False     # True: a cross where an implementation stops; False: its line just ends at the last run that finished
+SIZES = False     # True: the size of the terms in bytes as a third line under a cutoff; False: the number of terms only
 
 
 def xl_cut():
@@ -807,6 +807,13 @@ def sq_line(ax, G, kind, c, cutoffs, suffix, label=None, ls="-", lw=3.6, ms=9.5,
     return recs, pts, fail
 
 
+def sq_reached(cutoffs, *records):
+    """The cutoffs up to the last one that any of the record lists finished (all of them where crosses are drawn)."""
+    if STOPS:
+        return len(cutoffs)
+    return 1 + max((i for recs in records for i, s in enumerate(recs) if gok(s)), default=len(cutoffs) - 1)
+
+
 def sq_legend(fig, ax, y, ncol, extra=True, size=13.5):
     handles, names = ax.get_legend_handles_labels()
     if extra and STOPS:
@@ -853,14 +860,16 @@ def g_single_node(G, c="ki", title="Kicked Ising", ax=None):
              ("defer", "g4", "-", "cuPauliProp, dedup deferred (4 GPUs)"), ("spd", "n1", "--", "SPD (1 GPU)"),
              ("orqa", "n1", "-", "ORQA, reproduction (64 cores)"), ("monoprop", "n1", "-", "MonoProp (64 cores)"),
              ("julia", "n1", "-", "PauliPropagation.jl (64 cores)"), ("ppvm", "n1", "-", "ppvm (64 cores)"), ("qiskit", "n1", "-", "Qiskit pauli-prop (1 core)")]
-    rows = []
+    rows, got = [], []
     for kind, suffix, ls, label in lines:
         recs, pts, fail = sq_line(ax, G, kind, c, cutoffs, suffix, label=label, ls=ls, lw=3.4 if kind == "ours" else 2.6, ms=9 if kind == "ours" else 8)
+        got.append(recs)
         rows.append((label, [(cutoffs[i], s["wall"]) for i, s in enumerate(recs) if gok(s)], (cutoffs[fail[0]], fail[1]) if fail else None))
+    n = sq_reached(cutoffs, *got)
     sq_axes(ax, xl_cut(), "Simulation Time (s)")
-    ax.set_xticks(range(len(cutoffs)))
-    ax.set_xticklabels(cut_ticks(G, c, cutoffs))
-    ax.set_xlim(-0.4, len(cutoffs) - 0.6)
+    ax.set_xticks(range(n))
+    ax.set_xticklabels(cut_ticks(G, c, cutoffs[:n]))
+    ax.set_xlim(-0.4, n - 0.6)
     ax.set_ylim(0.06, 5000)
     if fig is None:
         return rows
@@ -922,7 +931,7 @@ def g_weak(G, big=(), axes=None):
                         ax.plot([stop], [pts[-1][1]], color=col, marker="x", markersize=11, markeredgewidth=2.6, linestyle="none", zorder=5)
             sq_axes(ax, "# of GPUs (Cutoff)", "Simulation Time (s)" if r == 0 else None)
             ax.set_xticks(range(len(counts)))
-            ax.set_xticklabels([f"{g}\n({cuts[g]})" for g in counts], fontsize=13 if len(counts) <= 5 else 11.5)
+            ax.set_xticklabels([f"{g}\n({cuts[g]})" for g in counts], fontsize=13 if len(counts) <= 5 else 10)
             ax.set_xlim(-0.35, len(counts) - 0.65)
             ax.set_ylim((1.5, 500) if load == "S" else (15, 1500))
             ax.set_title(f"({'abcdef'[2 * j + r]}) {title}, {'small' if load == 'S' else 'large'} load", fontsize=14.5, pad=8)
@@ -954,10 +963,11 @@ def g_strong(G, c="ki", cutoffs=("1e-4", "3e-5", "1e-5", "3e-6", "1e-6"), axes=N
         extra = []
         for a, b in zip(got["ours"], got["cupp"]):
             extra.append("(" + times(b["wall"], a["wall"]).replace("×", "x") + ")" if gok(a) and gok(b) else ("(OOM)" if gok(a) and b is not None else ""))
+        n = sq_reached(cutoffs, *got.values())
         sq_axes(ax, "Cutoff / Speedup of SectorQ", "Simulation Time (s)" if j == 0 else None)
-        ax.set_xticks(range(len(cutoffs)))
-        ax.set_xticklabels(cut_ticks(G, c, cutoffs, extra))
-        ax.set_xlim(-0.4, len(cutoffs) - 0.6)
+        ax.set_xticks(range(n))
+        ax.set_xticklabels(cut_ticks(G, c, cutoffs[:n], extra[:n]))
+        ax.set_xlim(-0.4, n - 0.6)
         ax.set_ylim(0.3, 4000)
         ax.set_title(f"({'abc'[j]}) {title}", fontsize=14.5, pad=8)
     if fig is None:
@@ -994,11 +1004,12 @@ def g_circuits(G, g=16, axes=None, which=None, keep=None, sizes=None):
         for a_, b_ in zip(got["ours"], got["cupp"]):
             stopped = stopped or (b_ is not None and not gok(b_))
             extra.append("(" + times(b_["wall"], a_["wall"]).replace("×", "x") + ")" if gok(a_) and gok(b_) else ("(OOM)" if gok(a_) and stopped else ""))
+        n = sq_reached(cutoffs, *got.values()) if keep is None else len(cutoffs)
         sq_axes(ax, "Cutoff / Speedup of SectorQ" if sizes is None else xl_cut(), "Simulation Time (s)" if j % 2 == 0 else None, size=14)
-        ax.set_xticks(range(len(cutoffs)))
+        ax.set_xticks(range(n))
         labels = [f"{x}\n{e}" for x, e in zip(cutoffs, extra)] if sizes is None else cut_ticks(G, c, cutoffs, more=sizes.get(c))
-        ax.set_xticklabels(labels, fontsize=11 if len(cutoffs) <= 8 else (9.4 if len(cutoffs) <= 12 else 8.6))
-        ax.set_xlim(-0.4, len(cutoffs) - 0.6)
+        ax.set_xticklabels(labels[:n], fontsize=11 if n <= 8 else (9.4 if n <= 12 else 8.6))
+        ax.set_xlim(-0.4, n - 0.6)
         ax.set_ylim(0.2, 3000)
         ax.set_title(f"({'abcdefg'[j]}) {name.replace(chr(10), ' ')}", fontsize=14.5, pad=8)
     if fig is None:

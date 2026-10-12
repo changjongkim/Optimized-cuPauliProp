@@ -452,7 +452,7 @@ def n16():
                 label=f"{g} GPUs", zorder=3 + g / 16, solid_capstyle="round")
         if "--print" in ARGS:
             print(f"n16 {g:2d} GPUs  " + "  ".join(f"{cutoffs[i]}: {v:.2f}" for i, v in pts))
-    mf.sq_axes(ax, "Cutoff (# of Terms) (Size of Terms)", "Speedup Over 1 GPU", log=False)
+    mf.sq_axes(ax, mf.xl_cut(), "Speedup Over 1 GPU", log=False)
     ax.set_xticks(range(len(cutoffs)))
     ax.set_xticklabels(mf.cut_ticks(G, "ki", cutoffs))
     ax.set_xlim(-0.4, len(cutoffs) - 0.6)
