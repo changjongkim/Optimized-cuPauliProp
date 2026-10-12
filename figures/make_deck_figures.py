@@ -26,6 +26,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import patheffects
 from matplotlib.lines import Line2D
+from matplotlib.patches import Patch
 from matplotlib.ticker import FixedLocator, FuncFormatter, NullFormatter
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -596,23 +597,31 @@ def peaks_of(c, cutoffs):
     return out
 
 
-def peak_line(ax, peaks, g):
-    """One more line under every tick label: the largest number of terms inside a window divided by the GPU count,
-    which is what one GPU has to hold when all terms are kept on the GPUs (cuPauliProp holds about 100 million)."""
-    out = []
-    for t in ax.get_xticklabels():
-        n = peaks.get(t.get_text().split("\n")[0])
-        out.append(t.get_text() + "\n" + (f"[{mf.count(n / g).replace(' ', '')}]" if n else ""))       # short: the x label says "per GPU"
-    ax.set_xticklabels(out, fontsize=ax.get_xticklabels()[0].get_fontsize())
+GPU_TERMS = 95e6      # terms one GPU holds when all terms are kept on the GPUs (cuPauliProp's default mode finishes with up
+                      # to 89 million per GPU and runs out of memory from 98 million on; 40 bytes each: about 4 GB of 36 GB)
+BEYOND = "#E6E9ED"
+
+
+def size_ticks(ax, c, peaks, g):
+    """The tick labels of a panel as the cutoff and the size of the problem: the largest size its list of terms
+    reaches during the run (the largest number of terms times the bytes of a term), which is the same for every
+    implementation with this truncation rule. The part of the panel where the list is larger than `g` GPUs hold at
+    once is shaded."""
+    cuts = [t.get_text().split("\n")[0] for t in ax.get_xticklabels()]
+    size = ax.get_xticklabels()[0].get_fontsize()
+    ax.set_xticklabels([x + "\n" + (f"({mf.data_size(peaks[x] * mf.term_bytes(c))})" if x in peaks else "") for x in cuts], fontsize=size)
+    over = [i for i, x in enumerate(cuts) if peaks.get(x, 0) > g * GPU_TERMS]
+    if over:
+        ax.axvspan(over[0] - 0.5, ax.get_xlim()[1], color=BEYOND, zorder=0, linewidth=0)
 
 
 def stops(reasons):
     """The legend text of the crosses: what stopped the runs of this figure."""
     reasons = {r for r in reasons if r}
-    return "stops here: out of memory" if reasons == {"out of memory"} else "stops here: out of memory or over 40 min"
+    return "out of memory" if reasons == {"out of memory"} else "out of memory or over 40 min"
 
 
-XL4 = "Cutoff  (# of Terms Kept)  (Their Size)  [Largest # of Terms inside a Window, per GPU]"
+XL2 = "Cutoff (Largest Size of the List of Terms during the Run)"
 
 
 def d_circuits_all():
@@ -636,24 +645,25 @@ def d_circuits_all():
     rows = mf.g_circuits(campaign(), axes=panels, which=which, keep=slide_ladder, sizes=more)
     for j, ax in enumerate(panels):
         for t in ax.get_xticklabels():
-            t.set_fontsize(12)
+            t.set_fontsize(13.5)
         ax.set_title(ax.get_title(), fontsize=15, pad=6)
         ax.set_ylabel("Time (s)" if j in first else "", fontsize=15, fontweight="bold")      # the full label is longer than a panel is tall
         ax.tick_params(axis="y", labelsize=12.5, labelleft=(j in first))
         ax.set_yticks([1, 10, 100, 1000])
         ax.set_xlabel("")
         ticks = [t.get_text().split("\n")[0] for t in ax.get_xticklabels()]
-        peak_line(ax, peaks_of(which[j], ticks), 16)
+        size_ticks(ax, which[j], peaks_of(which[j], ticks), 16)
         ours, cupp = dict(rows[3 * j][2]), dict(rows[3 * j + 1][2])
         for x in ticks:
             if x in ours and x in cupp:
                 value(ax, ticks.index(x), cupp[x], mf.times(cupp[x], ours[x]), dy=8, size=13)
-    fig.supxlabel(XL4, fontsize=15, fontweight="bold")
+    fig.supxlabel(XL2, fontsize=15, fontweight="bold")
     e = entries(fig, panels[0])
     e[-1] = (e[-1][0], stops(r[3][1] for r in rows if r[3]))
-    e += [(Line2D([0], [0], color="none"), "N×: cuPauliProp time / SectorQ time")]
-    fig.legend([a for a, _ in e], [b for _, b in e], loc="upper center", bbox_to_anchor=(0.5, 1 - 0.07 / 5.8), ncol=len(e), fontsize=14,
-               columnspacing=1.8, handlelength=2.4, handletextpad=0.6, borderpad=0, borderaxespad=0, frameon=False)
+    e += [(Patch(facecolor=BEYOND, edgecolor="#B5BCC4"), "more than the 16 GPUs hold"),
+          (Line2D([0], [0], color="none"), "N×: cuPauliProp / SectorQ time")]
+    fig.legend([a for a, _ in e], [b for _, b in e], loc="upper center", bbox_to_anchor=(0.5, 1 - 0.07 / 5.8), ncol=len(e), fontsize=13,
+               columnspacing=1.3, handlelength=2.0, handletextpad=0.5, borderpad=0, borderaxespad=0, frameon=False)
     fig.draw_without_rendering()
     if shrink_ticks(fig):                                   # one size of tick labels in all panels
         size = min(t.get_fontsize() for ax in panels for t in ax.get_xticklabels())
@@ -668,7 +678,7 @@ def circuits_big(g, ladder=("1e-4", "3e-5", "1e-5", "5e-6", "3e-6", "2e-6", "1e-
     against the cutoff for SectorQ and the two modes of cuPauliProp on the same nodes, in the form of d_circuits_all.
     SectorQ at cutoff 1e-6 and below: the runs of the ladder of the scale campaign (a higher sector limit), as in
     d_scaleout. A cross: the next cutoff of that implementation failed."""
-    big = [r for r in scaling_jobs() if r["gpus"] == g]
+    big = [r for r in scaling_jobs() if r["gpus"] == g and (mf.ok(r) or r["fatal"] or r["exit"] is not None)]      # not a run that is still going
     G = campaign()
 
     def run(kind, c, x):
@@ -708,9 +718,9 @@ def circuits_big(g, ladder=("1e-4", "3e-5", "1e-5", "5e-6", "3e-6", "2e-6", "1e-
                 peak = {cuts[c][i]: r["inside"] for i, r in enumerate(recs) if mf.ok(r) and r.get("inside")}
         mf.sq_axes(ax, None, "Simulation Time (s)" if j == 0 else None, size=15)
         ax.set_xticks(range(len(cuts[c])))
-        ax.set_xticklabels(mf.cut_ticks(G, c, cuts[c], more=more), fontsize=12.5)
-        peak_line(ax, peak, g)
+        ax.set_xticklabels(mf.cut_ticks(G, c, cuts[c], more=more), fontsize=13.5)
         ax.set_xlim(-0.4, len(cuts[c]) - 0.6)
+        size_ticks(ax, c, peak, g)
         ax.set_ylim(0.5, 3000)
         ax.set_yticks([1, 10, 100, 1000])
         ax.tick_params(axis="y", labelsize=13, labelleft=(j == 0))
@@ -718,12 +728,13 @@ def circuits_big(g, ladder=("1e-4", "3e-5", "1e-5", "5e-6", "3e-6", "2e-6", "1e-
         for i, x in enumerate(cuts[c]):                     # how many times as long the default mode takes as SectorQ
             if x in rows[c, "ours"] and x in rows[c, "cupp"]:
                 value(ax, i, rows[c, "cupp"][x], mf.times(rows[c, "cupp"][x], rows[c, "ours"][x]), dy=9, size=14)
-    fig.supxlabel(XL4, fontsize=15, fontweight="bold")
+    fig.supxlabel(XL2, fontsize=15, fontweight="bold")
     e = entries(fig, panels[0])
     e[-1] = (e[-1][0], stops(why))
-    e += [(Line2D([0], [0], color="none"), "N×: cuPauliProp time / SectorQ time")]
-    fig.legend([a for a, _ in e], [b for _, b in e], loc="upper center", bbox_to_anchor=(0.5, 1 - 0.07 / 5.8), ncol=len(e), fontsize=14,
-               columnspacing=1.8, handlelength=2.4, handletextpad=0.6, borderpad=0, borderaxespad=0, frameon=False)
+    e += [(Patch(facecolor=BEYOND, edgecolor="#B5BCC4"), f"more than the {g} GPUs hold"),
+          (Line2D([0], [0], color="none"), "N×: cuPauliProp / SectorQ time")]
+    fig.legend([a for a, _ in e], [b for _, b in e], loc="upper center", bbox_to_anchor=(0.5, 1 - 0.07 / 5.8), ncol=len(e), fontsize=13,
+               columnspacing=1.3, handlelength=2.0, handletextpad=0.5, borderpad=0, borderaxespad=0, frameon=False)
     fig.draw_without_rendering()
     if shrink_ticks(fig):                                   # one size of tick labels in all panels
         size = min(t.get_fontsize() for ax in panels for t in ax.get_xticklabels())
