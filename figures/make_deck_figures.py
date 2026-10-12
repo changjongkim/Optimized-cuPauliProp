@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Data charts of the SectorQ presentation deck, in the look of the evaluation figures of the README.
 
-  make_deck_figures.py             writes the eleven charts to figures/deck/
+  make_deck_figures.py             writes the charts to figures/deck/
   make_deck_figures.py n13 d_      only the charts whose names start with these
   --out DIR                        writes the charts to DIR instead (drafts)
 
@@ -588,7 +588,114 @@ def d_accuracy():
     finish(fig, "d_accuracy", top - 0.08 / H, wgap=0.16)
 
 
-FIGURES = [n02, n11, n13, n14, n16, d_single_node, d_strong, d_qubits, d_breakdown, d_circuits_a, d_circuits_b, d_scaleout, d_weak, d_depth, d_accuracy]
+# ---------------------------------------------------------------------------------------
+# d_reach  the largest kicked Ising problem each implementation finished, by GPU count (16-256 GPUs)
+#   the size of a problem is its number of terms at window boundaries, taken from a SectorQ run of the same cutoff
+# ---------------------------------------------------------------------------------------
+REACH_GPUS = (16, 32, 64, 128, 256)
+REACH_LADDER = ("1e-4", "3e-5", "1e-5", "5e-6", "3e-6", "2e-6", "1e-6")      # the cutoffs of cuPauliProp's ladders on 32 GPUs and more
+
+
+def reach():
+    """{GPU count: {"ours": (cutoff, terms, GiB of host memory in use), "cupp": (cutoff, terms), "defer": (cutoff, terms)}}"""
+    G, big = campaign(), scaling_jobs()
+    low = lambda xs: min(xs, key=float) if xs else None
+    out = {}
+    for g in REACH_GPUS:
+        if g == 16:
+            x = low([x for x in mf.gladder(G, "eng.ki", "g16") if mf.gok(G[f"eng.ki.{x}.g16"])])
+            d = mf.gdetail(G[f"eng.ki.{x}.g16"])
+            ours = (x, d["boundary"], d.get("host_gib"))
+            base = {"cupp": low([x for x in mf.gladder(G, "cupp.ki", "g16") if mf.gok(G[f"cupp.ki.{x}.g16"])]),
+                    "defer": low([x for x in mf.gladder(G, "cupp.ki", "g16") if mf.gok(mf.gdeferred(G, "ki", x, 16))])}
+        else:
+            runs = [r for r in big if r["gpus"] == g and r["circuit"] == "ki_lab"]
+            r = min((r for r in runs if r["kind"] == "engine" and mf.ok(r)), key=lambda r: r["coef"])
+            ours = (r["opt"]["--coef"], r["boundary"], r.get("host_gib"))
+            base = {tag: low([q["opt"]["--coef"] for q in runs if q["kind"] == "cupp" and q["tuned"] == tuned and mf.ok(q)
+                              and q["opt"]["--coef"] in REACH_LADDER]) for tag, tuned in (("cupp", False), ("defer", True))}
+        out[g] = dict(ours=ours, **{tag: (x, mf.gterms(G, "ki", x)) for tag, x in base.items() if x})
+    return out
+
+
+def d_reach():
+    R = reach()
+    pos = {g: i for i, g in enumerate(REACH_GPUS)}
+    fig, ax = plt.subplots(figsize=(W, H))
+    for kind in ("ours", "cupp", "defer"):
+        col, mk = mf.SQ[kind]
+        pts = [(pos[g], R[g][kind][1]) for g in REACH_GPUS if kind in R[g]]
+        ax.plot([p[0] for p in pts], [p[1] for p in pts], color=col, marker=mk, markersize=11, linewidth=3.4,
+                linestyle="-" if kind != "defer" else "--", label=mf.SQ_NAME[kind], zorder=5 if kind == "ours" else 4 if kind == "cupp" else 3)
+    for g in REACH_GPUS:
+        x, n, host = R[g]["ours"]
+        value(ax, pos[g], n, f"{short_count(n)}\n(Cutoff {x})", dy=11, size=13)
+        c, d = R[g]["cupp"][1], R[g]["defer"][1]
+        value(ax, pos[g], c, short_count(c), dy=10, size=12.5)
+        if d != c:
+            value(ax, pos[g], d, short_count(d), dy=-11, size=12.5)
+        mid = math.sqrt(n * c)
+        ax.annotate("", (pos[g] + 0.2, n), xytext=(pos[g] + 0.2, c), arrowprops=dict(arrowstyle="<->", color=mf.INK, linewidth=1.3, shrinkA=7, shrinkB=7), zorder=2)
+        t = ax.text(pos[g] + 0.24, mid, f"{n / c:.0f}×", ha="left", va="center", fontsize=14.5, fontweight="bold", color=mf.INK, path_effects=HALO, zorder=6)
+        t.set_gid("value")
+        if "--print" in ARGS:
+            print(f"d_reach {g:3d} GPUs  SectorQ {x} {n:,} terms ({host:,.0f} GiB)  cuPauliProp {R[g]['cupp'][0]} {c:,}  deferred {R[g]['defer'][0]} {d:,}  ratio {n / c:.1f}")
+    mf.sq_axes(ax, "# of GPUs (Host Memory SectorQ Used / Installed, GiB)", "Largest Finished Problem (# of Terms)")
+    ax.set_xticks(range(len(REACH_GPUS)))
+    ax.set_xticklabels([f"{g}\n({R[g]['ours'][2]:,.0f} / {g // 4 * 256:,})" for g in REACH_GPUS])
+    ax.set_xlim(-0.5, len(REACH_GPUS) - 0.4)
+    ax.set_ylim(6e7, 9e11)
+    ax.yaxis.set_major_formatter(FuncFormatter(short_count))
+    top = strip(fig, [list(zip(*ax.get_legend_handles_labels()))], size=13.5)
+    finish(fig, "d_reach", top - 0.1 / H)
+
+
+# ---------------------------------------------------------------------------------------
+# d_variability  ten runs per setting (kicked Ising): every run as a point, its time relative to the mean of its ten runs
+#   (a) 16 GPUs over the problem size, (b) cutoff 3e-5 over the GPU count; at each group its spread (max - min) / mean
+# ---------------------------------------------------------------------------------------
+def d_variability():
+    G = campaign()
+    parts = [("(a) 16 GPUs, Problem Size Varied", "Cutoff (# of Terms) (Size of Terms)", [(x, 16) for x in mf.VAR_SIZES], mf.cut_ticks(G, "ki", list(mf.VAR_SIZES))),
+             (f"(b) Cutoff {mf.VAR_AT}, GPU Count Varied", "# of GPUs", [(mf.VAR_AT, g) for g in mf.VAR_GPUS], [str(g) for g in mf.VAR_GPUS])]
+    fig, axes = plt.subplots(1, 2, figsize=(W, H), sharey=True)
+    side = {"ours": -0.2, "cupp": 0.2}
+    for ax, (title, xlabel, cols, names) in zip(axes, parts):
+        ax.axhline(1.0, color="black", linewidth=1.1, linestyle=(0, (5, 3)), zorder=2)
+        for kind, tag in (("ours", "eng"), ("cupp", "cupp")):
+            col, mk = mf.SQ[kind]
+            for i, (x, g) in enumerate(cols):
+                t = [v for v in mf.var_runs(G, tag, x, g) if v is not None]
+                if not t:
+                    if (G.get(f"{tag}.ki.{x}.g{g}") or {}).get("status") == "oom":          # the sweep's run of the setting
+                        ax.text(i + side[kind], 1.0, "out of memory", rotation=90, ha="center", va="center", fontsize=12.5, color="#666666",
+                                path_effects=HALO, zorder=6)
+                    continue
+                mean, lo, hi, spread = mf.var_stat(t)
+                ax.plot([i + side[kind] + 0.1 * (k / (len(t) - 1) - 0.5) for k in range(len(t))], [v / mean for v in t], color=col, marker=mk,
+                        markersize=8.5, linestyle="none", alpha=0.8, label=mf.SQ_NAME[kind] if i == 0 else None, zorder=4)
+                if kind == "ours":                       # the two labels of a setting do not meet: one under its group, one above
+                    value(ax, i + side[kind], lo / mean, f"{spread * 100:.1f}%", dy=-8, size=12.5).set_color(col)
+                else:
+                    value(ax, i + side[kind], hi / mean, f"{spread * 100:.1f}%", dy=8, size=12.5).set_color(col)
+                if "--print" in ARGS:
+                    print(f"d_variability {tag:4s} {x} g{g:<2d} mean {mean:.3g} s  {lo:.3g}-{hi:.3g} s  spread {spread * 100:.1f}%")
+        mf.sq_axes(ax, xlabel, "Run Time / Mean of 10 Runs" if ax is axes[0] else None, log=False)
+        ax.set_xticks(range(len(cols)))
+        ax.set_xticklabels(names, fontsize=12)
+        ax.set_xlim(-0.55, len(cols) - 0.45)
+        ax.set_title(title, fontsize=14.5, pad=7)
+        ax.xaxis.label.set_fontsize(14.5)
+    axes[0].set_ylim(0.93, 1.17)
+    axes[0].yaxis.set_major_locator(FixedLocator([0.95, 1.0, 1.05, 1.1, 1.15]))
+    axes[0].yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:.2f}"))
+    h, n = axes[0].get_legend_handles_labels()
+    top = strip(fig, [list(zip(h, n)) + [(Line2D([0], [0], color="none"), "Number at Each Group: (Max − Min) / Mean")]], size=13.5)
+    finish(fig, "d_variability", top - 0.1 / H, wgap=0.16)
+
+
+FIGURES = [n02, n11, n13, n14, n16, d_single_node, d_strong, d_qubits, d_breakdown, d_circuits_a, d_circuits_b, d_scaleout, d_reach, d_weak, d_depth,
+           d_accuracy, d_variability]
 
 if __name__ == "__main__":
     want = [a for a in ARGS if not a.startswith("-")]
