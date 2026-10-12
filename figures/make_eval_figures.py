@@ -653,8 +653,9 @@ QR = os.path.join(HERE, "..", "queue_r")
 def campaign_g():
     """{item id: record} of the runs on 1-16 GPUs that ended: campaign g and, over it, the runs that campaign r made
     again with the engine whose exchange between nodes runs in rounds (jobs/r_items.py, r_trim.py: the multi-node
-    runs of 30 s and more and those that ended at a limit). A record of campaign r with "reused" is the record of
-    campaign g."""
+    runs of 30 s and more, those that ended at a limit, and the time-breakdown runs). A record of campaign r with
+    "reused" is the record of campaign g. The short runs that campaign r repeated before it was trimmed (the same
+    values, 0.97-1.03 times the time) do not replace those of campaign g."""
     out = {}
     for queue, again in ((QG, False), (QR, True)):
         done = os.path.join(queue, "done")
@@ -665,8 +666,12 @@ def campaign_g():
                 rec = json.load(open(os.path.join(done, name)))
             except ValueError:
                 continue
-            if not again or not rec.get("reused"):
-                out[name] = rec
+            if again:
+                old = out.get(name)
+                short = old is not None and old.get("status") == "ok" and (old.get("wall") or 0) < 30 and not name.startswith("bd.")
+                if rec.get("reused") or short:
+                    continue
+            out[name] = rec
     return out
 
 
