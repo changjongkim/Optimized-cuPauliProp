@@ -505,12 +505,22 @@ def d_breakdown():
     finish(fig, "d_breakdown", top - 0.08 / H, hgap=0.12, free=[axes[1].yaxis.label])
 
 
+def slide_ladder(G, c, cutoffs, g):
+    """The cutoffs of a panel on a slide, few enough for one line of tick labels: the steps 1e-k and 3e-k, the last
+    cutoff each implementation finished, and the last step of the ladder (where SectorQ stops)."""
+    last = set()
+    for kind in ("ours", "cupp", "defer"):
+        done = [x for x, rec in zip(cutoffs, mf.sq_runs(G, kind, c, cutoffs, f"g{g}")) if mf.gok(rec)]
+        last.update(done[-1:])
+    return [x for x in cutoffs if x[0] in "13" or x in last or x == cutoffs[-1]]
+
+
 def d_circuits(name, which, legend_cell, scale=1.0):
-    """`scale` > 1: a larger picture of the same shape, for panels whose tick labels take two staggered lines."""
+    """`scale` > 1: a larger picture of the same shape (smaller text on the slide)."""
     fig, axes = plt.subplots(2, 2, figsize=(W * scale, H * scale))
     flat = [a for row in axes for a in row]
     panels = flat[:len(which)]
-    mf.g_circuits(campaign(), axes=panels, which=which)
+    mf.g_circuits(campaign(), axes=panels, which=which, keep=slide_ladder)
     for ax in panels:
         if len(ax.get_xticks()) > 9:
             stagger(ax, 10.5)
@@ -530,7 +540,7 @@ def d_circuits(name, which, legend_cell, scale=1.0):
 
 
 def d_circuits_a():
-    d_circuits("d_circuits_a", ("ki", "tfim", "noise", "tfimsq"), False, scale=1.14)
+    d_circuits("d_circuits_a", ("ki", "tfim", "noise", "tfimsq"), False)
 
 
 def d_circuits_b():

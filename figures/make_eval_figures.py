@@ -932,10 +932,11 @@ def g_strong(G, c="ki", cutoffs=("1e-4", "3e-5", "1e-5", "3e-6", "1e-6"), axes=N
     return rows
 
 
-def g_circuits(G, g=16, axes=None, which=None):
+def g_circuits(G, g=16, axes=None, which=None, keep=None):
     """Seven circuits on 16 GPUs: SectorQ against cuPauliProp's two distributed modes, time against the problem size.
     Every cutoff of a panel has its tick; below it the speedup of SectorQ over cuPauliProp's distributed mode.
-    With `axes` (panels of another figure, make_deck_figures.py) only the circuits `which` are drawn, one per panel."""
+    With `axes` (panels of another figure, make_deck_figures.py) only the circuits `which` are drawn, one per panel;
+    `keep(G, circuit, cutoffs, g)` then chooses the cutoffs of a panel (a slide shows fewer steps than the README)."""
     fig, flat = None, axes
     if axes is None:
         fig, axes = plt.subplots(4, 2, figsize=(15.6, 15.4), gridspec_kw={"wspace": 0.14, "hspace": 0.5})
@@ -945,6 +946,8 @@ def g_circuits(G, g=16, axes=None, which=None):
         ax = flat[j]
         cutoffs = gladder(G, f"eng.{c}", f"g{g}")
         cutoffs = greached(G, f"eng.{c}", f"g{g}", [x for x in cutoffs if "." not in x and x not in ("15e-7", "12e-7")])
+        if keep is not None:
+            cutoffs = keep(G, c, cutoffs, g)
         got = {}
         for kind in ("ours", "cupp", "defer"):
             recs, pts, fail = sq_line(ax, G, kind, c, cutoffs, f"g{g}", label=SQ_NAME[kind] if j == 0 else None, lw=3.8 if kind == "ours" else 3.0, ms=9)
