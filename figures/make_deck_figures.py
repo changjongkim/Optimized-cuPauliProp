@@ -579,6 +579,42 @@ def d_circuits_b():
     d_circuits("d_circuits_b", ("xxz", "qaoa", "hea"), True)
 
 
+def peaks_of(c, cutoffs):
+    """{cutoff: the largest number of terms inside a window} of one circuit, from any SectorQ run of the problem (the
+    number belongs to the problem: runs on different GPU counts report the same one)."""
+    G, out = campaign(), {}
+    for x in cutoffs:
+        for n in reversed(mf.GPUS_G):
+            run = G.get(f"eng.{c}.{x}.g{n}")
+            det = mf.gdetail(run) if mf.gok(run) else None
+            if det and det.get("inside"):
+                out[x] = det["inside"]
+                break
+    for r in scaling_jobs():                                # problems that only more than 16 GPUs finished
+        if r["kind"] == "engine" and r["circuit"] == mf.BIG_NAME.get(c) and mf.ok(r) and r.get("inside"):
+            out.setdefault(r["opt"]["--coef"], r["inside"])
+    return out
+
+
+def peak_line(ax, peaks, g):
+    """One more line under every tick label: the largest number of terms inside a window divided by the GPU count,
+    which is what one GPU has to hold when all terms are kept on the GPUs (cuPauliProp holds about 100 million)."""
+    out = []
+    for t in ax.get_xticklabels():
+        n = peaks.get(t.get_text().split("\n")[0])
+        out.append(t.get_text() + "\n" + (f"[{mf.count(n / g).replace(' ', '')}]" if n else ""))       # short: the x label says "per GPU"
+    ax.set_xticklabels(out, fontsize=ax.get_xticklabels()[0].get_fontsize())
+
+
+def stops(reasons):
+    """The legend text of the crosses: what stopped the runs of this figure."""
+    reasons = {r for r in reasons if r}
+    return "stops here: out of memory" if reasons == {"out of memory"} else "stops here: out of memory or over 40 min"
+
+
+XL4 = "Cutoff  (# of Terms Kept)  (Their Size)  [Largest # of Terms inside a Window, per GPU]"
+
+
 def d_circuits_all():
     """All seven circuits on 16 GPUs in one picture as wide as a slide (1744 x 580 px there). Two rows of panels whose
     widths follow their numbers of cutoffs, so that the tick labels have one size: the three main circuits above,
@@ -607,12 +643,15 @@ def d_circuits_all():
         ax.set_yticks([1, 10, 100, 1000])
         ax.set_xlabel("")
         ticks = [t.get_text().split("\n")[0] for t in ax.get_xticklabels()]
+        peak_line(ax, peaks_of(which[j], ticks), 16)
         ours, cupp = dict(rows[3 * j][2]), dict(rows[3 * j + 1][2])
         for x in ticks:
             if x in ours and x in cupp:
                 value(ax, ticks.index(x), cupp[x], mf.times(cupp[x], ours[x]), dy=8, size=13)
-    fig.supxlabel("Cutoff (# of Terms) (Size of Terms)", fontsize=15, fontweight="bold")
-    e = entries(fig, panels[0]) + [(Line2D([0], [0], color="none"), "N×: cuPauliProp time / SectorQ time")]
+    fig.supxlabel(XL4, fontsize=15, fontweight="bold")
+    e = entries(fig, panels[0])
+    e[-1] = (e[-1][0], stops(r[3][1] for r in rows if r[3]))
+    e += [(Line2D([0], [0], color="none"), "N×: cuPauliProp time / SectorQ time")]
     fig.legend([a for a, _ in e], [b for _, b in e], loc="upper center", bbox_to_anchor=(0.5, 1 - 0.07 / 5.8), ncol=len(e), fontsize=14,
                columnspacing=1.8, handlelength=2.4, handletextpad=0.6, borderpad=0, borderaxespad=0, frameon=False)
     fig.draw_without_rendering()
@@ -647,11 +686,11 @@ def circuits_big(g, ladder=("1e-4", "3e-5", "1e-5", "5e-6", "3e-6", "2e-6", "1e-
     fig = plt.figure(figsize=(17.44, 5.8), layout="constrained")
     fig.get_layout_engine().set(w_pad=0.05, h_pad=0.04, wspace=0.03, rect=(0, 0, 1, 0.935))     # the legend line above
     grid = fig.add_gridspec(1, 3, width_ratios=[len(cuts[c]) for c, _ in mf.G3])
-    panels, rows = [], {}
+    panels, rows, why = [], {}, set()
     for j, (c, title) in enumerate(mf.G3):
         ax = fig.add_subplot(grid[0, j])
         panels.append(ax)
-        more = {}
+        more, peak = {}, {}
         for kind in kinds:
             recs = [run(kind, c, x) for x in cuts[c]]
             pts = [(i, r["wall"]) for i, r in enumerate(recs) if mf.ok(r)]
@@ -662,12 +701,15 @@ def circuits_big(g, ladder=("1e-4", "3e-5", "1e-5", "5e-6", "3e-6", "2e-6", "1e-
                 fail = next((i for i in range(pts[-1][0] + 1, len(recs)) if recs[i] is not None), None)
                 if fail is not None:
                     ax.plot([fail], [pts[-1][1]], color=col, marker="x", markersize=12, markeredgewidth=2.8, linestyle="none", zorder=5)
+                    why.add("out of memory" if recs[fail]["fatal"] else "over 40 min")
             rows[c, kind] = {cuts[c][i]: w for i, w in pts}
             if kind == "ours":
                 more = {cuts[c][i]: r["boundary"] for i, r in enumerate(recs) if mf.ok(r) and r.get("boundary")}
+                peak = {cuts[c][i]: r["inside"] for i, r in enumerate(recs) if mf.ok(r) and r.get("inside")}
         mf.sq_axes(ax, None, "Simulation Time (s)" if j == 0 else None, size=15)
         ax.set_xticks(range(len(cuts[c])))
         ax.set_xticklabels(mf.cut_ticks(G, c, cuts[c], more=more), fontsize=12.5)
+        peak_line(ax, peak, g)
         ax.set_xlim(-0.4, len(cuts[c]) - 0.6)
         ax.set_ylim(0.5, 3000)
         ax.set_yticks([1, 10, 100, 1000])
@@ -676,8 +718,10 @@ def circuits_big(g, ladder=("1e-4", "3e-5", "1e-5", "5e-6", "3e-6", "2e-6", "1e-
         for i, x in enumerate(cuts[c]):                     # how many times as long the default mode takes as SectorQ
             if x in rows[c, "ours"] and x in rows[c, "cupp"]:
                 value(ax, i, rows[c, "cupp"][x], mf.times(rows[c, "cupp"][x], rows[c, "ours"][x]), dy=9, size=14)
-    fig.supxlabel("Cutoff (# of Terms) (Size of Terms)", fontsize=15, fontweight="bold")
-    e = entries(fig, panels[0]) + [(Line2D([0], [0], color="none"), "N×: cuPauliProp time / SectorQ time")]
+    fig.supxlabel(XL4, fontsize=15, fontweight="bold")
+    e = entries(fig, panels[0])
+    e[-1] = (e[-1][0], stops(why))
+    e += [(Line2D([0], [0], color="none"), "N×: cuPauliProp time / SectorQ time")]
     fig.legend([a for a, _ in e], [b for _, b in e], loc="upper center", bbox_to_anchor=(0.5, 1 - 0.07 / 5.8), ncol=len(e), fontsize=14,
                columnspacing=1.8, handlelength=2.4, handletextpad=0.6, borderpad=0, borderaxespad=0, frameon=False)
     fig.draw_without_rendering()
