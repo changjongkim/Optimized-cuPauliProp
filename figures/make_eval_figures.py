@@ -56,11 +56,13 @@ def parse(name):
             cur = dict(kind=m.group(1), nodes=int(m.group(2)), gpus=gpus, opt=opt,
                        circuit=opt.get("--circuit"), coef=float(opt.get("--coef", "1e-4")),
                        tuned=opt.get("--cupp-tuned") == "1", vram=float(opt.get("--vram-frac", "0.9")),
-                       wall=None, value=None, exit=None, fatal=False, parts={}, log=name)
+                       wall=None, value=None, exit=None, fatal=False, parts={}, log=name, binary=None)
             runs.append(cur)
             continue
         if cur is None:
             continue
+        if line.startswith("binary="):
+            cur["binary"] = line.strip().split("=", 1)[1]
         if "FATAL" in line or "failed at operation" in line or "out of memory" in line:
             cur["fatal"] = True
         m = re.match(r"expectation=(\S+)", line)
@@ -330,7 +332,13 @@ def many(pattern):
 
 
 # Runs that try a setting of the sector rules (the small-problem tests of 2026-10-12) are not results of the campaign.
-TEST_FLAGS = ("--min-bucket", "--min-bucket-early", "--early-per-node")
+TEST_FLAGS = ("--min-bucket", "--min-bucket-early", "--early-per-node", "--min-bucket-early-end")
+NEW_ENGINE = "pp_engine_i"     # the exchange between nodes in rounds (2026-10-12): where a problem was run again with it, that run counts
+
+
+def newest(runs):
+    """The runs of the newer engine among `runs` if there are any, else all of them."""
+    return [r for r in runs if r.get("binary") == NEW_ENGINE] or runs
 
 
 def big_logs():
@@ -346,7 +354,7 @@ def default_run(runs, circuit, coef, gpus):
     """The engine with its default sector limit and chunk size."""
     hits = [r for r in runs if r["kind"] == "engine" and r["circuit"] == circuit and abs(r["coef"] / coef - 1) < 1e-9
             and r["gpus"] == gpus and "--gmax" not in r["opt"] and "--chunk" not in r["opt"] and ok(r)]
-    return hits[-1] if hits else None
+    return newest(hits)[-1] if hits else None
 
 
 def scaling(e13):
@@ -999,7 +1007,7 @@ def g_scaleout(G, big=(), c="ki", title="Kicked Ising", ax=None):
         wide = [r for r in hits if r["opt"].get("--gmax") == "12"] + [r for r in hits if r["opt"].get("--gmax") == "10" and "--chunk" not in r["opt"]]
         order = (wide + plain) if float(x) <= 1.0000001e-6 else (plain + wide)
         done = [r for r in order if ok(r)]
-        return done[0] if done else (order[0] if order else None)
+        return newest(done)[0] if done else (order[0] if order else None)
 
     cutoffs = greached(G, f"eng.{c}", "g16", [x for x in gladder(G, f"eng.{c}", "g16") if x not in ("15e-7", "12e-7")])[4:]         # from cutoff 1e-4
     lower = {r["opt"]["--coef"] for r in mine if r["coef"] < float(cutoffs[-1]) * 0.999 and (ok(r) or r["fatal"])}

@@ -724,7 +724,7 @@ def circuits_big(g, ladder=("1e-4", "3e-5", "1e-5", "5e-6", "3e-6", "2e-6", "1e-
         wide = [r for r in hits if r["opt"].get("--gmax") == "12"] + [r for r in hits if r["opt"].get("--gmax") == "10" and "--chunk" not in r["opt"]]
         order = (wide + plain) if float(x) <= 1.0000001e-6 else (plain + wide)
         done = [r for r in order if mf.ok(r)]
-        return done[0] if done else (order[0] if order else None)
+        return mf.newest(done)[0] if done else (order[0] if order else None)
 
     kinds = ("ours", "cupp", "defer")
     cuts = {c: [x for x in ladder if any(run(k, c, x) if mf.STOPS else mf.ok(run(k, c, x)) for k in kinds)] for c, _ in mf.G3}
