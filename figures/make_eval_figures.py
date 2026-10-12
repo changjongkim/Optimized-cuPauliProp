@@ -1085,7 +1085,8 @@ def g_breakdown(G, g=16):
 
     def one(kind, tag, c, coef):
         item = f"{tag}.{c}.{coef}.g{g}"
-        return shares(kind, gdetail(G.get(item)) if gok(G.get(item)) else None, os.path.join(LOGS, "g", "smi." + item))
+        folder = os.path.dirname((G.get(item) or {}).get("log") or "logs/g")          # logs/r where campaign r measured the run again
+        return shares(kind, gdetail(G.get(item)) if gok(G.get(item)) else None, os.path.join(LOGS, os.path.basename(folder), "smi." + item))
 
     return draw_shares([(title, [("SectorQ", one("eng", "bd", c, coef)), ("cuPauliProp", one("cupp", "bdc", c, coef)),
                                  ("cuPauliProp, Dedup Deferred", one("cupp", "bdd", c, coef))]) for c, coef, title in sets], "eval_breakdown_base.png")
