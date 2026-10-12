@@ -589,6 +589,36 @@ def b_gain():
 BIG = (32, 64, 128, 256)
 BIG_WEAK = {32: "3.4e-6", 64: "2.3e-6", 128: "1.6e-6", 256: "1.15e-6"}
 CIRC = {"ki": "ki_lab", "tfim": "tfim_hh", "noise": "ki_noisy"}
+LADDER_BIG = ("1e-4", "3e-5", "1e-5", "5e-6", "3e-6", "2e-6", "1e-6")      # the cutoffs of the cuPauliProp ladders of the scale campaign
+
+
+def scale_state(item_id):
+    """The record of a run of the scale campaign (queue_s), None while it has not run."""
+    p = os.path.join(ROOT, "queue_s", "done", item_id)
+    return json.load(open(p)) if os.path.exists(p) else None
+
+
+_sids = set()
+
+
+def _scale_ids():
+    if not _sids:
+        todo = os.path.join(ROOT, "queue_s", "todo_s.jsonl")
+        if os.path.exists(todo):
+            _sids.update(json.loads(line)["id"] for line in open(todo) if line.strip())
+    return _sids
+
+
+def below(tag, c, x, g):
+    """What happened at the step of the ladder under cutoff x: text for a table cell."""
+    i = LADDER_BIG.index(x)
+    if i + 1 >= len(LADDER_BIG):
+        return ""
+    y = LADDER_BIG[i + 1]
+    if f"{tag}.{c}.{y}.g{g}" not in _scale_ids():
+        return "목록에 없음"                              # the ladder of this circuit ends at x
+    st = scale_state(f"{tag}.{c}.{y}.g{g}")
+    return f"{y}: " + ("아직 돌지 않음" if st is None else "끝냄" if st["status"] == "ok" else FAIL.get(st["status"], st["status"]))
 _big = {}
 
 
@@ -669,6 +699,25 @@ def b_large():
                 rows.append(["", g, big_cell(e, g), big_cell(big_run("cupp", c, "1e-5", g, tuned=True), g, t), big_cell(big_run("cupp", c, "1e-5", g), g, t)])
     out.append("**cuPauliProp 분산 모드와의 비교 (cutoff 1e-5, 같은 노드).** 괄호는 SectorQ 대비이다.\n\n"
                + table(["회로", "GPU 수", "SectorQ", "cuPauliProp dedup 미룸", "cuPauliProp 기본"], rows, ["---", "---:", "---:", "---:", "---:"]))
+    # the largest problem that cuPauliProp's default mode finishes on each GPU count (the ladders of the scale campaign)
+    rows = []
+    for c in MAIN:
+        first = True
+        for g in BIG:
+            fin = [r for r in big_runs().get(g, []) if r["kind"] == "cupp" and not r["tuned"] and r["circuit"] == CIRC[c] and mf.ok(r)
+                   and r["opt"]["--coef"] in LADDER_BIG]
+            if not fin:
+                continue
+            x = min(fin, key=lambda r: r["coef"])["opt"]["--coef"]
+            e = big_run("engine", c, x, g)
+            t = e["wall"] if (e and mf.ok(e)) else None
+            rows.append([KO[c] if first else "", g, f"{x} ({ko_terms(facts(c, x)[0])})", big_cell(e, g),
+                         big_cell(big_run("cupp", c, x, g, tuned=True), g, t), big_cell(big_run("cupp", c, x, g), g, t), below("cupp", c, x, g)])
+            first = False
+    if rows:
+        out.append("**cuPauliProp 기본 모드가 끝낸 가장 큰 문제에서의 비교 (같은 노드).** GPU 수마다 기본 모드가 끝낸 가장 작은 cutoff에서 세 방식의 시간이다. 괄호는 SectorQ 대비이다. 마지막 열은 기본 모드가 그 아래 cutoff에서 어떻게 되었는지이다.\n\n"
+                   + table(["회로", "GPU 수", "cutoff (구간 경계의 항 수)", "SectorQ", "cuPauliProp dedup 미룸", "cuPauliProp 기본", "기본 모드의 그 아래 cutoff"], rows,
+                           ["---", "---:", "---", "---:", "---:", "---:", "---"]))
     return "\n\n".join(out)
 
 
@@ -792,10 +841,6 @@ def b_reach_big(c="ki"):
     todo = os.path.join(ROOT, "queue_s", "todo_s.jsonl")
     s_items = [json.loads(line) for line in open(todo) if line.strip()] if os.path.exists(todo) else []
 
-    def scale_state(item_id):
-        p = os.path.join(ROOT, "queue_s", "done", item_id)
-        return json.load(open(p)) if os.path.exists(p) else None
-
     def after(tags, g, below):
         """The next step of the ladder under the cutoff `below`: (cutoff, what happened to it)."""
         if g == 16:
@@ -842,7 +887,7 @@ def b_reach_big(c="ki"):
             ours = (r["opt"]["--coef"], r.get("boundary"), r.get("inside"), r["wall"], r.get("host_gib"))
             base = {}
             for tag, tuned in (("cupp", False), ("defer", True)):
-                fin = [q for q in runs if q["kind"] == "cupp" and q["tuned"] == tuned and mf.ok(q)]
+                fin = [q for q in runs if q["kind"] == "cupp" and q["tuned"] == tuned and mf.ok(q) and q["opt"]["--coef"] in LADDER_BIG]
                 base[tag] = min(fin, key=lambda q: q["coef"])["opt"]["--coef"] if fin else None
         x, nb, ni, wall, host = ours
         cells = []

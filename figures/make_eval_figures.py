@@ -973,12 +973,14 @@ def g_scaleout(G, big=(), c="ki", title="Kicked Ising", ax=None):
     scaling jobs e15 and the scale campaign). On 32 GPUs and more the runs at cutoff 1e-6 and below are those with
     the sector limit 1,024 where there is one (the ladder of the scale campaign down to the memory limit).
     With `ax` (a panel of another figure, make_deck_figures.py) only the panel is drawn: no legend, no file."""
-    mine = [r for r in big if r["kind"] == "engine" and r["circuit"] == BIG_NAME[c] and "--chunk" not in r["opt"]]
+    mine = [r for r in big if r["kind"] == "engine" and r["circuit"] == BIG_NAME[c]]
 
     def at(x, g):
+        """The run of one point. At cutoff 1e-6 and below: the ladder of the scale campaign (sector limit 4,096 with small
+        chunks on 128 GPUs and more, 1,024 on 32 and 64 GPUs); above: the default settings."""
         hits = [r for r in mine if r["gpus"] == g and abs(r["coef"] / float(x) - 1) < 1e-9]
-        wide = [r for r in hits if r["opt"].get("--gmax") == "10"]
-        plain = [r for r in hits if "--gmax" not in r["opt"]]
+        plain = [r for r in hits if "--gmax" not in r["opt"] and "--chunk" not in r["opt"]]
+        wide = [r for r in hits if r["opt"].get("--gmax") == "12"] + [r for r in hits if r["opt"].get("--gmax") == "10" and "--chunk" not in r["opt"]]
         order = (wide + plain) if float(x) <= 1.0000001e-6 else (plain + wide)
         done = [r for r in order if ok(r)]
         return done[0] if done else (order[0] if order else None)
