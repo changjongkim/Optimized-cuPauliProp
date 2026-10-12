@@ -647,14 +647,26 @@ WHY = {"oom": "out of\nmemory", "tl": "time\nlimit", "predicted_tl": "time\nlimi
 WEAK_G = {1: "2e-5", 2: "1.4e-5", 4: "1e-5", 8: "7e-6", 16: "4.8e-6"}
 
 
+QR = os.path.join(HERE, "..", "queue_r")
+
+
 def campaign_g():
-    """{item id: record} of the runs of campaign g that ended."""
-    out, done = {}, os.path.join(QG, "done")
-    for name in os.listdir(done):
-        try:
-            out[name] = json.load(open(os.path.join(done, name)))
-        except ValueError:
-            pass
+    """{item id: record} of the runs on 1-16 GPUs that ended: campaign g and, over it, the runs that campaign r made
+    again with the engine whose exchange between nodes runs in rounds (jobs/r_items.py, r_trim.py: the multi-node
+    runs of 30 s and more and those that ended at a limit). A record of campaign r with "reused" is the record of
+    campaign g."""
+    out = {}
+    for queue, again in ((QG, False), (QR, True)):
+        done = os.path.join(queue, "done")
+        if not os.path.isdir(done):
+            continue
+        for name in os.listdir(done):
+            try:
+                rec = json.load(open(os.path.join(done, name)))
+            except ValueError:
+                continue
+            if not again or not rec.get("reused"):
+                out[name] = rec
     return out
 
 
