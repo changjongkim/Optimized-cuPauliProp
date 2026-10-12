@@ -27,7 +27,8 @@ KO = {"ki": "Kicked Ising", "tfim": "TFIM heavy-hex", "noise": "잡음 있는 ki
       "xxz": "XXZ 8×8", "qaoa": "QAOA 100 qubit", "hea": "Ansatz 100 qubit"}
 MAIN = ("ki", "tfim", "noise")
 ALL = ("ki", "tfim", "tfimsq", "xxz", "qaoa", "hea", "noise")
-FAIL = {"oom": "메모리 부족", "tl": "시간 초과", "predicted_tl": "시간 초과", "skipped_after_failure": "–", "fail": "실패"}
+FAIL = {"oom": "메모리 부족", "tl": "시간 초과", "predicted_tl": "시간 초과", "skipped_after_failure": "–", "fail": "실패",
+        "predicted_oom": "host memory에 들어가지 않음(계산)"}
 
 items, state = cg.load()
 ids = {i["id"] for i in items}
