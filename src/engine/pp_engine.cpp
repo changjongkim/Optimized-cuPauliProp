@@ -131,6 +131,7 @@ struct Opts {
   double growthCap = 8.0;        // upper limit of the growth per window assumed when the bucket count is chosen
   int earlyPerNode = 1;          // in the first windows: this many buckets per node as soon as they would hold minBucketEarly terms (0 = off)
   long minBucketEarly = 2000;
+  long minBucketEarlyEnd = 0;    // > 0: the early buckets are given by the terms a bucket is expected to hold at the END of the window instead (at least this many)
   int trace = 0;                 // print one line per window: operations, rows, sectors, terms in and out
   long shareAbove = 0;           // k > 0: a bucket above k terms is halved at a truncation while GPUs of its node wait (off: it did not pay, job 59483080)
   long chunk = 262144;           // terms per host chunk
@@ -414,51 +415,75 @@ static Window planShared(int b, int gWanted, std::vector<uint64_t>& localSample,
 
 // After a window: bucket d lives on node d mod g_R. Every node sends its pieces of other nodes'
 // buckets chunk by chunk (all chunks full except the last), and the owner adopts each message as a
-// chunk of its bucket.
+// chunk of its bucket. The chunks travel in rounds: round q carries the q-th chunk of every
+// (sender, bucket) pair. A node posts the receives and the sends of one round, waits for them, and
+// returns the chunks it has sent to the pool before the next round, so that the chunks arriving in the
+// next round reuse them. The requests in flight are then bounded by the number of buckets (not by the
+// number of chunks), and a node holds its own output plus the arrivals of one round (not its output
+// plus all arrivals).
 static double g_xCounts = 0, g_xPost = 0, g_xAlloc = 0, g_xWait = 0;   // parts of the exchange time on this node
 static long g_xNewChunks = 0;                                          // chunks the last exchange had to allocate for arriving terms
+static long g_xRounds = 0;                                             // rounds of the last exchange
 static void exchangeBuckets(std::vector<Bucket>& nb, double& seconds, double& bytes) {
   if (g_R == 1) return;
   const double t0 = MPI_Wtime();
   const int B = (int)nb.size(), W = g_L.words();
+  const int64_t cap = (int64_t)g_pool.cap;
   std::vector<int64_t> mine(B), all((size_t)B * g_R);
   for (int d = 0; d < B; d++) mine[d] = (int64_t)nb[d].n;
   MPI_Allgather(mine.data(), B, MPI_INT64_T, all.data(), B, MPI_INT64_T, MPI_COMM_WORLD);
   const double t1 = MPI_Wtime();
   const long long alloc0 = g_pool.allocNs.load();
   const long chunks0 = g_pool.total();
-  std::vector<MPI_Request> req;
+  // What this node sends: the non-empty chunks of every bucket of another node, in order.
+  std::vector<std::vector<Chunk>> out(B);
   for (int d = 0; d < B; d++) {
-    if (d % g_R != g_rank) continue;
-    for (int r = 0; r < g_R; r++) {
-      int64_t c = all[(size_t)r * B + d];
-      if (r == g_rank) continue;
-      while (c > 0) {
-        const long take = (long)std::min<int64_t>(c, g_pool.cap);
+    if (d % g_R == g_rank) continue;
+    for (auto& k : nb[d].ch) { if (k.n > 0) out[d].push_back(k); else g_pool.put(k); }
+    nb[d].ch.clear(); nb[d].n = 0;
+    if ((int64_t)out[d].size() != (mine[d] + cap - 1) / cap) die("exchange: a bucket piece is not in full chunks", __LINE__);
+  }
+  int64_t rounds = 0;                       // the same on every node
+  for (int r = 0; r < g_R; r++)
+    for (int d = 0; d < B; d++)
+      if (d % g_R != r) rounds = std::max(rounds, (all[(size_t)r * B + d] + cap - 1) / cap);
+  double tPost = 0, tWait = 0;
+  std::vector<MPI_Request> req;
+  for (int64_t q = 0; q < rounds; q++) {
+    const double ta = MPI_Wtime();
+    req.clear();
+    for (int d = 0; d < B; d++) {
+      if (d % g_R != g_rank) continue;
+      for (int r = 0; r < g_R; r++) {
+        if (r == g_rank) continue;
+        const int64_t c = all[(size_t)r * B + d] - q * cap;
+        if (c <= 0) continue;
+        const long take = (long)std::min<int64_t>(c, cap);
         Chunk k = g_pool.get();
         k.n = take;
         req.emplace_back(); MPI_Irecv(k.xz, (int)(take * W), MPI_UINT64_T, r, 2 * d, MPI_COMM_WORLD, &req.back());
         req.emplace_back(); MPI_Irecv(k.cf, (int)take, MPI_DOUBLE, r, 2 * d + 1, MPI_COMM_WORLD, &req.back());
         nb[d].ch.push_back(k); nb[d].n += take;
-        c -= take;
       }
     }
-  }
-  for (int d = 0; d < B; d++) {
-    if (d % g_R == g_rank) continue;
-    for (auto& k : nb[d].ch) {
-      if (k.n == 0) continue;
+    for (int d = 0; d < B; d++) {
+      if (d % g_R == g_rank || q >= (int64_t)out[d].size()) continue;
+      Chunk& k = out[d][(size_t)q];
       req.emplace_back(); MPI_Isend(k.xz, (int)(k.n * W), MPI_UINT64_T, d % g_R, 2 * d, MPI_COMM_WORLD, &req.back());
       req.emplace_back(); MPI_Isend(k.cf, (int)k.n, MPI_DOUBLE, d % g_R, 2 * d + 1, MPI_COMM_WORLD, &req.back());
       bytes += (double)k.n * (W * 8 + 8);
     }
+    const double tb = MPI_Wtime();
+    if (!req.empty()) MPI_Waitall((int)req.size(), req.data(), MPI_STATUSES_IGNORE);
+    for (int d = 0; d < B; d++)
+      if (d % g_R != g_rank && q < (int64_t)out[d].size()) g_pool.put(out[d][(size_t)q]);
+    const double tc = MPI_Wtime();
+    tPost += tb - ta; tWait += tc - tb;
   }
-  const double t2 = MPI_Wtime();
   g_xNewChunks = g_pool.total() - chunks0;
-  if (!req.empty()) MPI_Waitall((int)req.size(), req.data(), MPI_STATUSES_IGNORE);
-  for (int d = 0; d < B; d++) if (d % g_R != g_rank) releaseBucket(nb[d]);
+  g_xRounds = (long)rounds;
   const double t3 = MPI_Wtime();
-  g_xCounts += t1 - t0; g_xPost += t2 - t1; g_xWait += t3 - t2;
+  g_xCounts += t1 - t0; g_xPost += tPost; g_xWait += tWait;
   g_xAlloc += (double)(g_pool.allocNs.load() - alloc0) * 1e-9;
   seconds += t3 - t0;
 }
@@ -1341,6 +1366,7 @@ int main(int argc, char** argv) {
     else if (a == "--growth-cap")  o.growthCap = atof(next());
     else if (a == "--early-per-node") o.earlyPerNode = atoi(next());
     else if (a == "--min-bucket-early") o.minBucketEarly = atol(next());
+    else if (a == "--min-bucket-early-end") o.minBucketEarlyEnd = atol(next());
     else if (a == "--share-above") o.shareAbove = atol(next());
     else if (a == "--trace")       o.trace = atoi(next());
     else if (a == "--chunk")       o.chunk = atol(next());
@@ -1605,7 +1631,12 @@ int main(int argc, char** argv) {
         // The first windows grow fastest and the estimate lags behind: give every node a bucket early, so
         // that no node waits while one GPU carries the whole operator. Inside a node the bucket is shared
         // out as it grows (shareAbove).
-        while (gWanted < o.gmax && (1L << gWanted) < (long)g_R * o.earlyPerNode && est / (double)(2L << gWanted) >= (double)o.minBucketEarly) gWanted++;
+        // By the start size (minBucketEarly) a problem that stays small is split over all nodes too; by the size
+        // expected at the end of the window (minBucketEarlyEnd) only a window that has work for them is.
+        if (o.minBucketEarlyEnd > 0)
+          while (gWanted < o.gmax && (1L << gWanted) < (long)g_R * o.earlyPerNode && est * growth / (double)(2L << gWanted) >= (double)o.minBucketEarlyEnd) gWanted++;
+        else
+          while (gWanted < o.gmax && (1L << gWanted) < (long)g_R * o.earlyPerNode && est / (double)(2L << gWanted) >= (double)o.minBucketEarly) gWanted++;
       }
       pilotGrowth = -1;
       if (gWanted > 0) {

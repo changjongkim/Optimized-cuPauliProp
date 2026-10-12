@@ -48,6 +48,7 @@ LINK = "#8C8C8C"                                    # a line that only connects 
 HALO = [patheffects.withStroke(linewidth=3.4, foreground="white")]
 CROSS = dict(color="black", marker="x", markersize=10, markeredgewidth=2.6, linestyle="none")
 mf.STOPS = False         # no crosses in the deck figures: a line ends at the last run that finished
+mf.SIZES = False         # under a cutoff the number of terms only (the size in bytes reads as the memory the run needs, which it is not)
 SIZES = {}
 _G = []
 
@@ -608,19 +609,16 @@ BEYOND = "#E6E9ED"
 
 
 def size_ticks(ax, c, peaks, g):
-    """The tick labels of a panel as the cutoff and one size: the GPU memory needed to hold the whole list of terms on
-    the GPUs at its largest (the largest number of terms of the run x the bytes of a term x NEED). This is the number
-    to compare with the memory of the GPUs: where it is larger than `g` GPUs have, the panel is shaded."""
+    """Shades the part of a panel where the whole list of terms no longer fits on `g` GPUs: the cutoffs at which the
+    largest number of terms of the run is more than the GPUs hold at once (GPU_TERMS each, for 40-byte terms). The
+    tick labels stay the cutoff and the number of terms."""
     cuts = [t.get_text().split("\n")[0] for t in ax.get_xticklabels()]
-    size = ax.get_xticklabels()[0].get_fontsize()
-    need = {x: peaks[x] * mf.term_bytes(c) * NEED for x in cuts if x in peaks}
-    ax.set_xticklabels([x + "\n" + (f"({mf.data_size(need[x])})" if x in need else "") for x in cuts], fontsize=size)
-    over = [i for i, x in enumerate(cuts) if need.get(x, 0) > g * GPU_USED]
+    over = [i for i, x in enumerate(cuts) if peaks.get(x, 0) * mf.term_bytes(c) / 40 > g * GPU_TERMS]
     if over:
         ax.axvspan(over[0] - 0.5, ax.get_xlim()[1], color=BEYOND, zorder=0, linewidth=0)
 
 
-XL_NEED = "Cutoff (GPU Memory Needed to Hold the Whole List of Terms)"
+XL_NEED = "Cutoff (# of Terms)"
 
 
 def stops(reasons):
@@ -668,7 +666,7 @@ def d_circuits_all():
     e = entries(fig, panels[0])
     if mf.STOPS:
         e[-1] = (e[-1][0], stops(r[3][1] for r in rows if r[3]))
-    e += [(Patch(facecolor=BEYOND, edgecolor="#B5BCC4"), f"more than the 16 GPUs have ({mf.data_size(16 * GPU_USED)})"),
+    e += [(Patch(facecolor=BEYOND, edgecolor="#B5BCC4"), "does not fit on the 16 GPUs"),
           (Line2D([0], [0], color="none"), "N×: cuPauliProp / SectorQ time")]
     fig.legend([a for a, _ in e], [b for _, b in e], loc="upper center", bbox_to_anchor=(0.5, 1 - 0.07 / 5.8), ncol=len(e), fontsize=13,
                columnspacing=1.3, handlelength=2.0, handletextpad=0.5, borderpad=0, borderaxespad=0, frameon=False)
@@ -740,7 +738,7 @@ def circuits_big(g, ladder=("1e-4", "3e-5", "1e-5", "5e-6", "3e-6", "2e-6", "1e-
     e = entries(fig, panels[0])
     if mf.STOPS:
         e[-1] = (e[-1][0], stops(why))
-    e += [(Patch(facecolor=BEYOND, edgecolor="#B5BCC4"), f"more than the {g} GPUs have ({mf.data_size(g * GPU_USED)})"),
+    e += [(Patch(facecolor=BEYOND, edgecolor="#B5BCC4"), f"does not fit on the {g} GPUs"),
           (Line2D([0], [0], color="none"), "N×: cuPauliProp / SectorQ time")]
     fig.legend([a for a, _ in e], [b for _, b in e], loc="upper center", bbox_to_anchor=(0.5, 1 - 0.07 / 5.8), ncol=len(e), fontsize=13,
                columnspacing=1.3, handlelength=2.0, handletextpad=0.5, borderpad=0, borderaxespad=0, frameon=False)

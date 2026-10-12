@@ -721,6 +721,11 @@ SQ_NAME = {"ours": "SectorQ", "cupp": "cuPauliProp", "defer": "cuPauliProp, dedu
            "spd": "SPD", "julia": "PauliPropagation.jl", "ppvm": "ppvm", "qiskit": "Qiskit pauli-prop"}
 SHORT_WHY = {"oom": "out of memory", "tl": "over 40 min", "predicted_tl": "over 40 min"}
 STOPS = True      # a cross where an implementation stops; False (the deck figures): its line just ends at the last finished run
+SIZES = True      # the size of the terms in bytes as a third line under a cutoff; False (the deck figures): the number of terms only
+
+
+def xl_cut():
+    return "Cutoff (# of Terms) (Size of Terms)" if SIZES else "Cutoff (# of Terms)"
 
 
 def sq_axes(ax, xlabel=None, ylabel=None, log=True, size=16):
@@ -806,7 +811,7 @@ def cut_ticks(G, c, cutoffs, extra=None, more=None):
     out = []
     for i, x in enumerate(cutoffs):
         n = gterms(G, c, x) or (more or {}).get(x)
-        second = extra[i] if extra is not None else (f"({count(n).replace(' ', '')})\n({data_size(n * term_bytes(c))})" if n else "")
+        second = extra[i] if extra is not None else ((f"({count(n).replace(' ', '')})" + (f"\n({data_size(n * term_bytes(c))})" if SIZES else "")) if n else "")
         out.append(f"{x}\n{second}")
     return out
 
@@ -827,7 +832,7 @@ def g_single_node(G, c="ki", title="Kicked Ising", ax=None):
     for kind, suffix, ls, label in lines:
         recs, pts, fail = sq_line(ax, G, kind, c, cutoffs, suffix, label=label, ls=ls, lw=3.4 if kind == "ours" else 2.6, ms=9 if kind == "ours" else 8)
         rows.append((label, [(cutoffs[i], s["wall"]) for i, s in enumerate(recs) if gok(s)], (cutoffs[fail[0]], fail[1]) if fail else None))
-    sq_axes(ax, "Cutoff (# of Terms) (Size of Terms)", "Simulation Time (s)")
+    sq_axes(ax, xl_cut(), "Simulation Time (s)")
     ax.set_xticks(range(len(cutoffs)))
     ax.set_xticklabels(cut_ticks(G, c, cutoffs))
     ax.set_xlim(-0.4, len(cutoffs) - 0.6)
@@ -964,7 +969,7 @@ def g_circuits(G, g=16, axes=None, which=None, keep=None, sizes=None):
         for a_, b_ in zip(got["ours"], got["cupp"]):
             stopped = stopped or (b_ is not None and not gok(b_))
             extra.append("(" + times(b_["wall"], a_["wall"]).replace("×", "x") + ")" if gok(a_) and gok(b_) else ("(OOM)" if gok(a_) and stopped else ""))
-        sq_axes(ax, "Cutoff / Speedup of SectorQ" if sizes is None else "Cutoff (# of Terms) (Size of Terms)", "Simulation Time (s)" if j % 2 == 0 else None, size=14)
+        sq_axes(ax, "Cutoff / Speedup of SectorQ" if sizes is None else xl_cut(), "Simulation Time (s)" if j % 2 == 0 else None, size=14)
         ax.set_xticks(range(len(cutoffs)))
         labels = [f"{x}\n{e}" for x, e in zip(cutoffs, extra)] if sizes is None else cut_ticks(G, c, cutoffs, more=sizes.get(c))
         ax.set_xticklabels(labels, fontsize=11 if len(cutoffs) <= 8 else (9.4 if len(cutoffs) <= 12 else 8.6))
@@ -1022,7 +1027,7 @@ def g_scaleout(G, big=(), c="ki", title="Kicked Ising", ax=None):
         if STOPS and fail is not None:
             ax.plot([fail], [pts[-1][1]], color=colors[g], marker="x", markersize=11, markeredgewidth=2.6, linestyle="none", zorder=5)
         rows.append((g, [(cutoffs[i], w) for i, w in pts]))
-    sq_axes(ax, "Cutoff (# of Terms) (Size of Terms)", "Simulation Time (s)")
+    sq_axes(ax, xl_cut(), "Simulation Time (s)")
     ax.set_xticks(range(len(cutoffs)))
     ax.set_xticklabels(cut_ticks(G, c, cutoffs, more=more))
     ax.set_xlim(-0.4, len(cutoffs) - 0.6)
