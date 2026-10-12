@@ -587,7 +587,7 @@ def b_gain():
 
 # 32-256 GPUs: the scaling jobs (jobs/e15_scaling.sh), one log per GPU count
 BIG = (32, 64, 128, 256, 512)
-BIG_WEAK = {32: "3.4e-6", 64: "2.3e-6", 128: "1.6e-6", 256: "1.15e-6"}
+BIG_WEAK = {32: "3.4e-6", 64: "2.3e-6", 128: "1.6e-6", 256: "1.15e-6", 512: "8e-7"}
 CIRC = {"ki": "ki_lab", "tfim": "tfim_hh", "noise": "ki_noisy"}
 LADDER_BIG = ("1e-4", "3e-5", "1e-5", "5e-6", "3e-6", "2e-6", "1e-6")      # the cutoffs of the cuPauliProp ladders of the scale campaign
 
@@ -631,11 +631,11 @@ def big_runs():
 
 
 def big_run(kind, c, coef, g, tuned=False, gmax=None):
-    for r in big_runs().get(g, []):
-        if (r["kind"] == kind and r["circuit"] == CIRC[c] and abs(r["coef"] / float(coef) - 1) < 1e-9 and r["tuned"] == tuned
-                and r["opt"].get("--gmax") == gmax and "--chunk" not in r["opt"]):
-            return r
-    return None
+    hits = [r for r in big_runs().get(g, [])
+            if (r["kind"] == kind and r["circuit"] == CIRC[c] and abs(r["coef"] / float(coef) - 1) < 1e-9 and r["tuned"] == tuned
+                and r["opt"].get("--gmax") == gmax and "--chunk" not in r["opt"])]
+    again = [r for r in hits if r.get("binary") == mf.NEW_ENGINE]      # run again with the exchange in rounds: that run counts
+    return again[-1] if again else hits[0] if hits else None
 
 
 def big_any(kind, c, coef, g):
@@ -646,7 +646,7 @@ def big_any(kind, c, coef, g):
         return r, ""
     hits = [q for q in big_runs().get(g, []) if q["kind"] == kind and q["circuit"] == CIRC[c] and abs(q["coef"] / float(coef) - 1) < 1e-9
             and not q["tuned"] and mf.ok(q)]
-    wide = [q for q in hits if q["opt"].get("--gmax") == "12"] + [q for q in hits if q["opt"].get("--gmax") == "10"]
+    wide = mf.newest([q for q in hits if q["opt"].get("--gmax") == "12"]) + mf.newest([q for q in hits if q["opt"].get("--gmax") == "10"])
     return (wide[0], "†") if wide else (None, "")
 
 
@@ -853,8 +853,7 @@ def b_var():
 
 def b_reach_big(c="ki"):
     """Per GPU count: the largest problem SectorQ finished, the memory it took, and where cuPauliProp's modes stop."""
-    todo = os.path.join(ROOT, "queue_s", "todo_s.jsonl")
-    s_items = [json.loads(line) for line in open(todo) if line.strip()] if os.path.exists(todo) else []
+    s_items = [json.loads(line) for todo in sorted(glob.glob(os.path.join(ROOT, "queue_s", "todo*.jsonl"))) for line in open(todo) if line.strip()]
 
     def after(tags, g, below):
         """The next step of the ladder under the cutoff `below`: (cutoff, what happened to it)."""
@@ -866,12 +865,14 @@ def b_reach_big(c="ki"):
                 if float(y) < float(below) * 0.999 and st:
                     return y, ("ok" if any(ok(x) for x in st) else st[0]["status"])
             return None
-        steps = sorted((i for i in s_items if i["id"].split(".")[0] in tags and i["id"].split(".")[1] == c and i["id"].endswith(f".g{g}")
-                        and i["coef"] < float(below) * 0.999), key=lambda i: -i["coef"])
+        steps = [i for i in s_items if i["id"].split(".")[0] in tags and i["id"].split(".")[1] == c and i["id"].endswith(f".g{g}")
+                 and i["coef"] < float(below) * 0.999]
+        steps = [i for i in steps if (scale_state(i["id"]) or {}).get("status") != "superseded"]       # run again under another name
         if not steps:
             return None
-        st = scale_state(steps[0]["id"])
-        return ".".join(steps[0]["id"].split(".")[2:-1]), (st["status"] if st else None)
+        first = max(steps, key=lambda i: i["coef"])
+        st = scale_state(first["id"])
+        return ".".join(first["id"].split(".")[2:-1]), (st["status"] if st else None)
 
     def tell(step):
         if not step:
@@ -910,7 +911,7 @@ def b_reach_big(c="ki"):
             y = base.get(tag)
             cells.append((f"{y} ({ko_terms(facts(c, y)[0])})" + (". " + tell(after(tags, g, y)) if after(tags, g, y) else "")) if y else "")
         rows.append([str(g), f"{total:,} GiB", x, f"{ko_terms(nb)} ({size(nb)})" if nb else "", ko_terms(ni) if ni else "", sec(wall),
-                     f"{host:,.0f} GiB ({100 * host / total:.0f}%)" if host else "", tell(after(("eng", "eng10", "eng12"), g, x))] + cells)
+                     f"{host:,.0f} GiB ({100 * host / total:.0f}%)" if host else "", tell(after(("eng", "eng10", "eng12", "n10", "n12", "i12"), g, x))] + cells)
     return table(["GPU 수", "host memory", "SectorQ가 끝낸 가장 작은 cutoff", "구간 경계의 항 수 (크기)", "구간 안 최대 항 수", "시간", "쓴 host memory", "그다음 cutoff",
                   "cuPauliProp 기본이 끝낸 가장 작은 cutoff와 그다음", "dedup을 미룬 방식이 끝낸 가장 작은 cutoff와 그다음"], rows,
                  ["---:", "---:", "---", "---:", "---:", "---:", "---:", "---", "---", "---"])
