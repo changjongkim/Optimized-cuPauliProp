@@ -932,11 +932,13 @@ def g_strong(G, c="ki", cutoffs=("1e-4", "3e-5", "1e-5", "3e-6", "1e-6"), axes=N
     return rows
 
 
-def g_circuits(G, g=16, axes=None, which=None, keep=None):
+def g_circuits(G, g=16, axes=None, which=None, keep=None, sizes=None):
     """Seven circuits on 16 GPUs: SectorQ against cuPauliProp's two distributed modes, time against the problem size.
     Every cutoff of a panel has its tick; below it the speedup of SectorQ over cuPauliProp's distributed mode.
     With `axes` (panels of another figure, make_deck_figures.py) only the circuits `which` are drawn, one per panel;
-    `keep(G, circuit, cutoffs, g)` then chooses the cutoffs of a panel (a slide shows fewer steps than the README)."""
+    `keep(G, circuit, cutoffs, g)` then chooses the cutoffs of a panel (a slide shows fewer steps than the README).
+    `sizes` ({circuit: {cutoff: terms}} for the problems no run of campaign g finished, or {}): the tick labels give
+    the number of terms and their size instead of the speedup; the caller prints the speedups at the points."""
     fig, flat = None, axes
     if axes is None:
         fig, axes = plt.subplots(4, 2, figsize=(15.6, 15.4), gridspec_kw={"wspace": 0.14, "hspace": 0.5})
@@ -957,9 +959,10 @@ def g_circuits(G, g=16, axes=None, which=None, keep=None):
         for a_, b_ in zip(got["ours"], got["cupp"]):
             stopped = stopped or (b_ is not None and not gok(b_))
             extra.append("(" + times(b_["wall"], a_["wall"]).replace("×", "x") + ")" if gok(a_) and gok(b_) else ("(OOM)" if gok(a_) and stopped else ""))
-        sq_axes(ax, "Cutoff / Speedup of SectorQ", "Simulation Time (s)" if j % 2 == 0 else None, size=14)
+        sq_axes(ax, "Cutoff / Speedup of SectorQ" if sizes is None else "Cutoff (# of Terms) (Size of Terms)", "Simulation Time (s)" if j % 2 == 0 else None, size=14)
         ax.set_xticks(range(len(cutoffs)))
-        ax.set_xticklabels([f"{x}\n{e}" for x, e in zip(cutoffs, extra)], fontsize=11 if len(cutoffs) <= 8 else (9.4 if len(cutoffs) <= 12 else 8.6))
+        labels = [f"{x}\n{e}" for x, e in zip(cutoffs, extra)] if sizes is None else cut_ticks(G, c, cutoffs, more=sizes.get(c))
+        ax.set_xticklabels(labels, fontsize=11 if len(cutoffs) <= 8 else (9.4 if len(cutoffs) <= 12 else 8.6))
         ax.set_xlim(-0.4, len(cutoffs) - 0.6)
         ax.set_ylim(0.2, 3000)
         ax.set_title(f"({'abcdefg'[j]}) {name.replace(chr(10), ' ')}", fontsize=14.5, pad=8)

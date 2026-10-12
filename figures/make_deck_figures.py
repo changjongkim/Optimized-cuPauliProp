@@ -506,13 +506,14 @@ def d_breakdown():
 
 
 def slide_ladder(G, c, cutoffs, g):
-    """The cutoffs of a panel on a slide, few enough for one line of tick labels: the steps 1e-k and 3e-k, the last
-    cutoff each implementation finished, and the last step of the ladder (where SectorQ stops)."""
+    """The cutoffs of a panel on a slide, few enough for one line of tick labels with the number of terms and their
+    size: from 1e-4 down, the steps 1e-k and 3e-k, the last cutoff each implementation finished, and the last step
+    of the ladder (where SectorQ stops)."""
     last = set()
     for kind in ("ours", "cupp", "defer"):
         done = [x for x, rec in zip(cutoffs, mf.sq_runs(G, kind, c, cutoffs, f"g{g}")) if mf.gok(rec)]
         last.update(done[-1:])
-    return [x for x in cutoffs if x[0] in "13" or x in last or x == cutoffs[-1]]
+    return [x for x in cutoffs if float(x) <= 1.0000001e-4 and (x[0] in "13" or x in last or x == cutoffs[-1])]
 
 
 def d_circuits(name, which, legend_cell, scale=1.0):
@@ -520,21 +521,34 @@ def d_circuits(name, which, legend_cell, scale=1.0):
     fig, axes = plt.subplots(2, 2, figsize=(W * scale, H * scale))
     flat = [a for row in axes for a in row]
     panels = flat[:len(which)]
-    mf.g_circuits(campaign(), axes=panels, which=which, keep=slide_ladder)
-    for ax in panels:
+    more = {}                                           # terms of the problems only more than 16 GPUs finished
+    for r in scaling_jobs():
+        if r["kind"] == "engine" and mf.ok(r) and r.get("boundary"):
+            more.setdefault({v: k for k, v in mf.BIG_NAME.items()}.get(r["circuit"]), {})[r["opt"]["--coef"]] = r["boundary"]
+    rows = mf.g_circuits(campaign(), axes=panels, which=which, keep=slide_ladder, sizes=more)
+    for j, ax in enumerate(panels):
         if len(ax.get_xticks()) > 9:
             stagger(ax, 10.5)
         else:
             for t in ax.get_xticklabels():
-                t.set_fontsize(12)
+                t.set_fontsize(11.5)
         ax.tick_params(axis="y", labelsize=12)
+        ax.set_yticks([1, 10, 100, 1000])
+        # how many times as long cuPauliProp's default mode takes as SectorQ, printed above its point
+        ticks = [t.get_text().split("\n")[0] for t in ax.get_xticklabels()]
+        ours, cupp = dict(rows[3 * j][2]), dict(rows[3 * j + 1][2])
+        for x in ticks:
+            if x in ours and x in cupp:
+                value(ax, ticks.index(x), cupp[x], mf.times(cupp[x], ours[x]), dy=8, size=12.5)
+    note = (Line2D([0], [0], color="none"), "N×: cuPauliProp time / SectorQ time")
     if legend_cell:
-        cell_legend(flat[3], entries(fig, panels[0]), size=13)
+        cell_legend(flat[3], entries(fig, panels[0]) + [note], size=13)
         top = None
     else:
         for ax in axes[0]:                                  # four panels: the x label once per column
             ax.set_xlabel("")
-        top = strip(fig, [entries(fig, panels[0])], size=13) - 0.08 / (H * scale)
+        e = entries(fig, panels[0])
+        top = strip(fig, [e[:3] + [note], e[3:]], size=12.5) - 0.08 / (H * scale)
     fig.align_xlabels(axes[1])
     finish(fig, name, top, wgap=0.18)
 
