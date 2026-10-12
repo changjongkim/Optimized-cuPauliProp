@@ -624,6 +624,76 @@ def d_circuits_all():
     finish(fig, "d_circuits_all", place=False)
 
 
+def circuits_big(g, ladder=("1e-4", "3e-5", "1e-5", "5e-6", "3e-6", "2e-6", "1e-6", "7e-7", "5e-7", "3e-7", "2e-7")):
+    """The three circuits of the scaling jobs on `g` GPUs in one picture as wide as a slide (1744 x 580 px there): time
+    against the cutoff for SectorQ and the two modes of cuPauliProp on the same nodes, in the form of d_circuits_all.
+    SectorQ at cutoff 1e-6 and below: the runs of the ladder of the scale campaign (a higher sector limit), as in
+    d_scaleout. A cross: the next cutoff of that implementation failed."""
+    big = [r for r in scaling_jobs() if r["gpus"] == g]
+    G = campaign()
+
+    def run(kind, c, x):
+        if kind != "ours":
+            return mf.find(big, "cupp", mf.BIG_NAME[c], float(x), gpus=g, tuned=(kind == "defer"))
+        hits = [r for r in big if r["kind"] == "engine" and r["circuit"] == mf.BIG_NAME[c] and abs(r["coef"] / float(x) - 1) < 1e-9]
+        plain = [r for r in hits if "--gmax" not in r["opt"] and "--chunk" not in r["opt"]]
+        wide = [r for r in hits if r["opt"].get("--gmax") == "12"] + [r for r in hits if r["opt"].get("--gmax") == "10" and "--chunk" not in r["opt"]]
+        order = (wide + plain) if float(x) <= 1.0000001e-6 else (plain + wide)
+        done = [r for r in order if mf.ok(r)]
+        return done[0] if done else (order[0] if order else None)
+
+    kinds = ("ours", "cupp", "defer")
+    cuts = {c: [x for x in ladder if any(run(k, c, x) for k in kinds)] for c, _ in mf.G3}
+    fig = plt.figure(figsize=(17.44, 5.8), layout="constrained")
+    fig.get_layout_engine().set(w_pad=0.05, h_pad=0.04, wspace=0.03, rect=(0, 0, 1, 0.935))     # the legend line above
+    grid = fig.add_gridspec(1, 3, width_ratios=[len(cuts[c]) for c, _ in mf.G3])
+    panels, rows = [], {}
+    for j, (c, title) in enumerate(mf.G3):
+        ax = fig.add_subplot(grid[0, j])
+        panels.append(ax)
+        more = {}
+        for kind in kinds:
+            recs = [run(kind, c, x) for x in cuts[c]]
+            pts = [(i, r["wall"]) for i, r in enumerate(recs) if mf.ok(r)]
+            col, mk = mf.SQ[kind]
+            if pts:
+                ax.plot([q[0] for q in pts], [q[1] for q in pts], color=col, marker=mk, markersize=11, linewidth=4.0 if kind == "ours" else 3.2,
+                        label=mf.SQ_NAME[kind] if j == 0 else None, zorder=4 if kind == "ours" else 3, solid_capstyle="round")
+                fail = next((i for i in range(pts[-1][0] + 1, len(recs)) if recs[i] is not None), None)
+                if fail is not None:
+                    ax.plot([fail], [pts[-1][1]], color=col, marker="x", markersize=12, markeredgewidth=2.8, linestyle="none", zorder=5)
+            rows[c, kind] = {cuts[c][i]: w for i, w in pts}
+            if kind == "ours":
+                more = {cuts[c][i]: r["boundary"] for i, r in enumerate(recs) if mf.ok(r) and r.get("boundary")}
+        mf.sq_axes(ax, None, "Simulation Time (s)" if j == 0 else None, size=15)
+        ax.set_xticks(range(len(cuts[c])))
+        ax.set_xticklabels(mf.cut_ticks(G, c, cuts[c], more=more), fontsize=12.5)
+        ax.set_xlim(-0.4, len(cuts[c]) - 0.6)
+        ax.set_ylim(0.5, 3000)
+        ax.set_yticks([1, 10, 100, 1000])
+        ax.tick_params(axis="y", labelsize=13, labelleft=(j == 0))
+        ax.set_title(f"({'abc'[j]}) {title}", fontsize=16, pad=7)
+        for i, x in enumerate(cuts[c]):                     # how many times as long the default mode takes as SectorQ
+            if x in rows[c, "ours"] and x in rows[c, "cupp"]:
+                value(ax, i, rows[c, "cupp"][x], mf.times(rows[c, "cupp"][x], rows[c, "ours"][x]), dy=9, size=14)
+    fig.supxlabel("Cutoff (# of Terms) (Size of Terms)", fontsize=15, fontweight="bold")
+    e = entries(fig, panels[0]) + [(Line2D([0], [0], color="none"), "N×: cuPauliProp time / SectorQ time")]
+    fig.legend([a for a, _ in e], [b for _, b in e], loc="upper center", bbox_to_anchor=(0.5, 1 - 0.07 / 5.8), ncol=len(e), fontsize=14,
+               columnspacing=1.8, handlelength=2.4, handletextpad=0.6, borderpad=0, borderaxespad=0, frameon=False)
+    fig.draw_without_rendering()
+    if shrink_ticks(fig):                                   # one size of tick labels in all panels
+        size = min(t.get_fontsize() for ax in panels for t in ax.get_xticklabels())
+        for ax in panels:
+            for t in ax.get_xticklabels():
+                t.set_fontsize(size)
+    finish(fig, f"d_circuits_g{g}", place=False)
+    return rows
+
+
+def d_circuits_g128():
+    return circuits_big(128)
+
+
 def d_scaleout():
     fig, ax = plt.subplots(figsize=(W, H))
     mf.g_scaleout(campaign(), scaling_jobs(), ax=ax)
@@ -781,7 +851,7 @@ def d_variability():
     finish(fig, "d_variability", top - 0.1 / H, wgap=0.16)
 
 
-FIGURES = [n02, n11, n13, n14, n16, d_single_node, d_strong, d_qubits, d_breakdown, d_circuits_a, d_circuits_b, d_circuits_all, d_scaleout, d_reach, d_weak, d_depth,
+FIGURES = [n02, n11, n13, n14, n16, d_single_node, d_strong, d_qubits, d_breakdown, d_circuits_a, d_circuits_b, d_circuits_all, d_circuits_g128, d_scaleout, d_reach, d_weak, d_depth,
            d_accuracy, d_variability]
 
 if __name__ == "__main__":
