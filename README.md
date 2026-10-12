@@ -328,14 +328,16 @@ Pauli propagation에서 새 항 P⊕Q가 어느 프로세스의 항과 합쳐질
 
 | 연구 | 하는 일 | 다루지 않는 것 |
 |---|---|---|
-| cuPauliProp (NVIDIA) | GPU의 Pauli propagation, MPI 분산 모드. 여러 GPU로 도는 구현은 조사한 범위에서 이것뿐이다 | 여러 gate를 통신 없이 진행하는 실행, GPU memory를 넘는 항 수. 내부 비공개, 논문 없음 |
-| ORQA (RIKEN, arXiv 2506.13241) | CPU 분산, 고정 분배 함수. Fugaku에서 2^17 프로세스와 1조 항을 보고하였다 | GPU. 가지치는 gate마다 통신한다. 코드 비공개 |
-| MonoProp (Algorithmiq) | CPU 분산 구현 | GPU |
-| SPD (Quantinuum) | 단일 GPU의 sparse Pauli dynamics | 여러 GPU, GPU memory를 넘는 항 수 |
-| PauliPropagation.jl, ppvm (QuEra), Qiskit pauli-prop | 알고리즘과 단일 노드 구현 | 분산 실행. 메모리가 한계라고 밝힌다 |
+| cuPauliProp (NVIDIA, 2026) | GPU의 Pauli propagation, MPI 분산 모드. 여러 GPU로 도는 구현은 조사한 범위에서 이것뿐이다 | 여러 gate를 통신 없이 진행하는 실행, GPU memory를 넘는 항 수. 내부 비공개, 논문 없음 |
+| ORQA (RIKEN, arXiv 2506.13241, 2025) | CPU 분산, 고정 분배 함수. Fugaku에서 2^17 프로세스와 1조 항을 보고하였다 | GPU. 가지치는 gate마다 통신한다. 코드 비공개 |
+| MonoProp (Algorithmiq, arXiv 2503.18939, 2025) | CPU 분산 구현 | GPU |
+| SPD (Quantinuum, 2026) | 단일 GPU의 sparse Pauli dynamics | 여러 GPU, GPU memory를 넘는 항 수 |
+| PauliPropagation.jl (PRX Quantum, 2026), ppvm (QuEra, 2026), Qiskit pauli-prop (Qiskit, 2025) | 알고리즘과 단일 노드 구현 | 분산 실행. 메모리가 한계라고 밝힌다 |
 | ScaleQsim, Atlas, HyQuas, BMQSim, cusvaer | 상태 벡터(amplitude 2^n개)의 분산과 압축 | 100 qubit 이상. 실행 중에 크기가 변하는 데이터 |
 | SWIFTN, cuTensorNet | tensor network 축약 | 같은 회로를 겨냥하는 다른 근사법이다. 비교하지 않는다 |
 | Grace hash join, 분할 집계, buffer pool, checkpoint | 분할한 sector를 하나씩 처리하는 database 실행 | 연산이 key를 계속 바꾸는 데이터 |
+
+괄호 안은 출처와 연도이다. 연도는 논문 또는 소프트웨어 인용의 연도이며, 그것이 없는 코드(cuPauliProp v0.5.0, SPD, ppvm)는 여기서 실행한 버전의 연도이다.
 
 여러 GPU에 걸친 Pauli propagation을 다룬 시스템 논문은 조사한 범위에서 찾지 못하였다. 있는 것은 vendor 구현(cuPauliProp 분산 모드)과 CPU 분산(ORQA, MonoProp)이다. 위의 Pauli propagation 구현들은 모두 4.2–4.3절에서 같은 연산 목록으로 실행하여 비교하였다. ORQA는 코드가 공개되어 있지 않아 논문을 따라 재현한 것을 썼다.
 
