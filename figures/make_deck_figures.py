@@ -411,8 +411,8 @@ def n14():
     steps = ["cuPauliProp,\nOriginal Circuit", "+ Clifford Gates Not\nApplied to the Data", "+ Dedup Only\nBefore Truncation",
              "+ Conserved-Parity\nSectors (SectorQ)"]
     kinds = ["cupp", "cupp", "defer", "ours"]
-    series = [("Cutoff 1e-5 (1.4B Terms)", "-", ["102.9", "54.3", "48.8", "12.2"], +1),
-              ("Cutoff 1e-4 (22.5M Terms)", "--", ["59.7", "28.3", "6.5", "0.81"], -1)]
+    series = [("Cutoff 1e-5 (1.4B Terms)", "-", ["95.0", "54.3", "48.8", "12.2"], +1),
+              ("Cutoff 1e-4 (22.5M Terms)", "--", ["53.0", "28.3", "6.5", "0.81"], -1)]
     fig, ax = plt.subplots(figsize=(W, H))
     for label, ls, shown, side in series:
         ys = [float(v) for v in shown]
@@ -904,7 +904,7 @@ def d_reach():
 # ---------------------------------------------------------------------------------------
 def d_variability():
     G = campaign()
-    parts = [("(a) 16 GPUs, Problem Size Varied", "Cutoff (# of Terms) (Size of Terms)", [(x, 16) for x in mf.VAR_SIZES], mf.cut_ticks(G, "ki", list(mf.VAR_SIZES))),
+    parts = [("(a) 16 GPUs, Problem Size Varied", mf.xl_cut(), [(x, 16) for x in mf.VAR_SIZES], mf.cut_ticks(G, "ki", list(mf.VAR_SIZES))),
              (f"(b) Cutoff {mf.VAR_AT}, GPU Count Varied", "# of GPUs", [(mf.VAR_AT, g) for g in mf.VAR_GPUS], [str(g) for g in mf.VAR_GPUS])]
     fig, axes = plt.subplots(1, 2, figsize=(W, H), sharey=True)
     side = {"ours": -0.2, "cupp": 0.2}

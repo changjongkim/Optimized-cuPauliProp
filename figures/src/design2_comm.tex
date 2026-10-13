@@ -1,5 +1,5 @@
 % Where communication happens (Section 3.3), second style (the look of the ScaleQsim paper).
-% What the figure shows: the same gate sequence (2,540 gates) and the same four GPUs under the two schemes.
+% What the figure shows: the same circuit and the same four GPUs under the two schemes (cuPauliProp applies its 5,420 gates, SectorQ the 2,540 rotations left by the Clifford frame).
 %   Left:  cuPauliProp's distributed mode. Every gate is followed by a global step (red mark after every gate
 %          cell): all GPUs merge and redistribute their terms, 22 collective calls per gate on every GPU,
 %          because a new term may belong to any GPU.
@@ -45,7 +45,7 @@
     % ---- the gate sequence: a global step (red) after every gate
     \draw[comp] (0.15,-0.96) rectangle (8.50,-2.30);
     \node[ann, anchor=west] at (0.25,-1.14) {Gate Sequence};
-    \node[key, anchor=east] (lg) at (8.38,-1.14) {2,540 Global Steps};
+    \node[key, anchor=east] (lg) at (8.38,-1.14) {5,420 Global Steps};
     \node[rmark, minimum height=0.22cm, anchor=east] at ([xshift=-0.06cm]lg.west) {};
     \foreach \i in {1,...,6}
     {
@@ -57,10 +57,10 @@
     \node[dc, minimum width=0.82cm] at (6.24,-1.55) {\gdots};
     \node[rmark] at (7.10,-1.55) {};
     \node[sann, text=dred] at (6.715,-2.11) {\gdots};
-    \node[gc, minimum width=1.00cm] at (7.23,-1.55) {G2540};
+    \node[gc, minimum width=1.00cm] at (7.23,-1.55) {G5420};
     \node[rmark] at (8.27,-1.55) {};
     \draw[rbr] (7.23,-1.85) -- (8.36,-1.85);
-    \node[sann, text=dred] at (7.795,-2.11) {Step 2,540};
+    \node[sann, text=dred] at (7.795,-2.11) {Step 5,420};
     % ---- gates go to the GPUs
     \node[fatb, anchor=tip] at (4.325,-2.83) {};
     \node[ann, anchor=west] at (4.72,-2.60) {One Gate at a Time};
@@ -161,8 +161,8 @@
   \foreach \r/\m/\a/\b/\c in {
       1/{Collective Calls per GPU}/{119,785}/{208}/{576},
       2/{Data Moved Between GPUs}/{20.3 GB}/{0.57 GB}/{36},
-      3/{Global Steps}/{Every Gate (2,540)}/{Every Window (20)}/{127},
-      4/{Data Leaving the GPUs, 16 GPUs}/{1,733 GB}/{60 GB}/{29}}
+      3/{Global Steps}/{Every Gate (5,420)}/{Every Window (20)}/{271},
+      4/{Data Leaving the GPUs, 16 GPUs}/{2,368 GB}/{60 GB}/{39}}
   {
     \node[db, minimum width=5.40cm] at (0,{\ya-0.40*\r}) {\m};
     \node[db, minimum width=4.60cm, text=dred] at (5.40,{\ya-0.40*\r}) {\a};

@@ -24,12 +24,14 @@ SHORT = {"oom": "oom", "tl": "tl", "fail": "fail", "predicted_tl": "tl*", "skipp
 
 
 QR = os.path.join(ROOT, "queue_r")     # campaign r: the larger multi-node SectorQ runs again (the exchange between nodes in rounds)
+QO = os.path.join(ROOT, "queue_o")     # campaign o: cuPauliProp (single GPU, default distributed mode) on the original circuits
 
 
 def load():
     """Items and records of campaign g. Where campaign r measured a run again, that record counts: the runs on two
     or more nodes that took 30 s or more or failed, and the time-breakdown runs (jobs/r_trim.py). The other records
-    of campaign r repeat campaign g ("reused") or are short runs, and are not taken."""
+    of campaign r repeat campaign g ("reused") or are short runs, and are not taken. Where campaign o ran cuPauliProp
+    on the original circuit (jobs/o_items.py: the four circuits with Clifford gates), that record counts."""
     items, state = [], {}
     for path in sorted(glob.glob(os.path.join(Q, "todo*.jsonl")) + glob.glob(os.path.join(Q, "later", "todo*.jsonl"))):
         items += [json.loads(l) for l in open(path) if l.strip()]
@@ -50,7 +52,20 @@ def load():
             short = old is not None and old.get("status") == "ok" and (old.get("wall") or 0) < 30 and not i["id"].startswith("bd.")
             if not rec.get("reused") and not short:
                 state[i["id"]] = rec
+        p = os.path.join(QO, "done", i["id"])
+        if os.path.exists(p):                   # the circuit as it is (--frame 0) instead of the operations SectorQ's frame leaves
+            try:
+                state[i["id"]] = json.load(open(p))
+            except ValueError:
+                pass
     return items, state
+
+
+def frame_input(item_id):
+    """The record of campaign g for a cuPauliProp run that campaign o repeated on the original circuit: cuPauliProp
+    given the operations that SectorQ's Clifford frame leaves (one step of the element-by-element comparison)."""
+    p = os.path.join(Q, "done", item_id)
+    return json.load(open(p)) if os.path.exists(p) else None
 
 
 def cell(s):
@@ -195,7 +210,7 @@ def gpu_busy(item_id, text):
     t0, t1 = float(m.group(1)), float(m.group(2))
     vals = []
     # logs/g and, for a run that campaign r measured again, logs/r: the time window picks the samples of this run
-    for path in glob.glob(os.path.join(ROOT, "logs", "[gr]", f"smi.{item_id}.*.csv")):
+    for path in glob.glob(os.path.join(ROOT, "logs", "[gro]", f"smi.{item_id}.*.csv")):
         for line in open(path, errors="replace"):
             f = line.split(",")
             if len(f) < 3:

@@ -648,6 +648,7 @@ WEAK_G = {1: "2e-5", 2: "1.4e-5", 4: "1e-5", 8: "7e-6", 16: "4.8e-6"}
 
 
 QR = os.path.join(HERE, "..", "queue_r")
+QO = os.path.join(HERE, "..", "queue_o")     # campaign o: cuPauliProp on the original circuits (jobs/o_items.py)
 
 
 def campaign_g():
@@ -655,9 +656,11 @@ def campaign_g():
     again with the engine whose exchange between nodes runs in rounds (jobs/r_items.py, r_trim.py: the multi-node
     runs of 30 s and more, those that ended at a limit, and the time-breakdown runs). A record of campaign r with
     "reused" is the record of campaign g. The short runs that campaign r repeated before it was trimmed (the same
-    values, 0.97-1.03 times the time) do not replace those of campaign g."""
+    values, 0.97-1.03 times the time) do not replace those of campaign g. Campaign o ran cuPauliProp's single-GPU and
+    default distributed runs of the four circuits with Clifford gates on the circuit as it is; those records replace
+    the ones of campaign g, in which cuPauliProp was given the operations that SectorQ's Clifford frame leaves."""
     out = {}
-    for queue, again in ((QG, False), (QR, True)):
+    for queue, again in ((QG, False), (QR, True), (QO, False)):      # campaign o replaces the cuPauliProp runs it repeated
         done = os.path.join(queue, "done")
         if not os.path.isdir(done):
             continue

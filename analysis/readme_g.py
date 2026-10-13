@@ -705,14 +705,15 @@ def b_large():
         for g in (16,) + BIG:
             if g == 16:
                 e = state.get(f"eng.{c}.1e-5.g16")
-                rows.append([KO[c], g, cell(e), deferred_cell(c, "1e-5", 16, e), cell(f"cupp.{c}.1e-5.g16", e)])
+                # the same input as on 32 GPUs and more: cuPauliProp given the operations that the Clifford frame leaves
+                rows.append([KO[c], g, cell(e), deferred_cell(c, "1e-5", 16, e), cell(cg.frame_input(f"cupp.{c}.1e-5.g16") or f"cupp.{c}.1e-5.g16", e)])
             else:
                 e, mark = big_any("engine", c, "1e-5", g)
                 t = e["wall"] if (e and mf.ok(e)) else None
                 if e is None and big_run("cupp", c, "1e-5", g) is None:
                     continue                        # this circuit was not run on this GPU count
                 rows.append(["", g, big_cell(e, g) + mark, big_cell(big_run("cupp", c, "1e-5", g, tuned=True), g, t), big_cell(big_run("cupp", c, "1e-5", g), g, t)])
-    out.append("**cuPauliProp 분산 모드와의 비교 (cutoff 1e-5, 같은 노드).** 괄호는 SectorQ 대비이다.\n\n"
+    out.append("**cuPauliProp 분산 모드와의 비교 (cutoff 1e-5, 같은 노드).** 괄호는 SectorQ 대비이다. 이 표와 다음 표의 cuPauliProp은 Clifford frame이 줄인 연산 목록을 받은 값이다(16 GPU 행 포함). 32 GPU 이상은 원래 회로로 재지 않았다.\n\n"
                + table(["회로", "GPU 수", "SectorQ", "cuPauliProp dedup 미룸", "cuPauliProp 기본"], rows, ["---", "---:", "---:", "---:", "---:"]))
     # the largest problem that cuPauliProp's default mode finishes on each GPU count (the ladders of the scale campaign)
     rows = []
