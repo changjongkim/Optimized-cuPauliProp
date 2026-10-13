@@ -4,7 +4,7 @@
 
 SectorQ는 100 qubit이 넘는 양자 회로의 기대값을 여러 GPU와 여러 노드에서 계산하는 Pauli propagation 실행 엔진이다. Pauli propagation의 정확도는 유지하는 항(term)의 수가 정한다. 그런데 항은 gate마다 새로 생기고 같은 항끼리 합쳐야 하므로, 지금의 분산 구현은 gate마다 모든 GPU가 조율한다. SectorQ는 항 집합을 구간 동안 보존되는 parity의 값으로 나눈 sector로 다룬다. sector는 그 구간 동안 서로 항을 주고받지도 합쳐지지도 않는다. 그래서 구간이 도는 동안 항이 GPU 사이를 오가지 않고(항의 교환은 구간이 바뀔 때만 한다), sector를 host memory에 두고 GPU에 하나씩 올려 GPU memory보다 많은 항을 다룬다. 답은 전부 합쳐 계산한 것과 같다.
 
-sector는 물리에서 보존량의 값으로 나뉘어 서로 섞이지 않는 구역을 부르는 말이다. 주 비교 대상은 NVIDIA cuPauliProp v0.5.0의 분산 모드이며, 여러 GPU로 도는 다른 구현은 조사한 범위에서 이것뿐이다. CPU 분산 구현, 단일 노드 구현, 단일 GPU 구현 여섯 가지와도 비교하였다(4.2–4.3절). SectorQ는 gate 적용, merge, truncation에 cuPauliProp의 단일 GPU 연산을 그대로 쓰고, 그 위의 분할, 배치, 통신을 바꾼다. 코드와 로그에서는 sector를 bucket, 실행 파일을 `pp_engine`이라고 부른다.
+sector는 물리에서 보존량의 값으로 나뉘어 서로 섞이지 않는 구역을 부르는 말이다. 주 비교 대상은 NVIDIA cuPauliProp v0.5.0의 분산 모드이다. 배포된 GPU 라이브러리 가운데 여러 GPU로 도는 것은 이것이다. CPU 분산 구현, 단일 노드 구현, 단일 GPU 구현 여섯 가지와도 비교하였다(4.2–4.3절). SectorQ는 gate 적용, merge, truncation에 cuPauliProp의 단일 GPU 연산을 그대로 쓰고, 그 위의 분할, 배치, 통신을 바꾼다. 코드와 로그에서는 sector를 bucket, 실행 파일을 `pp_engine`이라고 부른다.
 
 - 코드: SectorQ [src/engine/](src/engine/), cuPauliProp 계측 [src/driver/](src/driver/)와 [src/plugin/](src/plugin/)
 - 원시 로그: [logs/](logs/) (실험별 대응은 6.3절)
@@ -87,10 +87,11 @@ Pauli propagation의 gate 하나는 세 가지 일을 한다. 항을 둘로 가�
 | cuPauliProp 분산 모드 (GPU) | gate마다, 모든 GPU에 걸쳐 | GPU를 늘릴수록 느려진다. 2,250만 항 설정이 GPU 1장에서 2.9초, 16장에서 71초이다. 모든 GPU가 gate마다 22번의 전원 통신에 참여하고, 항이 움직이지 않는 gate에서도 같은 비용을 낸다 |
 | 합치기를 미루는 조정 | truncation 직전에만, 모든 GPU에 걸쳐 | 통신은 줄지만 합쳐지지 않은 항을 들고 있어야 한다. 14억 항 설정은 32 GPU가 있어야 들어간다 |
 | ORQA (CPU 분산) | 고정된 분배 함수로 나누고 새 항을 보낸다 | 가지치는 gate마다 통신한다. GPU를 쓰지 않는다. 논문을 따라 재현한 것이 같은 4 노드에서 SectorQ보다 18–87배 느리다 |
+| 고정된 선형 분할 (paulistrings-rs, iQCC의 병렬 구현) | 고정된 parity 행이나 bit mask로 나누고, 새 항을 계산으로 정해지는 상대에게 보낸다 | 분할의 기준을 건드리는 gate마다 항이 옮겨 간다. 기준은 실행 내내 바뀌지 않는다 |
 | 단일 노드와 단일 GPU 구현 (PauliPropagation.jl, ppvm, SPD 등) | 한 장치 안에서 | 메모리가 한계이다. 노드와 GPU를 더 주어도 쓰지 못한다(4.2절) |
 | GPU마다 따로 계산 | 합치지 않는다 | 답이 틀린다(0.1675–0.189, 정답 0.1531) |
 
-통신도 메모리도 내주지 않는 분할은 조사한 범위에서 찾지 못하였다.
+항을 여러 장치에 나누는 기존 구현은 모두 분할을 실행 내내 고정한다. 고정된 분할에서는 gate가 분할의 기준을 건드릴 때마다 항이 장치를 옮긴다. SectorQ는 분할을 고정하지 않는다. 구간마다 그 구간의 gate가 보존하는 것을 회로에서 계산하여 분할로 삼는다(1.4절, 2.5절).
 
 ### 1.4 핵심 관찰과 접근
 
@@ -321,7 +322,7 @@ Pauli propagation에서 새 항 P⊕Q가 어느 프로세스의 항과 합쳐질
 
 ### 2.5 선행 연구
 
-**요지.** 기존 구현은 장치 하나에 머무르거나, CPU에서 돌거나, gate마다 모든 GPU에 걸쳐 합친다. 여러 GPU에 걸친 Pauli propagation을 다룬 시스템 논문은 조사한 범위에서 찾지 못하였다.
+**요지.** 기존 구현은 장치 하나에 머무르거나, gate마다 모든 GPU에 걸쳐 합치거나, 고정된 분할로 항을 나누어 gate마다 옮긴다. 분할을 구간마다 회로에서 계산하는 구현은 없다. 여러 GPU에 걸친 Pauli propagation을 다룬 시스템 논문은 조사한 범위에서 찾지 못하였다.
 
 <p align="center"><img src="figures/deck/n04_positioning.png" width="860"></p>
 <p align="center"><b>그림 10.</b> 기존 구현이 하는 것과 이 연구가 더하는 것.</p>
@@ -330,9 +331,12 @@ Pauli propagation에서 새 항 P⊕Q가 어느 프로세스의 항과 합쳐질
 
 | 연구 | 하는 일 | 다루지 않는 것 |
 |---|---|---|
-| cuPauliProp (NVIDIA, 2026) | GPU의 Pauli propagation, MPI 분산 모드. 여러 GPU로 도는 구현은 조사한 범위에서 이것뿐이다 | 여러 gate를 통신 없이 진행하는 실행, GPU memory를 넘는 항 수. 내부 비공개, 논문 없음 |
+| cuPauliProp (NVIDIA, 2026) | GPU의 Pauli propagation, MPI 분산 모드. 배포된 GPU 라이브러리의 분산 모드이다 | 여러 gate를 통신 없이 진행하는 실행, GPU memory를 넘는 항 수. 내부 비공개, 논문 없음 |
 | ORQA (RIKEN, arXiv 2506.13241, 2025) | CPU 분산, 고정 분배 함수. Fugaku에서 2^17 프로세스와 1조 항을 보고하였다 | GPU. 가지치는 gate마다 통신한다. 코드 비공개 |
 | MonoProp (Algorithmiq, arXiv 2503.18939, 2025) | CPU 분산 구현 | GPU |
+| paulistrings-rs (오픈소스, 2026) | CPU와 GPU의 Pauli propagation. GF(2) 선형 행(parity)으로 항을 partition에 나누고, 새 항이 갈 partition을 생성자에서 계산한다. 행은 seed, x bit, 격자의 cut으로 정하고 실행 내내 고정한다. 격자를 손으로 자른 행으로 heavy-hex kicked Ising의 step마다 gate 271개 가운데 4개에서만 교환한다고 적었다 | 구간마다 회로에서 계산하는 행. 회로에 맞춘 자동 선택과 균형은 열린 문제라고 적었다. partition은 rank 하나이고 최대 64개이다. GPU memory를 넘는 항 수. 논문 없음 |
+| iQCC의 병렬 구현 (arXiv 2512.13657, 2025) | Pauli word의 bit mask가 맡을 CPU를 정하고, 곱의 배정을 XOR로 계산한다(양자 화학의 Hamiltonian 변환) | 고정된 mask. Pauli propagation이 아니다 |
+| commutator graph (arXiv 2502.16404, 2025), F₂ 위의 dynamical Lie algebra (arXiv 2603.08373, 2026) | 생성자 집합 아래에서 Pauli string이 서로 섞이지 않는 성분으로 갈린다는 이론 | 회로 전체의 생성자에 대한 분석이며 실행 방법이 아니다 |
 | SPD (Quantinuum, 2026) | 단일 GPU의 sparse Pauli dynamics | 여러 GPU, GPU memory를 넘는 항 수 |
 | PauliPropagation.jl (PRX Quantum, 2026), ppvm (QuEra, 2026), Qiskit pauli-prop (Qiskit, 2025) | 알고리즘과 단일 노드 구현 | 분산 실행. 메모리가 한계라고 밝힌다 |
 | ScaleQsim, Atlas, HyQuas, BMQSim, cusvaer | 상태 벡터(amplitude 2^n개)의 분산과 압축 | 100 qubit 이상. 실행 중에 크기가 변하는 데이터 |
@@ -341,7 +345,9 @@ Pauli propagation에서 새 항 P⊕Q가 어느 프로세스의 항과 합쳐질
 
 괄호 안은 출처와 연도이다. 연도는 논문 또는 소프트웨어 인용의 연도이며, 그것이 없는 코드(cuPauliProp v0.5.0, SPD, ppvm)는 여기서 실행한 버전의 연도이다.
 
-여러 GPU에 걸친 Pauli propagation을 다룬 시스템 논문은 조사한 범위에서 찾지 못하였다. 있는 것은 vendor 구현(cuPauliProp 분산 모드)과 CPU 분산(ORQA, MonoProp)이다. 위의 Pauli propagation 구현들은 모두 4.2–4.3절에서 실행하여 비교하였다. ORQA는 코드가 공개되어 있지 않아 논문을 따라 재현한 것을 썼다.
+여러 GPU에 걸친 Pauli propagation을 다룬 시스템 논문은 조사한 범위에서 찾지 못하였다. 있는 것은 vendor 구현(cuPauliProp 분산 모드), CPU 분산(ORQA, MonoProp), 개발 중인 오픈소스(paulistrings-rs)이다. cuPauliProp, ORQA, MonoProp과 단일 장치 구현들은 4.2–4.3절에서 실행하여 비교하였다. ORQA는 코드가 공개되어 있지 않아 논문을 따라 재현한 것을 썼다. paulistrings-rs는 같은 4 노드에서 kicked Ising 회로로 실행하였다(`jobs/p_ki.py`, `jobs/p_drive.py`, 기록 `queue_p/done/`). 이 구현은 gate마다 truncation을 한다. SectorQ를 같은 규칙으로 실행하면(`--trunc-every 1`, `jobs/p_sq.sh`) 두 구현의 기대값은 12자리까지 같고, 16 GPU에서 paulistrings-rs의 시간은 SectorQ의 3.4–4.7배이다(cutoff 1e-4–3e-6, 30.2초 대 8.34초가 cutoff 1e-5의 값이다). cutoff 1e-6은 paulistrings-rs가 16 GPU에서 메모리가 부족하고 SectorQ는 553초에 끝낸다. 권장 설정인 격자 cut 행은 GPU 여러 장에서 내부 오류로 끝나지 않아 seed 행의 값을 썼다.
+
+**고정된 분할과 SectorQ의 차이.** ORQA, iQCC, paulistrings-rs는 분배 함수 하나를 실행 내내 쓴다. 함수가 선형이면 새 항이 갈 곳을 미리 계산할 수 있어 전원 통신은 없어지지만, gate가 그 함수의 값을 바꿀 때마다 항은 옮겨 간다. 이 방식의 목표는 옮기는 gate를 줄이도록 함수를 잘 고르는 것이다. 그런데 고정된 함수로는 옮기는 일을 없앨 수 없다. 회로 전체가 보존하는 행은 모든 항에서 값이 같아 항을 나누지 못하므로(3.7절 성질 4), 항을 나누는 행은 어느 gate에선가 반드시 바뀐다. SectorQ는 분할을 시간에 따라 바꾼다. 구간마다 그 구간의 생성자들이 보존하는 행을 계산하고 표본으로 균형을 보아 고르며, 구간 경계에서 한 번 다시 나눈다. 그래서 구간 안에서는 어떤 gate도 항을 옮기지 않고, 회로의 격자를 알 필요가 없다. 또 sector를 장치에 묶지 않고 host memory에 두어 장치 수보다 많은 sector와 GPU memory를 넘는 항 수를 다룬다(3.2–3.4절).
 
 state-vector 시뮬레이터는 이 연구와 푸는 문제가 다르며 비교 대상이 아니다(2.1절, 2.3절). 정확성의 기준도 다르다. 상태 벡터는 exact 상태와의 fidelity로 판단하고, Pauli propagation은 전부 합친 단일 장치 실행과 같은 답을 내는지와 cutoff에 따라 수렴하는지로 판단한다.
 
@@ -418,7 +424,7 @@ state-vector 시뮬레이터는 이 연구와 푸는 문제가 다르며 비교 
 
 이 성질이 R1, R2, R3을 함께 만족시킨다. sector 안에서 gate마다 합치므로 truncation은 항상 합쳐진 계수를 본다(R1). 다른 sector와 주고받을 것이 없으므로 구간 동안 항이 GPU를 옮기지 않는다(R2). 합치기를 미루지 않으므로 합쳐지지 않은 항이 쌓이지 않는다(R3).
 
-**hash 분할과의 차이.** 차이는 무엇을 key로 삼는가에 있다. hash는 Pauli string 전체를 key로 삼아, gate가 string을 바꾸면 배정도 바뀐다. sector는 string 가운데 구간의 gate가 바꾸지 않는 부분만 key로 삼는다.
+**hash 분할, 고정된 선형 분할과의 차이.** 차이는 무엇을 key로 삼고 언제 정하는가에 있다. hash는 Pauli string 전체를 key로 삼아, gate가 string을 바꾸면 배정도 바뀐다. 고정된 선형 행(paulistrings-rs)은 새 항의 배정을 미리 계산할 수 있게 하지만, 행이 실행 내내 같아서 그 행을 건드리는 gate에서는 항이 옮겨 간다. sector는 구간마다 다시 정하는 key이다. 그 구간의 gate가 바꾸지 않는 행만 쓰므로 구간 안에서는 배정이 바뀌지 않는다(2.5절).
 
 <p align="center"><img src="figures/deck/n09_keys.png" width="860"></p>
 <p align="center"><b>그림 13.</b> 분할의 key: Pauli string 전체의 hash와 구간이 보존하는 parity.</p>
