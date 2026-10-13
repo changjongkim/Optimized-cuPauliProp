@@ -1818,13 +1818,15 @@ SectorQ는 chunk를 16개씩 묶어 만든다. 일반 메모리를 받아 한 �
 | `analysis/exact_sv.py` | 30 qubit 회로의 exact 값 (cuStateVec) |
 | `analysis/rekey_timing.py` | 재분배 시점 분석 |
 | `analysis/scaling_table.py` | 확장성 실험(`e12`, `e13`)의 실행별 표: 시간, 일의 양, GPU당 처리율, 교환, 행 선택 시간 |
-| `analysis/campaign_g.py` | 1–16 GPU 측정(캠페인 g)의 진행 상황과 모든 표 |
+| `analysis/campaign_g.py` | 1–16 GPU 측정(캠페인 g)의 진행 상황과 모든 표. 캠페인 r이 다시 잰 실행은 그 기록을 쓴다 |
 | `analysis/readme_g.py` | 이 문서의 4절 표를 캠페인 g의 기록에서 만든다. `--write`는 `<!-- g:이름 -->` 사이를 새 값으로 바꾼다 |
 | `jobs/g_items.py`, `g_ext_items.py`, `g_conv_items.py` | 캠페인 g의 실행 목록(SectorQ와 cuPauliProp, 외부 구현, 각도별 수렴)을 만든다 |
 | `jobs/g_var_items.py` | 변동성 측정의 실행 목록: kicked Ising의 대표 설정을 10회씩 반복한다(4.12절) |
 | `jobs/g_size_items.py`, `g_wide_items.py` | 회로 크기와 정확도의 실행 목록: exact 값과의 대조(30 qubit), qubit 수(한 자리 관측량과 전체 자화, 36–1,024 qubit), 깊이(4–60 step). 외부 구현이 읽는 연산 목록은 `results/f_ext/ir/`에 있다 |
 | `jobs/g_run.py`, `g_drive.py`, `g_loop.sh`, `g_chain.sh` | 목록의 실행을 할당 안에서 차례로 돌리고, 할당이 끝나면 다시 받아 이어 간다 |
 | `jobs/g_ext.py`, `g_ext_impl.py` | 외부 구현 하나를 실행한다(연산 목록 변환, 제한 시간, 상태 기록) |
+| `jobs/r_items.py`, `r_trim.py`, `r_run.py`, `r_drive.py`, `r_loop.sh` | 캠페인 r의 실행 목록과 실행: 캠페인 g의 SectorQ 실행 가운데 2 노드 이상에서 30초 이상 걸렸거나 한계에 걸린 것과 시간 분해 실행을 다시 잰다(6.3절) |
+| `jobs/s_items.py`, `n_items.py`, `i_items.py`, `a0_items.py`, `s_run.py`, `s_scale.sh` | 규모 캠페인(32–512 GPU)의 실행 목록과 실행. `a0_items.py`는 host memory의 한계까지 내려가는 사다리를 job의 맨 앞에 둔다 |
 | `analysis/summarize.py`, `ownership.py`, `balance_rows.py` | cuPauliProp 계측 요약, 행의 균형 |
 | `jobs/` | 실험 스크립트(6.3절) |
 | `logs/` | 실험의 원시 로그 |
@@ -1876,12 +1878,13 @@ thrust 코드는 `-gencode arch=compute_80,code=sm_80`로 빌드한다. 실행�
 | `jobs/u6_drive.sh` | 최종 판(`bin/pp_engine_u6`): 16 GPU, GPU 1장, kicked Ising 1e-5의 GPU 1장. `logs/u3`, `logs/u4`는 기각한 GPU 1장 규칙의 기록이다 | `logs/u6/` | 4.11 |
 | `jobs/u7_breakdown.sh` | 16 GPU의 시간 분해: SectorQ와 cuPauliProp 분산 모드(기본, dedup을 미룬 방식). cuPauliProp은 MPI 계측판과 호출별 timer, 모든 실행에 GPU 사용률 표본(`jobs/smi_sample.sh`). `bin/pp_engine_u7` = `bin/pp_engine` | `logs/u7/` | 3.3, 4.6 |
 | 캠페인 g (`queue_g/todo*.jsonl`, `jobs/g_loop.sh`) | 1–16 GPU의 모든 측정: SectorQ, cuPauliProp(단일 GPU, 분산 기본, dedup을 미룬 방식, 원래 회로), 외부 구현 일곱 가지. 회로 7종의 cutoff sweep, strong과 weak scaling, 시간 분해, GPU memory를 줄인 실행, 설계 매개변수, checkpoint, exact 값 대조, 각도별 수렴. interactive 할당(4 노드) 둘에서 차례로 실행 | 실행 기록 `queue_g/done/`, 로그 `logs/g/`, 외부 구현의 결과 `results/g_ext/` | 4.1–4.8, 4.11 |
-| 규모 캠페인 (`queue_s/todo_s.jsonl`, `jobs/s_items.py`, `jobs/s_scale.sh`, `jobs/s_run.py`) | 32–512 GPU: GPU 수마다 batch job이 목록을 위에서부터 실행한다. SectorQ의 cutoff sweep과 host memory의 한계까지 내려가는 사다리(sector 상한 1,024개 또는 4,096개), weak scaling, cuPauliProp 두 모드, 같은 노드의 CPU 구현. 시간 안에 못 들어간 실행은 남아서 같은 스크립트의 다음 job이 이어 받는다 | 실행 기록 `queue_s/done/`, 실행마다의 로그 `logs/s/`, job 로그 `logs/pp_s_g*-*.out` | 4.4 |
+| 캠페인 r (`queue_r/todo*.jsonl`, `jobs/r_items.py`, `jobs/r_trim.py`, `jobs/r_loop.sh`) | 캠페인 g의 SectorQ 실행 가운데 2 노드 이상에서 30초 이상 걸렸거나 메모리·시간 한계에 걸린 것, 시간 분해 실행을 구간 경계의 교환을 라운드로 나눈 binary로 다시 잰 것(82건. `bin/pp_engine_i`, 256 qubit을 넘는 다섯 건은 임의 폭 kernel과 링크한 `bin/pp_engine_iw`). 나머지 실행은 캠페인 g의 기록을 그대로 쓴다. interactive 할당(4 노드) 하나에서 실행 | 실행 기록 `queue_r/done/`, 로그 `logs/r/` | 4.3–4.6 |
+| 규모 캠페인 (`queue_s/todo*.jsonl`, `jobs/s_items.py`, `n_items.py`, `i_items.py`, `a0_items.py`, `jobs/s_scale.sh`, `jobs/s_run.py`) | 32–512 GPU: GPU 수마다 batch job이 목록을 위에서부터 실행한다. SectorQ의 cutoff sweep과 host memory의 한계까지 내려가는 사다리(sector 상한 1,024개 또는 4,096개), weak scaling, cuPauliProp 두 모드, 같은 노드의 CPU 구현. 시간 안에 못 들어간 실행은 남아서 같은 스크립트의 다음 job이 이어 받는다 | 실행 기록 `queue_s/done/`, 실행마다의 로그 `logs/s/`, job 로그 `logs/pp_s_g*-*.out` | 4.4 |
 | 캠페인 g의 큐 맨 앞 항목 (`queue_g/todo_00h1.jsonl`, `jobs/g_ext_impl.py`의 `launch_engine`) | 행 고르기를 구간 계산과 겹친 binary(`bin/pp_engine_h`)와 행을 구간 사이에 고르는 binary(`bin/pp_engine_g0`)를 같은 노드에서 차례로: 4와 16 GPU, 일곱 설정, 변형 셋. 엔진의 MPI 호출 수(`bin/libmpi_shim.so`) | `logs/h1/` | 3.1, 3.3, 4.11 |
 
 작업은 `sbatch jobs/*.sh`로 낸다(`-A m5320_g -C gpu -q debug`). `e5`–`e10`은 측정 당시의 시험용 binary(`bin/pp_engine_dd*`)를 가리킨다. 최종 소스로 빌드한 SectorQ로 다시 돌리려면 `PP_BIN=bin/pp_engine`을 준다. `e8`의 `--busy-window`는 기각하여 최종 소스에 없다. `inter_run*.sh`는 interactive 할당 안에서 `PP_JOB=<할당 번호> bash jobs/inter_runN.sh`로 실행한다.
 
-4.1–4.3절, 4.4절의 1–16 GPU 부분, 4.5–4.8절과 4.12절의 표와 평가 그림(그림 19–31)은 캠페인 g의 값이다(그림 20과 그림 25의 32–256 GPU는 `e15`, 그림 25의 cutoff 1e-6 이하와 512 GPU는 규모 캠페인). 위 표에서 이 절들을 가리키는 앞선 스크립트(`inter_run4`–`inter_run6`, `e3`, `e4`, `e10`)의 값은 이 문서의 표에 더 쓰지 않는다. 4.9–4.11절은 그 로그의 값 그대로이다. `e12`와 `e13`(4–128 GPU의 앞선 측정)의 값은 이 문서의 표에 더 쓰지 않는다. 캠페인 g의 실행 기록(`queue_g/done/`)과 로그(`logs/g/`)는 아직 저장소에 넣지 않았으며 Perlmutter의 작업 디렉터리에 있다. 전체 표는 `python3 analysis/campaign_g.py`로, 이 문서의 표는 `python3 analysis/readme_g.py`로 다시 만든다.
+4.1–4.3절, 4.4절의 1–16 GPU 부분, 4.5–4.8절과 4.12절의 표와 평가 그림(그림 19–33)은 캠페인 g의 값이며, 그 가운데 캠페인 r이 다시 잰 실행은 캠페인 r의 값이다(그림 20과 그림 25의 32–256 GPU는 `e15`와 규모 캠페인, 그림 25의 cutoff 1e-6 이하와 512 GPU, 그림 27과 28은 규모 캠페인). 위 표에서 이 절들을 가리키는 앞선 스크립트(`inter_run4`–`inter_run6`, `e3`, `e4`, `e10`)의 값은 이 문서의 표에 더 쓰지 않는다. 4.9–4.11절은 그 로그의 값 그대로이다. `e12`와 `e13`(4–128 GPU의 앞선 측정)의 값은 이 문서의 표에 더 쓰지 않는다. 캠페인 g와 r, 규모 캠페인의 실행 기록(`queue_g/done/`, `queue_r/done/`, `queue_s/done/`)과 로그(`logs/g/`, `logs/r/`, `logs/s/`)는 아직 저장소에 넣지 않았으며 Perlmutter의 작업 디렉터리에 있다. 전체 표는 `python3 analysis/campaign_g.py`로, 이 문서의 표는 `python3 analysis/readme_g.py`로 다시 만든다.
 
 `e12`와 `e13`은 같은 스크립트를 노드 수만 바꾸어 낸다(`sbatch -N <노드 수> -J pp_e13_g<GPU 수> jobs/e13_scaling.sh`, 16 노드부터는 `-q regular`). `e12`의 SectorQ 실행 시간은 쓰지 않는다. 그 판(`bin/pp_engine_scal`)은 행을 고르는 표본을 노드마다 20만 개씩 모아, 그 단계가 1 노드 0.4초에서 32 노드 15–45초로 늘었다. `e13`은 표본을 전체 20만 개로 되돌린 현재 소스(`bin/pp_engine_scal2`)로 다시 잰 것이다. `e12`의 cuPauliProp 실행과 기대값은 영향을 받지 않는다. 전체 표는 `python3 analysis/scaling_table.py`로 본다.
 
@@ -1942,7 +1945,7 @@ interactive 할당 안에서는 `jobs/inter.sh`를 source한 뒤 `eng <노드 �
 | 3. 지금 방식의 해부 | cuPauliProp 분산 모드의 측정 | 2.4절, 그림 9 |
 | 4. 원리 | 런타임 sector 재구성, 보장과 한계(정리와 증명 스케치) | 3.1–3.2절, 3.7절, 그림 11–13 |
 | 5. 설계 | 통신을 구간 경계로 모으기, sector 단위 실행, Clifford frame, checkpoint | 3.3–3.6절, 그림 14–17 |
-| 6. 평가 | 답의 일치, 단일 노드 성능(다른 구현과의 비교), 다중 노드 확장성(weak, strong), 여러 회로, 회로 크기(qubit 수와 깊이), scale-out, 정확도, 시간 분해, 변동성 | 4절, 그림 18–31 |
+| 6. 평가 | 답의 일치, 단일 노드 성능(다른 구현과의 비교), 다중 노드 확장성(weak, strong), 여러 회로, 회로 크기(qubit 수와 깊이), scale-out, 정확도, 시간 분해, 변동성 | 4절, 그림 18–33 |
 | 7. 관련 연구 | Pauli propagation 계열, state-vector 계열, database의 분할 실행 | 2.5절, 그림 10 |
 | 8. 한계 | | 5절 |
 
