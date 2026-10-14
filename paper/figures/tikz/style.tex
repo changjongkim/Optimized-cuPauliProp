@@ -1,0 +1,53 @@
+% Style of the concept figures of the paper: the look of the design figures of the README (figures/src/tikz_style2.tex,
+% after the ScaleQsim paper) at the size of the paper. Every figure is drawn at its printed size (full width: 13.9 cm),
+% so the fonts are the printed fonts: panel names \small, component names and text \footnotesize, bits \scriptsize.
+% Rules: the logic of the operations only (no measured values), about four arrows, groups shown by one color each,
+% component names as labels.
+\definecolor{pan}{HTML}{D9D8C4}     % panel
+\definecolor{pan2}{HTML}{EDEDED}
+\definecolor{navy}{HTML}{1F3864}
+\definecolor{thblue}{HTML}{0070C0}
+\definecolor{dred}{HTML}{C00000}
+\definecolor{nA}{HTML}{F8E3D4}      % nodes
+\definecolor{nB}{HTML}{C5E0E6}
+\definecolor{nC}{HTML}{EDE9B4}
+\definecolor{nD}{HTML}{D3DAF6}
+\definecolor{gpuc}{HTML}{DDDAB8}    % a GPU
+\definecolor{actc}{HTML}{FFE699}    % an action
+\definecolor{tune}{HTML}{D5F2E3}    % a decision made at run time
+\definecolor{sa}{HTML}{8FAADC}      % sectors 00, 01, 10, 11
+\definecolor{sb}{HTML}{A9D18E}
+\definecolor{sc}{HTML}{FFD966}
+\definecolor{sd}{HTML}{CDB5E8}
+\definecolor{genc}{HTML}{F4B183}    % a generator Q
+\definecolor{rowc}{HTML}{9FD8CB}    % a parity row
+\definecolor{newc}{HTML}{ED7D31}    % a new term
+\definecolor{gatec}{HTML}{F8E3D4}   % a gate
+\tikzset{
+  every node/.append style={execute at begin node=\boldmath},
+  pan/.style={draw=black!75, fill=pan, line width=0.5pt},
+  pan2/.style={draw=black!75, fill=pan2, line width=0.5pt},
+  comp/.style={draw=navy, fill=white, line width=0.6pt},
+  ptitle/.style={font=\rmfamily\bfseries\small, inner sep=1pt},
+  ctitle/.style={font=\rmfamily\bfseries\footnotesize, inner sep=1pt},
+  txt/.style={font=\rmfamily\bfseries\footnotesize, inner sep=1pt, align=center},
+  stxt/.style={font=\rmfamily\bfseries\scriptsize, inner sep=1pt, align=center},
+  ann/.style={font=\rmfamily\bfseries\itshape\footnotesize, inner sep=1pt, align=center},
+  sann/.style={font=\rmfamily\bfseries\itshape\scriptsize, inner sep=1pt, align=center},
+  key/.style={font=\rmfamily\bfseries\itshape\footnotesize, text=dred, inner sep=1pt, align=center},
+  cl/.style={draw=black!80, line width=0.4pt, anchor=west, inner sep=0pt, minimum width=0.36cm, minimum height=0.32cm,
+             font=\rmfamily\bfseries\scriptsize},
+  free/.style={cl, pattern=north east lines, pattern color=black!50},
+  act/.style={draw=black, fill=actc, rounded corners=2.5pt, line width=0.5pt, font=\rmfamily\bfseries\footnotesize, align=center,
+              inner sep=2pt, minimum height=0.48cm},
+  dec/.style={draw=black, fill=tune, line width=0.5pt, font=\rmfamily\bfseries\footnotesize, align=center, inner sep=2pt,
+              minimum height=0.48cm},
+  box/.style={draw=black, fill=white, line width=0.5pt, font=\rmfamily\bfseries\footnotesize, align=center, inner sep=2pt,
+              minimum height=0.48cm},
+  gpu/.style={draw=black!85, fill=gpuc, line width=0.5pt},
+  barrow/.style={single arrow, fill=black, draw=black, inner xsep=0pt, inner ysep=0.08cm, minimum height=0.5cm,
+                 single arrow head extend=0.11cm, single arrow tip angle=90},
+  arr/.style={-{Latex[length=1.8mm,width=1.5mm]}, line width=0.9pt},
+  dsh/.style={-{Latex[length=1.8mm,width=1.5mm]}, line width=0.9pt, dashed},
+  num/.style={circle, fill=black, text=white, font=\sffamily\bfseries\scriptsize, inner sep=0.4pt, minimum size=0.34cm},
+}

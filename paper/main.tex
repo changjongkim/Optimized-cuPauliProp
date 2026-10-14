@@ -20,6 +20,9 @@
 \newcommand{\todo}[1]{\textcolor{red}{[TODO: #1]}}
 % placeholder for a figure that is not drawn for the paper yet: the source it will be redrawn from
 \newcommand{\figsource}[1]{\fbox{\parbox{0.9\linewidth}{\centering\small\ttfamily #1}}}
+% a data panel or legend strip of figures/make_paper_figures.py: drawn at 1/0.6 of its printed size, so every panel
+% prints its text at one size (7.2 pt)
+\newcommand{\panel}[1]{\includegraphics[scale=0.6]{figures/#1}}
 
 \AtBeginDocument{\providecommand\BibTeX{{Bib\TeX}}}
 

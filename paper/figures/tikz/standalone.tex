@@ -1,0 +1,10 @@
+% One concept figure of the paper:  pdflatex -jobname=NAME "\def\figfile{NAME.tex}\input{standalone.tex}"  (scripts/build_figs.sh)
+\documentclass[border=1pt]{standalone}
+\usepackage[T1]{fontenc}
+\usepackage{newtxtext,newtxmath}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, fit, calc, patterns, shapes.geometric, shapes.arrows, decorations.pathreplacing}
+\input{style.tex}
+\begin{document}
+\input{\figfile}
+\end{document}

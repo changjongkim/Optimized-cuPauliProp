@@ -1,0 +1,86 @@
+% Design, Fig. arch: the overall architecture. One loop per window on every node:
+%   (1) a GPU takes the next sector of the window from the sector store in host memory, (2) applies the gates of the
+%   window to it (branch, merge, truncate), (3) meanwhile the row selector samples the live terms and chooses the rows
+%   of the next window, (4) the GPU splits its output by these rows and the pieces return to the store as sectors of
+%   the next window, (5) at the window boundary the sectors that other nodes own move to them.
+% Colors: one per sector (blue 00, green 01, yellow 10, violet 11), khaki GPUs, yellow actions, green the choice made
+% at run time, one tint per node.
+\begin{tikzpicture}[x=1cm, y=1cm]
+  \tikzset{ch/.style={cl, minimum width=0.27cm, minimum height=0.25cm},
+           sarrow/.style={barrow, minimum height=0.40cm}}
+  % ---------------------------------------------------------------- input
+  \draw[pan] (0,0) rectangle (2.30,-5.0);
+  \node[ptitle, anchor=west] at (0.08,-0.27) {Input};
+  \node[box, minimum width=2.0cm] (circ) at (1.15,-1.00) {Circuit and\\Observable};
+  \node[act, minimum width=2.0cm] (frame) at (1.15,-1.95) {Clifford Frame};
+  \draw[arr] (circ) -- (frame);
+  \foreach \i/\t in {0/$W_1$, 1/$W_2$, 2/$W_3$, 3/$\cdots$}
+    \node[cl, fill=gatec, minimum width=0.49cm, minimum height=0.36cm] at ({0.17+0.49*\i},-2.85) {\t};
+  \draw[arr] (frame) -- (1.15,-2.66);
+  \node[stxt] at (1.15,-3.25) {Windows of Gates};
+  \node[sarrow, minimum height=0.30cm] at (2.475,-2.85) {};
+  % ---------------------------------------------------------------- node
+  \draw[pan] (2.65,0) rectangle (11.20,-5.0);
+  \node[ptitle, anchor=west] at (2.73,-0.27) {Node $d$ of $N$};
+  \node[key, anchor=east] at (11.10,-0.27) {One Loop per Window};
+  % sector store
+  \draw[comp] (2.85,-0.80) rectangle (5.25,-3.30);
+  \node[ctitle, anchor=west] at (2.92,-1.02) {Sector Store};
+  \node[sann, anchor=west] at (2.92,-1.30) {Host Memory};
+  \foreach \k/\c/\n [count=\r from 0] in {00/sa/5, 01/sb/3, 10/sc/6, 11/sd/4}
+  {
+    \node[stxt, anchor=west] at (2.92,{-1.72-0.36*\r}) {\k};
+    \foreach \j in {1,...,\n}
+      \node[ch, fill=\c] at ({3.30+0.28*(\j-1)},{-1.72-0.36*\r}) {};
+  }
+  % sector executors
+  \draw[comp] (5.80,-0.80) rectangle (8.50,-3.30);
+  \node[ctitle, anchor=west] at (5.87,-1.02) {Sector Executors};
+  \node[sann, anchor=west] at (5.87,-1.30) {GPUs};
+  \foreach \g/\c/\x/\y in {0/sa/5.92/-1.52, 1/sb/7.20/-1.52, 2/sc/5.92/-2.07, 3/sd/7.20/-2.07}
+  {
+    \draw[gpu] (\x,\y) rectangle ++(1.20,-0.46);
+    \node[stxt, anchor=west] at (\x+0.04,\y-0.23) {GPU \g};
+    \node[ch, fill=\c, minimum width=0.26cm] at (\x+0.84,\y-0.23) {};
+  }
+  \node[act, minimum width=2.40cm] at (7.15,-2.92) {Branch, Merge, Truncate};
+  % output split
+  \draw[comp] (9.05,-0.80) rectangle (11.00,-3.30);
+  \node[ctitle, anchor=west] at (9.12,-1.02) {Output Split};
+  \node[sann, anchor=west] at (9.12,-1.30) {On the GPU};
+  \foreach \c [count=\k from 0] in {sa, sb, sc, sd}
+    \node[ch, fill=\c] at ({9.40+0.33*\k},-1.72) {};
+  \node[stxt] at (10.025,-2.15) {Next-Window\\Sectors};
+  \node[act, minimum width=1.60cm] (split) at (10.025,-2.88) {Split by\\Next Rows};
+  % row selector
+  \draw[comp] (2.85,-3.55) rectangle (11.00,-4.85);
+  \node[ctitle, anchor=west] at (2.92,-3.78) {Row Selector};
+  \node[sann, anchor=west] at (2.92,-4.08) {On the CPU};
+  \node[sann, anchor=west] at (2.92,-4.35) {Meanwhile};
+  \node[box] (sample) at (5.62,-4.25) {Sample of\\Live Terms};
+  \node[act] (valid) at (7.75,-4.25) {Valid Rows by\\GF(2) Elimination};
+  \node[dec] (choose) at (10.025,-4.25) {Rows with\\Even Sectors};
+  \draw[arr] (sample) -- (valid);
+  \draw[arr] (valid) -- (choose);
+  \draw[arr] (choose) -- (split);
+  % the loop
+  \node[sarrow] at (5.525,-2.05) {};
+  \node[sarrow] at (8.775,-2.05) {};
+  \draw[dsh] (10.025,-0.80) -- (10.025,-0.58) -- (4.05,-0.58) -- (4.05,-0.80);
+  \node[sann, fill=pan, inner xsep=2pt] at (7.05,-0.58) {Next-Window Sectors Return to the Store};
+  \node[num] at (5.525,-1.62) {1};
+  \node[num] at (8.32,-1.02) {2};
+  \node[num] at (10.78,-3.78) {3};
+  \node[num] at (8.775,-1.62) {4};
+  % ---------------------------------------------------------------- exchange
+  \node[sarrow, minimum height=0.30cm] at (11.375,-2.05) {};
+  \draw[pan] (11.55,0) rectangle (13.90,-5.0);
+  \node[ptitle, anchor=west] at (11.63,-0.27) {Exchange};
+  \node[num] at (13.65,-0.27) {5};
+  \node[sann] at (12.725,-0.72) {At Every Window\\Boundary};
+  \foreach \n/\c [count=\k from 0] in {0/nA, 1/nB, 2/nC, 3/nD}
+    \draw[draw=black!80, fill=\c, line width=0.5pt] (12.00,{-1.15-0.58*\k}) rectangle (13.70,{-1.57-0.58*\k})
+      node[pos=0.5, stxt] {Node \n};
+  \draw[{Latex[length=1.6mm,width=1.4mm]}-{Latex[length=1.6mm,width=1.4mm]}, line width=0.8pt] (11.80,-1.20) -- (11.80,-3.25);
+  \node[stxt] at (12.725,-4.10) {Sector $s$ Moves\\to Node $s \bmod N$};
+\end{tikzpicture}

@@ -1,0 +1,36 @@
+% Background, Fig. pp (a): the three operations of one gate on a list of terms.
+% A rotation about Q (here Y on the first qubit) branches every term that anticommutes with Q into itself and a new
+% term (orange outline); terms with the same string merge (one color per string); terms whose coefficient is below the
+% cutoff are dropped. Bars: |coefficient|.
+\begin{tikzpicture}[x=1cm, y=1cm]
+  \def\sw{0.50}\def\bw{0.50}\def\pitch{1.58}
+  \newcommand{\term}[6]{% column, row, string, bar length, fill, extra style of the string box
+    \node[cl, fill=#5, minimum width=\sw cm, #6] at ({#1*\pitch}, {-0.55-0.43*#2}) {#3};
+    \fill[black!45] ({#1*\pitch+\sw+0.04}, {-0.55-0.43*#2-0.10}) rectangle ++(#4, 0.20);}
+  \foreach \c/\t in {0/Terms, 1/Branch, 2/Merge, 3/Truncate}
+    \node[ctitle] at ({\c*\pitch+0.52}, -0.12) {\t};
+  % input
+  \term{0}{0}{XZ}{0.50}{nB}{}
+  \term{0}{1}{ZZ}{0.36}{nC}{}
+  % branch: rotation about Y on the first qubit
+  \term{1}{0}{XZ}{0.44}{nB}{}
+  \term{1}{1}{ZZ}{0.22}{nC}{draw=newc, line width=1.1pt}
+  \term{1}{2}{ZZ}{0.32}{nC}{}
+  \term{1}{3}{XZ}{0.17}{nB}{draw=newc, line width=1.1pt}
+  % merge: one term per string
+  \term{2}{0}{XZ}{0.27}{nB}{}
+  \term{2}{1}{ZZ}{0.50}{nC}{}
+  % truncate
+  \node[cl, fill=black!8, text=black!40, minimum width=\sw cm] (gone) at ({3*\pitch}, -0.55) {XZ};
+  \fill[black!15] ({3*\pitch+\sw+0.04}, -0.65) rectangle ++(0.27, 0.20);
+  \draw[dred, line width=0.9pt] ([xshift=-0.04cm]gone.west) -- ({3*\pitch+\sw+0.36}, -0.55);
+  \term{3}{1}{ZZ}{0.50}{nC}{}
+  \draw[dred, line width=0.7pt, dashed] ({3*\pitch+\sw+0.04+0.30}, -0.30) -- ({3*\pitch+\sw+0.04+0.30}, -1.42);
+  \node[sann, text=dred, anchor=north] at ({3*\pitch+\sw+0.34}, -1.42) {Cutoff};
+  % the steps
+  \foreach \c in {0,1,2}
+    \node[barrow, minimum height=0.36cm] at ({\c*\pitch+0.5*(\sw+\bw+0.04+\pitch)}, -1.0) {};
+  \node[sann, anchor=north] at ({1*\pitch+0.52}, -2.02) {Rotation about $Q$};
+  \node[cl, draw=newc, line width=1.1pt, fill=white, minimum width=0.24cm, minimum height=0.20cm, anchor=west] at (0.02, -1.62) {};
+  \node[sann, anchor=west] at (0.32, -1.62) {New Term};
+\end{tikzpicture}

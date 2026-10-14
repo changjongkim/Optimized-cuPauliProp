@@ -59,9 +59,9 @@ Limit & Memory of $2^n$ amplitudes & Number of kept terms \\
 
 \begin{figure}[t]
 \centering
-\subfloat[Operations of one gate]{\figsource{n06\_ops.png}}\hfill
-\subfloat[Error and value by cutoff]{\figsource{30-qubit error and 127-qubit kicked Ising value against the cutoff}}\hfill
-\subfloat[Kept terms by cutoff]{\figsource{n02\_accuracy\_terms.png (terms panel)}}
+\subfloat[Operations of one gate]{\includegraphics[scale=0.95]{figures/ops.pdf}}\hfill
+\subfloat[Kicked Ising value]{\panel{bg_accuracy_a}}\hfill
+\subfloat[30-qubit TFIM error]{\panel{bg_accuracy_b}}
 \caption{Operations and accuracy of Pauli propagation}
 \label{fig:pp}
 \end{figure}
@@ -92,9 +92,9 @@ A run without the global merge does not lift this bound and returns a wrong answ
 
 \begin{figure}[t]
 \centering
-\subfloat[Time and GPUs]{\figsource{figures/bg\_scaling.png}}\hfill
-\subfloat[Fixed cost per gate]{\figsource{figures/bg\_gatecost.png}}\hfill
-\subfloat[Terms per GPU at failure]{\figsource{figures/bg\_capacity.png}}
+\subfloat[Run time]{\panel{bg_time_a}}\hfill
+\subfloat[Fixed cost per gate]{\panel{bg_gatecost_a}}\hfill
+\subfloat[Terms per GPU at failure]{\panel{bg_capacity_a}}
 \caption{Distributed mode of \cuPP}
 \label{fig:anatomy}
 \end{figure}
@@ -147,8 +147,9 @@ Thus, distributed Pauli propagation requires a partition that the system recompu
 
 \begin{figure}[t]
 \centering
-\subfloat[Gates and windows]{\figsource{analysis/fixed\_rows.json and engine logs: gates, windows, moving gates per circuit}}\hfill
-\subfloat[Terms at window starts]{\figsource{n11\_window\_terms.png (kicked Ising, cutoff 1e-5, 16 GPUs)}}
+\panel{bg_windows_legend}\\[-2pt]
+\subfloat[Gates and windows]{\panel{bg_windows_a}}\hfill
+\subfloat[Terms at window starts]{\panel{bg_window_terms_a}}
 \caption{Windows of gates in seven circuits}
 \label{fig:windows}
 \end{figure}

@@ -32,6 +32,14 @@
 \noindent\textbf{Comparison with CPU Implementations.}
 % PauliPropagation.jl 108-269배, ppvm 157-755배, Qiskit 1,800배 이상 느림(같은 노드). MonoProp은 2초 안 설정에서 빠름 -> 그대로 적음.
 
+\begin{figure}[t]
+\centering
+\panel{ev_single_legend}\\[-2pt]
+\panel{ev_single_a}
+\caption{Simulation time on one node (4 GPUs)}
+\label{fig:single}
+\end{figure}
+
 \subsection{Performance across Circuits on 16 GPUs}
 
 \noindent\textbf{Simulation Time.}
@@ -43,12 +51,54 @@
 \noindent\textbf{Agreement of Answers.}
 % 자르기 규칙이 같은 구현이 둘 이상 끝낸 68개 설정에서 기대값 차이 4.9e-11 이하.
 
+\begin{figure}[t]
+\centering
+\panel{ev_circuits_legend}\\[-2pt]
+\subfloat[Kicked Ising]{\panel{ev_circuits_a}}\hfill
+\subfloat[TFIM heavy-hex]{\panel{ev_circuits_b}}\hfill
+\subfloat[Noisy kicked Ising]{\panel{ev_circuits_c}}\hfill
+\subfloat[TFIM $11{\times}11$]{\panel{ev_circuits_d}}\\
+\subfloat[XXZ $8{\times}8$]{\panel{ev_circuits_e}}\hfill
+\subfloat[QAOA]{\panel{ev_circuits_f}}\hfill
+\subfloat[Ansatz]{\panel{ev_circuits_g}}
+\caption{Simulation time of seven circuits on 16 GPUs}
+\label{fig:circuits}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\panel{ev_cost_legend}\\[-2pt]
+\subfloat[Kicked Ising]{\panel{ev_cost_a}}\hfill
+\subfloat[TFIM heavy-hex]{\panel{ev_cost_b}}\hfill
+\subfloat[Noisy kicked Ising]{\panel{ev_cost_c}}\hfill
+\subfloat[TFIM $11{\times}11$]{\panel{ev_cost_d}}\\
+\subfloat[XXZ $8{\times}8$]{\panel{ev_cost_e}}\hfill
+\subfloat[QAOA]{\panel{ev_cost_f}}\hfill
+\subfloat[Ansatz]{\panel{ev_cost_g}}
+\caption{Time per term of seven circuits on 16 GPUs}
+\label{fig:cost}
+\end{figure}
+
 \subsection{Comparison with Fixed Linear Partitions}
 % 도입: 가장 가까운 방식은 실행 전에 고정한 GF(2) 선형 행으로 나눔(paulistrings-rs).
 
 \noindent\textbf{Same Truncation Rule.}
 % 그림 34: 둘 다 gate마다 truncation. 75개 설정에서 기대값 4.7e-11 안에서 같음. 16 GPU 1.6-5.4배, 그 구현이 끝내는 가장 큰 설정 1.6-4.1배,
 % 회로 5종의 그다음 cutoff는 SectorQ만 끝냄(29-880 s). 32, 64 GPU: TBD(job 59769001, 59769002).
+
+\begin{figure}[t]
+\centering
+\panel{ev_prs_legend}\\[-2pt]
+\subfloat[Kicked Ising]{\panel{ev_prs_a}}\hfill
+\subfloat[TFIM heavy-hex]{\panel{ev_prs_b}}\hfill
+\subfloat[Noisy kicked Ising]{\panel{ev_prs_c}}\hfill
+\subfloat[TFIM $11{\times}11$]{\panel{ev_prs_d}}\\
+\subfloat[XXZ $8{\times}8$]{\panel{ev_prs_e}}\hfill
+\subfloat[QAOA]{\panel{ev_prs_f}}\hfill
+\subfloat[Ansatz]{\panel{ev_prs_g}}
+\caption{\SectorQ and fixed linear partitions on 16 GPUs}
+\label{fig:prs}
+\end{figure}
 
 \noindent\textbf{Fixed versus Recomputed Rows.}
 % TODO(가장 중요한 빈 실험): 같은 SectorQ 엔진에서 행을 실행 내내 고정(seed, x-bit, 격자 cut) vs 구간마다 다시 계산.
@@ -59,6 +109,20 @@
 \noindent\textbf{Weak Scalability.}
 % 그림 20(d_weak, 1-512 GPU, 모든 구현). 큰 부하: GPU당 처리율 16 GPU 80-88%, 64 GPU 72-80%, 128 53-77%, 256 29-64%, 512 23-38%.
 % cuPauliProp 두 모드는 큰 부하의 모든 GPU 수에서 메모리 부족. 작은 부하 16 GPU: 기본 모드 8.1-12배. CPU 구현 32 GPU 이상: TBD.
+% 그림: CPU 구현의 32 GPU 이상 결과가 오면 다시 그림(make_paper_figures.py ev_weak).
+
+\begin{figure}[t]
+\centering
+\panel{ev_weak_legend}\\[-2pt]
+\subfloat[Kicked Ising, small load]{\panel{ev_weak_a}}\hfill
+\subfloat[TFIM heavy-hex, small load]{\panel{ev_weak_b}}\hfill
+\subfloat[Noisy kicked Ising, small load]{\panel{ev_weak_c}}\\
+\subfloat[Kicked Ising, large load]{\panel{ev_weak_d}}\hfill
+\subfloat[TFIM heavy-hex, large load]{\panel{ev_weak_e}}\hfill
+\subfloat[Noisy kicked Ising, large load]{\panel{ev_weak_f}}
+\caption{Weak scaling from 1 to 512 GPUs}
+\label{fig:weak}
+\end{figure}
 
 \noindent\textbf{Strong Scalability.}
 % 그림 25(d_scaleout): 큰 문제 셋이 GPU 1장 대비 256 GPU 81-166배, 512 GPU 83-180배. 작은 문제(1e-5)는 128 GPU에서 포화(2.9-3.1 s).
@@ -75,6 +139,16 @@
 \noindent\textbf{Circuit Depth.}
 % 그림 24: kicked Ising step 수. 60 step 160 s(50배).
 
+\begin{figure}[t]
+\centering
+\panel{ev_size_legend}\\[-2pt]
+\subfloat[Qubits, cutoff $10^{-3}$]{\panel{ev_size_a}}\hfill
+\subfloat[Qubits, cutoff $10^{-4}$]{\panel{ev_size_b}}\hfill
+\subfloat[Trotter steps]{\panel{ev_size_c}}
+\caption{Simulation time by circuit size and depth}
+\label{fig:size}
+\end{figure}
+
 \subsection{Extreme Scale-out}
 
 \noindent\textbf{Largest Finished Problems.}
@@ -89,9 +163,27 @@
 \noindent\textbf{Where the Time Goes.}
 % 그림 30, 31: 16 GPU에서 SectorQ의 GPU는 실행 시간의 70-77% 동안 계산, cuPauliProp은 26-29%와 MPI 40-44%. 교환 3-13%.
 
+\begin{figure}[t]
+\centering
+\panel{ev_breakdown_legend}\\[-2pt]
+\subfloat[Kicked Ising]{\panel{ev_breakdown_a}}\\
+\subfloat[TFIM heavy-hex]{\panel{ev_breakdown_b}}\\
+\subfloat[Noisy kicked Ising]{\panel{ev_breakdown_c}}
+\caption{Run time of \SectorQ by activity on 16 GPUs}
+\label{fig:breakdown}
+\end{figure}
+
 \noindent\textbf{Contribution of Each Element.}
 % 그림 6(n14_staircase): 원래 회로 cuPauliProp 95.0 s -> frame 54.3 -> dedup 미룸 48.8 -> sector 12.2 s(cutoff 1e-5, 16 GPU).
 % "고정 행" 단계를 넣을 자리(위 Fixed versus Recomputed Rows).
+
+\begin{figure}[t]
+\centering
+\panel{ev_staircase_legend}\\[-2pt]
+\panel{ev_staircase_a}
+\caption{Run time as each element is added on 16 GPUs}
+\label{fig:staircase}
+\end{figure}
 
 \subsection{Accuracy}
 
@@ -101,8 +193,36 @@
 \noindent\textbf{Convergence of Kicked Ising.}
 % 1e-6 이하에서 0.3217, 0.3256, 0.3265, 0.3226, 0.3153, 0.3089(0.018 안에서 오르내림) -> 이 회로의 주장은 같은 cutoff에서 같은 답을 더 빨리, 더 낮은 cutoff까지.
 
+\begin{figure}[t]
+\centering
+\panel{ev_accuracy_legend}\\[-2pt]
+\subfloat[4 Trotter steps]{\panel{ev_accuracy_a}}\hfill
+\subfloat[6 Trotter steps]{\panel{ev_accuracy_b}}
+\caption{Simulation time and error of a 30-qubit TFIM}
+\label{fig:accuracy}
+\end{figure}
+
 \subsection{Sensitivity to Parameters}
 % 그림 32(n13_knobs): 표본 크기, GPU당 sector 수, sector 상한, chunk 크기. 상한 규칙이 아직 없음(설계에서 정하면 여기서 확인).
 
+\begin{figure}[t]
+\centering
+\panel{ev_knobs_legend}\\[-2pt]
+\subfloat[Target terms per sector]{\panel{ev_knobs_a}}\hfill
+\subfloat[Sectors per GPU]{\panel{ev_knobs_b}}\hfill
+\subfloat[GPU memory allowed]{\panel{ev_knobs_c}}
+\caption{Run time by parameter on kicked Ising at cutoff $10^{-5}$}
+\label{fig:knobs}
+\end{figure}
+
 \subsection{Performance Variability}
 % 그림 33: 16개 설정 10회 반복, 16 GPU SectorQ 1.4-7.2%, cuPauliProp 3.4-7.6%(원래 회로).
+
+\begin{figure}[t]
+\centering
+\panel{ev_variability_legend}\\[-2pt]
+\subfloat[16 GPUs by problem size]{\panel{ev_variability_a}}\hfill
+\subfloat[Cutoff $3{\times}10^{-5}$ by GPU count]{\panel{ev_variability_b}}
+\caption{Run time of ten repeated runs}
+\label{fig:variability}
+\end{figure}
