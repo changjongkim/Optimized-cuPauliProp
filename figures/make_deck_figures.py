@@ -717,6 +717,8 @@ def circuits_big(g, ladder=("1e-4", "3e-5", "1e-5", "5e-6", "3e-6", "2e-6", "1e-
     G = campaign()
 
     def run(kind, c, x):
+        if kind in ("orqa", "monoprop"):                 # the CPU implementations on the same nodes (queue_s)
+            return mf.as_big(mf.scale_rec(f"{kind}.{c}.{x}.n{g // 4}"))
         if kind != "ours":
             return mf.find(big, "cupp", mf.BIG_NAME[c], float(x), gpus=g, tuned=(kind == "defer"))
         hits = [r for r in big if r["kind"] == "engine" and r["circuit"] == mf.BIG_NAME[c] and abs(r["coef"] / float(x) - 1) < 1e-9]
@@ -726,7 +728,7 @@ def circuits_big(g, ladder=("1e-4", "3e-5", "1e-5", "5e-6", "3e-6", "2e-6", "1e-
         done = [r for r in order if mf.ok(r)]
         return mf.newest(done)[0] if done else (order[0] if order else None)
 
-    kinds = ("ours", "cupp", "defer")
+    kinds = ("ours", "cupp", "defer", "orqa", "monoprop")
     cuts = {c: [x for x in ladder if any(run(k, c, x) if mf.STOPS else mf.ok(run(k, c, x)) for k in kinds)] for c, _ in mf.G3}
     fig = plt.figure(figsize=(17.44, 5.8), layout="constrained")
     fig.get_layout_engine().set(w_pad=0.05, h_pad=0.04, wspace=0.03, rect=(0, 0, 1, 0.935))     # the legend line above
@@ -756,8 +758,8 @@ def circuits_big(g, ladder=("1e-4", "3e-5", "1e-5", "5e-6", "3e-6", "2e-6", "1e-
         ax.set_xticklabels(mf.cut_ticks(G, c, cuts[c], more=more), fontsize=13.5)
         ax.set_xlim(-0.4, len(cuts[c]) - 0.6)
         size_ticks(ax, c, peak, g)
-        ax.set_ylim(0.5, 3000)
-        ax.set_yticks([1, 10, 100, 1000])
+        ax.set_ylim(0.1, 3000)                              # MonoProp finishes the smallest problems in a fraction of a second
+        ax.set_yticks([0.1, 1, 10, 100, 1000])
         ax.tick_params(axis="y", labelsize=13, labelleft=(j == 0))
         ax.set_title(f"({'abc'[j]}) {title}", fontsize=16, pad=7)
         for i, x in enumerate(cuts[c]):                     # how many times as long the default mode takes as SectorQ
@@ -807,11 +809,9 @@ def d_weak():
             ax.tick_params(axis="y", labelsize=12, labelleft=(j == 0))
             if r == 0:
                 ax.set_xlabel("")
-                for t in ax.get_xticklabels():
-                    t.set_fontsize(11)
             else:
                 ax.xaxis.label.set_fontsize(14)
-                one_row(ax, 11.5)
+            one_row(ax, 11.5)                                  # both rows run to 512 GPUs: GPU counts on one line, the cutoff under every second
     e = entries(fig, grid[0][0])
     top = strip(fig, [e[:3], e[3:]], size=13)
     finish(fig, "d_weak", top - 0.08 / H, wgap=0.1)
@@ -862,19 +862,39 @@ def reach():
             ours = (r["opt"]["--coef"], r["boundary"], r.get("host_gib"))
             base = {tag: low([q["opt"]["--coef"] for q in runs if q["kind"] == "cupp" and q["tuned"] == tuned and mf.ok(q)
                               and q["opt"]["--coef"] in REACH_LADDER]) for tag, tuned in (("cupp", False), ("defer", True))}
-        out[g] = dict(ours=ours, **{tag: (x, mf.gterms(G, "ki", x)) for tag, x in base.items() if x})
+        # the CPU implementations on the same nodes: campaign g on 4 nodes, the scale campaign above
+        for b in ("orqa", "monoprop"):
+            if g == 16:
+                base[b] = low([x for x in mf.gladder(G, f"{b}.ki", "n4") if mf.gok(G.get(f"{b}.ki.{x}.n4"))])
+            else:
+                base[b] = low([x for x in CPU_LADDER if mf.gok(mf.scale_rec(f"{b}.ki.{x}.n{g // 4}"))])
+        out[g] = dict(ours=ours, **{tag: (x, terms(G, big, x)) for tag, x in base.items() if x})
     return out
+
+
+CPU_LADDER = ("1e-4", "3e-5", "1e-5", "5e-6", "3e-6", "2e-6", "1e-6", "7e-7", "5e-7", "3e-7", "2e-7")   # jobs/s_items.py, jobs/t_items.py
+
+
+def terms(G, big, x):
+    """Terms at the window boundaries of kicked Ising at cutoff x: from campaign g, else from a SectorQ run on more GPUs."""
+    n = mf.gterms(G, "ki", x)
+    if n:
+        return n
+    hits = [r for r in big if r["kind"] == "engine" and r["circuit"] == "ki_lab" and abs(r["coef"] / float(x) - 1) < 1e-9 and mf.ok(r) and r.get("boundary")]
+    return hits[0]["boundary"] if hits else None
 
 
 def d_reach():
     R = reach()
     pos = {g: i for i, g in enumerate(REACH_GPUS)}
     fig, ax = plt.subplots(figsize=(W, H))
-    for kind in ("ours", "cupp", "defer"):
+    for kind in ("ours", "cupp", "defer", "orqa", "monoprop"):
         col, mk = mf.SQ[kind]
-        pts = [(pos[g], R[g][kind][1]) for g in REACH_GPUS if kind in R[g]]
+        pts = [(pos[g], R[g][kind][1]) for g in REACH_GPUS if kind in R[g] and R[g][kind][1]]
+        if not pts:
+            continue
         ax.plot([p[0] for p in pts], [p[1] for p in pts], color=col, marker=mk, markersize=11, linewidth=3.4,
-                linestyle="-" if kind != "defer" else "--", label=mf.SQ_NAME[kind], zorder=5 if kind == "ours" else 4 if kind == "cupp" else 3)
+                linestyle="--" if kind == "defer" else "-", label=mf.SQ_NAME[kind], zorder=5 if kind == "ours" else 4 if kind == "cupp" else 3)
     for g in REACH_GPUS:
         x, n, host = R[g]["ours"]
         rise = g != REACH_GPUS[-1] and R[REACH_GPUS[pos[g] + 1]]["ours"][1] > 1.5 * n      # the line climbs to the right: keep the label off it

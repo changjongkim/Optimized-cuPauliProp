@@ -18,7 +18,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 Q, LOGS = os.path.join(ROOT, "queue_p", "done"), os.path.join(ROOT, "logs", "p")
 PY = os.path.join(ROOT, "third_party", "paulistrings-rs", ".venv", "bin", "python")
 CUTS = ("1e-3", "1e-4", "3e-5", "1e-5", "3e-6", "1e-6")
-SOME = ("g1", "g4", "mg16", "m16")      # the other six circuits: one GPU, one node, four nodes on GPUs and on the host
+SOME = ("g1", "g4", "mg16", "m16", "mg32", "mg64")   # the other six circuits: one GPU, one node, 4/8/16 nodes on GPUs, four nodes on the host
 # circuit: (--case of jobs/p_ki.py, cutoffs of its ladder, modes); kicked Ising uses the library's own builder
 CIRCUITS = {
     "ki": ("", CUTS, None),
@@ -29,9 +29,13 @@ CIRCUITS = {
     "qaoa": ("qaoa", ("1e-4", "3e-5", "1e-5", "3e-6", "1e-6"), SOME),
     "hea": ("hea", ("1e-4", "3e-5", "1e-5", "3e-6", "1e-6", "3e-7"), SOME),
 }
+BIG = ("mg32", "mg64")
+MORE = {"ki": "5e-7", "tfim": "5e-7", "noise": "5e-7", "tfimsq": "1e-6", "xxz": "1e-6", "qaoa": "5e-7", "hea": "1e-7"}   # one step further on 32 and 64 GPUs
 LIMIT = 2400
 ONE = "-N 1 -n 1 -c 128 --cpu-bind=none"
 ALL = "-N 4 -n 16 --ntasks-per-node=4 -c 32 --cpu-bind=cores"
+ALL8 = "-N 8 -n 32 --ntasks-per-node=4 -c 32 --cpu-bind=cores"      # batch jobs (jobs/p_batch.sh)
+ALL16 = "-N 16 -n 64 --ntasks-per-node=4 -c 32 --cpu-bind=cores"
 # name: (what it is, srun placement, arguments of jobs/p_ki.py)
 MODES = {
     "h1": ("one node, host, one partition per NUMA domain, seeded rows", ONE, "--partitions auto"),
@@ -44,6 +48,8 @@ MODES = {
     "m16c": ("4 nodes, 16 MPI ranks on the host, cut rows", ALL, "--mpi 1 --rows cut"),
     "mg16": ("4 nodes, 16 MPI ranks with one GPU each, seeded rows", ALL + " --gpus-per-node=4", "--mpi 1 --device auto"),
     "mg16c": ("4 nodes, 16 MPI ranks with one GPU each, cut rows", ALL + " --gpus-per-node=4", "--mpi 1 --device auto --rows cut"),
+    "mg32": ("8 nodes, 32 MPI ranks with one GPU each, seeded rows", ALL8 + " --gpus-per-node=4", "--mpi 1 --device auto"),
+    "mg64": ("16 nodes, 64 MPI ranks with one GPU each, seeded rows", ALL16 + " --gpus-per-node=4", "--mpi 1 --device auto"),
 }
 # NCCL carries the exchange between the GPUs of different ranks; the library binds one version of its interface, so
 # the versions installed here are tried in this order and the first that runs is kept (queue_p/nccl).
@@ -52,8 +58,13 @@ ENV = ("module load nccl/{nccl} >/dev/null 2>&1; export MPICH_GPU_SUPPORT_ENABLE
        "export LD_LIBRARY_PATH=/opt/nvidia/hpc_sdk/Linux_x86_64/2024/cuda/12.4/lib64:$LD_LIBRARY_PATH:/opt/nvidia/hpc_sdk/Linux_x86_64/26.5/cuda/13.2/lib64; ")
 
 
+def cuts_of(c, m):
+    """The ladder of one circuit in one mode: on 32 and 64 GPUs one cutoff below the ladder of the four-node runs."""
+    return CIRCUITS[c][1] + ((MORE[c],) if m in BIG else ())
+
+
 def runs():
-    return [(f"p.{m}.{c}.{x}", m, c, x) for c, (_, cuts, modes) in CIRCUITS.items() for m in (modes or MODES) for x in cuts]
+    return [(f"p.{m}.{c}.{x}", m, c, x) for c, (_, cuts, modes) in CIRCUITS.items() for m in (modes or MODES) for x in cuts_of(c, m)]
 
 
 def record(rid):
@@ -127,7 +138,7 @@ def main():
             print(c)
             for m in (modes or MODES):
                 cells = []
-                for x in cuts:
+                for x in cuts_of(c, m):
                     r = record(f"p.{m}.{c}.{x}") or {}
                     cells.append(f"{x}: " + (f"{r['wall']:.1f}s" if r.get("status") == "ok" else short.get(r.get("status"), r.get("status", "open"))))
                 print(f"  {m:6s} {MODES[m][0]:58s} " + "  ".join(cells))
@@ -139,10 +150,13 @@ def main():
         nodes = subprocess.run(["bash", "-c", f"scontrol show hostnames $(squeue -h -j {a.job} -o %N)"], capture_output=True, text=True).stdout.split()
         host = f" --nodelist={nodes[a.node]}"
     kept = os.path.join(os.path.dirname(Q), "nccl")
+    have = int(subprocess.run(["squeue", "-h", "-j", a.job, "-o", "%D"], capture_output=True, text=True).stdout.strip() or 0)
     for rid, m, c, x in runs():
         if record(rid) is not None or (only and m not in only) or (which and c not in which):
             continue
-        cuts = CIRCUITS[c][1]
+        if int(re.match(r"-N (\d+)", MODES[m][1]).group(1)) > have:
+            continue                                    # needs more nodes than this allocation has
+        cuts = cuts_of(c, m)
         before = [record(f"p.{m}.{c}.{y}") for y in cuts[:cuts.index(x)]]
         if any(b is not None and b.get("status") != "ok" for b in before):
             json.dump(dict(status="skipped_after_failure"), open(os.path.join(Q, rid + ".json"), "w"))

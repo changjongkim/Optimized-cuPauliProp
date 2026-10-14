@@ -1,0 +1,2 @@
+{"id": "r12.ki.5e-7.g256", "nodes": 64, "kind": "eng", "bin": "bin/pp_engine_i", "per": 4, "limit": 1800, "coef": 5e-07, "est": 400, "args": "--circuit ki_lab --weight 0 --coef 5e-7 --target 6000000 --trace 1 --vram-frac 0.9 --gmax 12 --chunk 65536"}
+{"id": "r12.ki.3e-7.g256", "nodes": 64, "kind": "eng", "bin": "bin/pp_engine_i", "per": 4, "limit": 5400, "coef": 3e-07, "est": 1400, "args": "--circuit ki_lab --weight 0 --coef 3e-7 --target 6000000 --trace 1 --vram-frac 0.9 --gmax 12 --chunk 65536"}

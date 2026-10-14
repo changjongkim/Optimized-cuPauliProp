@@ -341,6 +341,28 @@ def newest(runs):
     return [r for r in runs if r.get("binary") == NEW_ENGINE] or runs
 
 
+def scale_rec(*ids):
+    """The first of these runs of the scale campaign that has a record (queue_s/done/<id>), as in campaign g (status, wall);
+    runs that were not made (skipped after a failure, predicted not to fit) count as absent."""
+    for i in ids:
+        try:
+            r = json.load(open(os.path.join(os.path.dirname(HERE), "queue_s", "done", i)))
+        except (OSError, ValueError):
+            continue
+        if r.get("status") in ("skipped_after_failure", "predicted_oom", "predicted_tl", "superseded"):
+            continue
+        return r
+    return None
+
+
+def as_big(r):
+    """A record of the scale campaign in the form of the logs of the scaling jobs (wall, exit, fatal), for ok()."""
+    if r is None:
+        return None
+    good = r.get("status") == "ok" and r.get("wall") is not None
+    return dict(wall=r.get("wall") if good else None, exit=0 if good else 1, fatal=r.get("status") == "oom")
+
+
 def big_logs():
     """The runs on 32 GPUs and more: the scaling jobs e15 and the scale campaign (queue_s; one log per run in logs/s).
     A run that the campaign took over from e15 appears twice with the same values."""
@@ -884,6 +906,25 @@ def g_single_node(G, c="ki", title="Kicked Ising", ax=None):
 WEAK_S = {1: "6.2e-5", 2: "4.3e-5", 4: "3e-5", 8: "2.1e-5", 16: "1.5e-5"}
 # 32-256 GPUs: the scaling jobs e15 (logs/pp_e15_g*-*.out), one log per GPU count; the weak-scaling cutoffs continue the large load
 BIG_WEAK = {32: "3.4e-6", 64: "2.3e-6", 128: "1.6e-6", 256: "1.15e-6", 512: "8e-7"}
+BIG_WEAK_S = {32: "1e-5", 64: "7.1e-6", 128: "4.9e-6", 256: "3.5e-6", 512: "2.4e-6"}    # the small load: 3e-5 * (GPUs/4)^-0.52
+
+
+def big_weak(kind, load, c, x, g, big):
+    """One point of weak scaling on more than 16 GPUs, as a record of campaign g (status, wall). SectorQ: its default
+    settings in the scaling jobs and the scale campaign; cuPauliProp: given the original circuit where that run exists,
+    else the list of the Clifford frame; the CPU implementations on the same nodes. On 32 GPUs the small load is cutoff
+    1e-5 of the sweep, whose runs have the ids of the sweep."""
+    sweep = load == "S" and x == "1e-5"
+    if kind == "ours":
+        b = big_run(big, c, x, g)
+        return dict(status="ok", wall=b["wall"]) if b else None
+    if kind == "cupp":
+        ids = (f"o.cupp.{c}.{x}.g{g}", f"cupp.{c}.{x}.g{g}") if sweep else (f"o.weak{load}c.{c}.{x}.g{g}", f"weak{load}c.{c}.{x}.g{g}")
+    elif kind == "defer":
+        ids = (f"defer.{c}.{x}.g{g}",) if sweep else (f"weak{load}d.{c}.{x}.g{g}",)
+    else:
+        ids = (f"{kind}.{c}.{x}.n{g // 4}",) if sweep else (f"weak{load}.{kind}.{c}.{x}.g{g}",)
+    return scale_rec(*ids)
 BIG_NAME = {"ki": "ki_lab", "tfim": "tfim_hh", "noise": "ki_noisy"}
 
 
@@ -900,10 +941,11 @@ def g_weak(G, big=(), axes=None):
     if axes is None:
         fig, axes = plt.subplots(3, 2, figsize=(15.6, 12.4), gridspec_kw={"wspace": 0.14, "hspace": 0.52})
     rows = []
-    more = [g for g in sorted(BIG_WEAK) if any(big_run(big, c, BIG_WEAK[g], g) for c, _ in G3)]
     for r, (load, cuts) in enumerate((("S", WEAK_S), ("L", WEAK_G))):
-        counts = list(GPUS_G) + (more if load == "L" else [])
-        cuts = {**cuts, **(BIG_WEAK if load == "L" else {})}
+        extra = BIG_WEAK if load == "L" else BIG_WEAK_S
+        more = [g for g in sorted(extra) if any(big_run(big, c, extra[g], g) for c, _ in G3)]
+        counts = list(GPUS_G) + more
+        cuts = {**cuts, **extra}
         for j, (c, title) in enumerate(G3):
             ax = axes[j][r]
             for kind in ("ours", "cupp", "defer", "orqa", "monoprop"):
@@ -911,8 +953,7 @@ def g_weak(G, big=(), axes=None):
                 for i, g in enumerate(counts):
                     x = cuts[g]
                     if g > 16:
-                        b = big_run(big, c, x, g) if kind == "ours" else None
-                        s = dict(status="ok", wall=b["wall"]) if b else None
+                        s = big_weak(kind, load, c, x, g, big)
                     elif kind == "ours":
                         s = G.get(f"weak{load}.{c}.{x}.g{g}") or G.get(f"eng.{c}.{x}.g{g}")
                     elif kind == "cupp":
