@@ -713,7 +713,7 @@ def b_large():
                 if e is None and big_run("cupp", c, "1e-5", g) is None:
                     continue                        # this circuit was not run on this GPU count
                 rows.append(["", g, big_cell(e, g) + mark, big_cell(big_run("cupp", c, "1e-5", g, tuned=True), g, t), big_cell(big_run("cupp", c, "1e-5", g), g, t)])
-    out.append("**cuPauliProp 분산 모드와의 비교 (cutoff 1e-5, 같은 노드).** 괄호는 SectorQ 대비이다. 이 표와 다음 표의 cuPauliProp은 Clifford frame이 줄인 연산 목록을 받은 값이다(16 GPU 행 포함). 32 GPU 이상은 원래 회로로 재지 않았다.\n\n"
+    out.append("**cuPauliProp 분산 모드와의 비교 (cutoff 1e-5, 같은 노드).** 괄호는 SectorQ 대비이다. 이 표와 다음 표의 cuPauliProp은 Clifford frame이 줄인 연산 목록을 받은 값이다(16 GPU 행 포함). 원래 회로를 받은 32 GPU 이상의 실행은 32, 256, 512 GPU에서 끝났고(아래 결과와 이유), 64 GPU와 128 GPU는 대기 중이다.\n\n"
                + table(["회로", "GPU 수", "SectorQ", "cuPauliProp dedup 미룸", "cuPauliProp 기본"], rows, ["---", "---:", "---:", "---:", "---:"]))
     # the largest problem that cuPauliProp's default mode finishes on each GPU count (the ladders of the scale campaign)
     rows = []
@@ -903,7 +903,7 @@ def b_reach_big(c="ki"):
             if not eng:
                 rows.append([str(g), f"{total:,} GiB", "대기 중", "", "", "", "", "", "", ""])
                 continue
-            r = min(eng, key=lambda r: r["coef"])
+            r = min(eng, key=lambda r: (r["coef"], r.get("binary") != mf.NEW_ENGINE))     # the same cutoff run again with the newer engine: that run counts
             ours = (r["opt"]["--coef"], r.get("boundary"), r.get("inside"), r["wall"], r.get("host_gib"))
             base = {}
             for tag, tuned in (("cupp", False), ("defer", True)):

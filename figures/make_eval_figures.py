@@ -883,7 +883,7 @@ def g_single_node(G, c="ki", title="Kicked Ising", ax=None):
 
 WEAK_S = {1: "6.2e-5", 2: "4.3e-5", 4: "3e-5", 8: "2.1e-5", 16: "1.5e-5"}
 # 32-256 GPUs: the scaling jobs e15 (logs/pp_e15_g*-*.out), one log per GPU count; the weak-scaling cutoffs continue the large load
-BIG_WEAK = {32: "3.4e-6", 64: "2.3e-6", 128: "1.6e-6", 256: "1.15e-6"}
+BIG_WEAK = {32: "3.4e-6", 64: "2.3e-6", 128: "1.6e-6", 256: "1.15e-6", 512: "8e-7"}
 BIG_NAME = {"ki": "ki_lab", "tfim": "tfim_hh", "noise": "ki_noisy"}
 
 

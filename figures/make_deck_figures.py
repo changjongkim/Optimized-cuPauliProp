@@ -858,7 +858,7 @@ def reach():
                     "defer": low([x for x in mf.gladder(G, "cupp.ki", "g16") if mf.gok(mf.gdeferred(G, "ki", x, 16))])}
         else:
             runs = [r for r in big if r["gpus"] == g and r["circuit"] == "ki_lab"]
-            r = min((r for r in runs if r["kind"] == "engine" and mf.ok(r)), key=lambda r: r["coef"])
+            r = min((r for r in runs if r["kind"] == "engine" and mf.ok(r)), key=lambda r: (r["coef"], r.get("binary") != mf.NEW_ENGINE))
             ours = (r["opt"]["--coef"], r["boundary"], r.get("host_gib"))
             base = {tag: low([q["opt"]["--coef"] for q in runs if q["kind"] == "cupp" and q["tuned"] == tuned and mf.ok(q)
                               and q["opt"]["--coef"] in REACH_LADDER]) for tag, tuned in (("cupp", False), ("defer", True))}
@@ -877,7 +877,8 @@ def d_reach():
                 linestyle="-" if kind != "defer" else "--", label=mf.SQ_NAME[kind], zorder=5 if kind == "ours" else 4 if kind == "cupp" else 3)
     for g in REACH_GPUS:
         x, n, host = R[g]["ours"]
-        value(ax, pos[g], n, f"{short_count(n)}\n(Cutoff {x})", dy=11, size=13)
+        rise = g != REACH_GPUS[-1] and R[REACH_GPUS[pos[g] + 1]]["ours"][1] > 1.5 * n      # the line climbs to the right: keep the label off it
+        value(ax, pos[g], n, f"{short_count(n)}\n(Cutoff {x})", dx=-14 if rise and g != REACH_GPUS[0] else 0, dy=11, size=13)
         c, d = R[g]["cupp"][1], R[g].get("defer", (None, None))[1]
         value(ax, pos[g], c, short_count(c), dy=10, size=12.5)
         if d and d != c:
@@ -891,7 +892,7 @@ def d_reach():
     mf.sq_axes(ax, "# of GPUs (Host Memory SectorQ Used / Installed, GiB)", "Largest Finished Problem (# of Terms)")
     ax.set_xticks(range(len(REACH_GPUS)))
     ax.set_xticklabels([f"{g}\n({R[g]['ours'][2]:,.0f} / {g // 4 * 256:,})" for g in REACH_GPUS])
-    ax.set_xlim(-0.5, len(REACH_GPUS) - 0.4)
+    ax.set_xlim(-0.5, len(REACH_GPUS) - 0.25)          # room right of the last arrow for its label
     ax.set_ylim(6e7, 2.4e12)
     ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v / 1e12:g}T" if v >= 1e12 else short_count(v)))
     top = strip(fig, [list(zip(*ax.get_legend_handles_labels()))], size=13.5)
