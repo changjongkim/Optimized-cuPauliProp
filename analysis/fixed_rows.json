@@ -1,0 +1,86 @@
+{
+ "Kicked Ising": {
+  "qubits": 127,
+  "gates": 5420,
+  "operations": 2540,
+  "windows": 20,
+  "whole_rows": 19,
+  "frame": true,
+  "fixed_random": 5104.0,
+  "fixed_z": 2700.0,
+  "fixed_x": 2338.0,
+  "fixed_first": 100
+ },
+ "TFIM heavy-hex": {
+  "qubits": 127,
+  "gates": 5420,
+  "operations": 5420,
+  "windows": 40,
+  "whole_rows": 1,
+  "frame": true,
+  "fixed_random": 5046.0,
+  "fixed_z": 2710.0,
+  "fixed_x": 2374.0,
+  "fixed_first": 80
+ },
+ "Noisy kicked Ising": {
+  "qubits": 127,
+  "gates": 5420,
+  "operations": 5420,
+  "windows": 40,
+  "whole_rows": 1,
+  "frame": true,
+  "fixed_random": 5132.0,
+  "fixed_z": 2708.0,
+  "fixed_x": 2378.0,
+  "fixed_first": 180
+ },
+ "TFIM 11x11": {
+  "qubits": 121,
+  "gates": 3410,
+  "operations": 3410,
+  "windows": 20,
+  "whole_rows": 1,
+  "frame": true,
+  "fixed_random": 3193.0,
+  "fixed_z": 2047.0,
+  "fixed_x": 1135.0,
+  "fixed_first": 40
+ },
+ "XXZ 8x8": {
+  "qubits": 64,
+  "gates": 2016,
+  "operations": 2016,
+  "windows": 21,
+  "whole_rows": 2,
+  "frame": true,
+  "fixed_random": 1897.2,
+  "fixed_z": 1251.6,
+  "fixed_x": 1258.8,
+  "fixed_first": 150
+ },
+ "QAOA": {
+  "qubits": 100,
+  "gates": 1100,
+  "operations": 1100,
+  "windows": 9,
+  "whole_rows": 0,
+  "frame": true,
+  "fixed_random": 1035.7,
+  "fixed_z": 657.9,
+  "fixed_x": 470.0,
+  "fixed_first": 52
+ },
+ "Ansatz": {
+  "qubits": 100,
+  "gates": 4784,
+  "operations": 3200,
+  "windows": 32,
+  "whole_rows": 0,
+  "frame": true,
+  "fixed_random": 4587.2,
+  "fixed_z": 4566.4,
+  "fixed_x": 1504.0,
+  "fixed_first": 64
+ }
+}
