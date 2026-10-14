@@ -20,7 +20,7 @@
 %   cuPauliProp          NVIDIA cuQuantum, no paper; version used: v0.5.0 of cuQuantum 26.09 (2026)
 % Colors: blue = header row, gray = the group of a row, peach/teal/yellow/lavender boxes = nodes, khaki boxes =
 % GPUs, yellow = this work, red = the key value of the figure.
-% Sizes: the canvas is 17.6 x 8.86 cm and is shown 1060 px wide on the slide; names and cells are 10 pt, the
+% Sizes: the canvas is 17.6 x 9.62 cm and is shown 1060 px wide on the slide; names and cells are 10 pt, the
 % (Source, Year) line 8.6 pt italic, the row of this work 10.5 pt and its key value 11.5 pt.
 \begin{tikzpicture}[x=1cm, y=1cm, font=\rmfamily\bfseries\fontsize{10}{11.2}\selectfont]
   \tikzset{
@@ -47,12 +47,12 @@
   \def\cxe{14.90} \def\cwe{2.60}     % how the terms are split
   \def\cxr{17.50}                    % right edge of the table
   \def\cgx{1.30}                     % center of the group column
-  % rows (top edge): band -0.76, header -1.26, implementations -2.14 ... -6.70 (0.76 cm each), this work -7.46
-  % (0.96 cm), end of the table -8.42
+  % rows (top edge): band -0.76, header -1.26, implementations -2.14 ... -6.70 (0.76 cm each), paulistrings-rs -7.46, this work -8.22
+  % (0.96 cm), end of the table -9.18
   % =====================================================================================================
   % panel and title
   % =====================================================================================================
-  \draw[pan] (0,0) rectangle (17.60,-8.86);
+  \draw[pan] (0,0) rectangle (17.60,-9.62);
   \node[ptitle, font=\rmfamily\bfseries\LARGE, anchor=base west] at (0.10,-0.53)
     {Existing Implementations of Pauli Propagation and SectorQ};
   % =====================================================================================================
@@ -75,7 +75,8 @@
       -4.42/{Qiskit pauli-prop}/{(Qiskit, 2025)}/{\strut Never: One Device}/{\strut\ns}/{\strut\ns},
       -5.18/{ORQA}/{(RIKEN, arXiv 2025)}/{\strut At Every Branching Gate}/{\strut\ns}/{\strut Fixed Function},
       -5.94/{MonoProp}/{(Algorithmiq, arXiv 2025)}/{\strut\ns}/{\strut\ns}/{\strut\ns},
-      -6.70/{cuPauliProp Distributed Mode}/{(NVIDIA, 2026)}/{\strut At Every Gate}/{\strut No}/{\strut Not Public}}
+      -6.70/{cuPauliProp Distributed Mode}/{(NVIDIA, 2026)}/{\strut At Every Gate}/{\strut No}/{\strut Not Public},
+      -7.46/{paulistrings-rs}/{(Open Source, 2026)}/{\strut At Row-Changing Gates}/{\strut No}/{\strut Fixed Rows}}
   {
     \node[c, minimum width=\cwb cm] at (\cxb,\y) {};
     \node[nm] at ({\cxb+0.16},{\y-0.25}) {\strut\n};
@@ -87,21 +88,21 @@
   % =====================================================================================================
   % this work
   % =====================================================================================================
-  \node[hl, minimum width=\cwb cm] at (\cxb,-7.46) {};
-  \node[nm, font=\rmfamily\bfseries\fontsize{11}{12}\selectfont] at ({\cxb+0.16},-7.80) {\strut SectorQ};
-  \node[nm, src, text=black] at ({\cxb+0.16},-8.15) {\strut (This Work)};
-  \node[hl, minimum width=\cwc cm] at (\cxc,-7.46) {};
-  \node[hl, minimum width=\cwd cm] at (\cxd,-7.46) {\strut Yes: Host Memory};
-  \node[hl, minimum width=\cwe cm] at (\cxe,-7.46) {};
-  \node[kv] at ({\cxc+0.5*\cwc},-7.955) {\strut Only at Window\\\strut Boundaries};
-  \node[gname] at ({\cxe+0.5*\cwe},-7.955) {\strut Chosen at\\\strut Run Time};
+  \node[hl, minimum width=\cwb cm] at (\cxb,-8.22) {};
+  \node[nm, font=\rmfamily\bfseries\fontsize{11}{12}\selectfont] at ({\cxb+0.16},-8.56) {\strut SectorQ};
+  \node[nm, src, text=black] at ({\cxb+0.16},-8.91) {\strut (This Work)};
+  \node[hl, minimum width=\cwc cm] at (\cxc,-8.22) {};
+  \node[hl, minimum width=\cwd cm] at (\cxd,-8.22) {\strut Yes: Host Memory};
+  \node[hl, minimum width=\cwe cm] at (\cxe,-8.22) {};
+  \node[kv] at ({\cxc+0.5*\cwc},-8.715) {\strut Only at Window\\\strut Boundaries};
+  \node[gname] at ({\cxe+0.5*\cwe},-8.715) {\strut Recomputed\\\strut per Window};
   % =====================================================================================================
   % the four groups: a cell that spans the rows of the group, a pictogram and the name
   % =====================================================================================================
   \node[grp, minimum width=\cwa cm, minimum height=0.76cm] at (\cxa,-2.14) {};
   \node[grp, minimum width=\cwa cm, minimum height=2.28cm] at (\cxa,-2.90) {};
   \node[grp, minimum width=\cwa cm, minimum height=1.52cm] at (\cxa,-5.18) {};
-  \node[grp, minimum width=\cwa cm, minimum height=1.72cm] at (\cxa,-6.70) {};
+  \node[grp, minimum width=\cwa cm, minimum height=2.48cm] at (\cxa,-6.70) {};
   % one GPU: one GPU box at the left of the name
   \node[pic, gpu] at (0.47,-2.52) {};
   \node[gname] at (1.58,-2.52) {\strut One GPU};
@@ -114,14 +115,14 @@
   \node[gname] at (\cgx,-6.18) {\strut Many CPU\\\strut Nodes};
   % many GPUs: four GPU boxes
   \foreach \i in {0,1,2,3}
-    \node[pic, gpu] at ({\cgx+0.46*(\i-1.5)},-7.26) {};
-  \node[gname] at (\cgx,-7.86) {\strut Many GPUs};
+    \node[pic, gpu] at ({\cgx+0.46*(\i-1.5)},-7.64) {};
+  \node[gname] at (\cgx,-8.24) {\strut Many GPUs};
   % heavier lines between the groups; the frame of this work
   \draw[line width=1.1pt] (\cxa,-2.90) -- (\cxr,-2.90);
   \draw[line width=1.1pt] (\cxa,-5.18) -- (\cxr,-5.18);
   \draw[line width=1.1pt] (\cxa,-6.70) -- (\cxr,-6.70);
-  \draw[navy, line width=1.8pt] (\cxb,-7.46) rectangle (\cxr,-8.42);
+  \draw[navy, line width=1.8pt] (\cxb,-8.22) rectangle (\cxr,-9.18);
   % footnotes
-  \node[ann, font=\rmfamily\bfseries\itshape\fontsize{8.6}{9.4}\selectfont, anchor=west] at (0.12,-8.645)
+  \node[ann, font=\rmfamily\bfseries\itshape\fontsize{8.6}{9.4}\selectfont, anchor=west] at (0.12,-9.405)
     {\ns\ : Not Stated in the Sources Used Here.\quad Year: of the Paper or the Software Citation; Without One, of the Code Version Used.};
 \end{tikzpicture}

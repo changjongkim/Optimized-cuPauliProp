@@ -18,6 +18,17 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 Q, LOGS = os.path.join(ROOT, "queue_p", "done"), os.path.join(ROOT, "logs", "p")
 PY = os.path.join(ROOT, "third_party", "paulistrings-rs", ".venv", "bin", "python")
 CUTS = ("1e-3", "1e-4", "3e-5", "1e-5", "3e-6", "1e-6")
+SOME = ("g1", "g4", "mg16", "m16")      # the other six circuits: one GPU, one node, four nodes on GPUs and on the host
+# circuit: (--case of jobs/p_ki.py, cutoffs of its ladder, modes); kicked Ising uses the library's own builder
+CIRCUITS = {
+    "ki": ("", CUTS, None),
+    "tfim": ("tfim", ("1e-4", "3e-5", "1e-5", "3e-6", "1e-6"), SOME),
+    "noise": ("noise", ("1e-4", "3e-5", "1e-5", "3e-6", "1e-6"), SOME),
+    "tfimsq": ("tfimsq", ("1e-4", "3e-5", "1e-5", "3e-6"), SOME),
+    "xxz": ("xxz", ("1e-4", "3e-5", "1e-5", "3e-6"), SOME),
+    "qaoa": ("qaoa", ("1e-4", "3e-5", "1e-5", "3e-6", "1e-6"), SOME),
+    "hea": ("hea", ("1e-4", "3e-5", "1e-5", "3e-6", "1e-6", "3e-7"), SOME),
+}
 LIMIT = 2400
 ONE = "-N 1 -n 1 -c 128 --cpu-bind=none"
 ALL = "-N 4 -n 16 --ntasks-per-node=4 -c 32 --cpu-bind=cores"
@@ -42,7 +53,7 @@ ENV = ("module load nccl/{nccl} >/dev/null 2>&1; export MPICH_GPU_SUPPORT_ENABLE
 
 
 def runs():
-    return [(f"p.{m}.ki.{x}", m, x) for m in MODES for x in CUTS]
+    return [(f"p.{m}.{c}.{x}", m, c, x) for c, (_, cuts, modes) in CIRCUITS.items() for m in (modes or MODES) for x in cuts]
 
 
 def record(rid):
@@ -58,11 +69,11 @@ def left(job):
     return 0 if not m else int(m.group(1) or 0) * 86400 + int(m.group(2) or 0) * 3600 + int(m.group(3)) * 60 + int(m.group(4))
 
 
-def launch(rid, m, x, job, host, nccl):
+def launch(rid, m, c, x, job, host, nccl):
     """One run with one NCCL version; returns its record."""
     what, place, args = MODES[m]
     where = host if place.startswith("-N 1 ") else ""
-    cmd = ENV.replace("{nccl}", nccl) + f"srun --jobid={job} --overlap {place}{where} --kill-on-bad-exit=1 {PY} {ROOT}/jobs/p_ki.py --cutoff {x} {args}"
+    cmd = ENV.replace("{nccl}", nccl) + f"srun --jobid={job} --overlap {place}{where} --kill-on-bad-exit=1 {PY} {ROOT}/jobs/p_ki.py --cutoff {x} {args}" + (f" --case {CIRCUITS[c][0]}" if CIRCUITS[c][0] else "")
     log = os.path.join(LOGS, rid + ".out")
     t0 = time.time()
     with open(log, "w") as f:
@@ -102,31 +113,37 @@ def main():
     ap.add_argument("--count", action="store_true")
     ap.add_argument("--table", action="store_true")
     ap.add_argument("--modes", default="", help="only these modes (comma separated)")
+    ap.add_argument("--circuits", default="", help="only these circuits (comma separated)")
     ap.add_argument("--node", type=int, default=-1, help="one-node runs on this node of the allocation (0-3), so that four ladders run side by side")
     a = ap.parse_args()
     os.makedirs(Q, exist_ok=True)
     os.makedirs(LOGS, exist_ok=True)
     if a.count:
-        print(sum(1 for rid, m, x in runs() if record(rid) is None))
+        print(sum(1 for rid, m, c, x in runs() if record(rid) is None))
         return
     if a.table:
-        for m, (what, _, _) in MODES.items():
-            cells = []
-            for x in CUTS:
-                r = record(f"p.{m}.ki.{x}") or {}
-                cells.append(f"{x}: " + (f"{r['wall']:.1f}s" if r.get("status") == "ok" else r.get("status", "open")))
-            print(f"{m:6s} {what:58s} " + "  ".join(cells))
+        short = {"skipped_after_failure": "-"}
+        for c, (_, cuts, modes) in CIRCUITS.items():
+            print(c)
+            for m in (modes or MODES):
+                cells = []
+                for x in cuts:
+                    r = record(f"p.{m}.{c}.{x}") or {}
+                    cells.append(f"{x}: " + (f"{r['wall']:.1f}s" if r.get("status") == "ok" else short.get(r.get("status"), r.get("status", "open"))))
+                print(f"  {m:6s} {MODES[m][0]:58s} " + "  ".join(cells))
         return
     only = [m for m in a.modes.split(",") if m]
+    which = [c for c in a.circuits.split(",") if c]
     host = ""
     if a.node >= 0:
         nodes = subprocess.run(["bash", "-c", f"scontrol show hostnames $(squeue -h -j {a.job} -o %N)"], capture_output=True, text=True).stdout.split()
         host = f" --nodelist={nodes[a.node]}"
     kept = os.path.join(os.path.dirname(Q), "nccl")
-    for rid, m, x in runs():
-        if record(rid) is not None or (only and m not in only):
+    for rid, m, c, x in runs():
+        if record(rid) is not None or (only and m not in only) or (which and c not in which):
             continue
-        before = [record(f"p.{m}.ki.{y}") for y in CUTS[:CUTS.index(x)]]
+        cuts = CIRCUITS[c][1]
+        before = [record(f"p.{m}.{c}.{y}") for y in cuts[:cuts.index(x)]]
         if any(b is not None and b.get("status") != "ok" for b in before):
             json.dump(dict(status="skipped_after_failure"), open(os.path.join(Q, rid + ".json"), "w"))
             continue
@@ -136,7 +153,7 @@ def main():
         # the first run with one GPU per rank tries the NCCL versions in turn; the one that runs is kept for the rest
         tries = [open(kept).read().strip()] if os.path.exists(kept) else list(NCCLS if m.startswith("mg") else NCCLS[:1])
         for nccl in tries:
-            rec = launch(rid, m, x, a.job, host, nccl)
+            rec = launch(rid, m, c, x, a.job, host, nccl)
             print(f"{rec['time']} {rid}: {rec['status']} wall={rec.get('wall')} expectation={rec.get('expectation')} ({rec['seconds']} s)"
                   + (f" nccl {nccl}" if m.startswith("mg") else ""), flush=True)
             if rec["status"] != "fail":

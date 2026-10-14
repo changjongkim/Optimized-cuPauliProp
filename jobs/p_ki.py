@@ -1,6 +1,9 @@
-"""paulistrings-rs (third_party/paulistrings-rs) on the kicked Ising circuit of the evaluation: 127 qubits, heavy-hex,
-20 steps, X angle pi/4, observable Z62, coefficient cutoff. The circuit comes from the library's own builder, so the
-library applies every gate its own way (baseline as it operates).
+"""paulistrings-rs (third_party/paulistrings-rs) on the circuits of the evaluation. --case names a circuit file that
+SectorQ exports (results/f_ext/ir/<case>.ir.json; the heavy-hex TFIM and the noisy kicked Ising circuit come from the
+files the other external implementations read): its original gates (rotations, Clifford gates, Pauli noise) are
+handed to the library one by one, so the library applies every gate its own way (baseline as it operates). Without
+--case the kicked Ising circuit comes from the library's own builder (127 qubits, heavy-hex, 20 steps, X angle pi/4,
+observable Z62).
 
   one process, host:      .venv/bin/python jobs/p_ki.py --cutoff 1e-4 [--partitions auto]
   one process, devices:   .venv/bin/python jobs/p_ki.py --cutoff 1e-4 --device 0,1,2,3
@@ -18,6 +21,7 @@ import time
 T = "/pscratch/sd/s/sgkim/kcj/pauliprop/third_party/paulistrings-rs"
 ap = argparse.ArgumentParser()
 ap.add_argument("--cutoff", type=float, required=True)
+ap.add_argument("--case", default="")
 ap.add_argument("--steps", type=int, default=20)
 ap.add_argument("--theta", type=float, default=math.pi / 4)
 ap.add_argument("--obs", type=int, default=62)
@@ -48,8 +52,28 @@ if a.edges:
     print(json.dumps(dict(edges_library=len(mine), edges_sectorq=len(ours), same=mine == ours)))
     sys.exit(0)
 
-circuit = circuits.heavy_hex_kicked_ising(127, a.steps, a.theta)
-obs = observables.single_z(a.obs, 127)
+if a.case:
+    path = os.path.join(os.path.dirname(os.path.dirname(T)), "results", "f_ext", "ir", a.case + ".ir.json")
+    if not os.path.exists(path):
+        path = f"/pscratch/sd/s/sgkim/kcj/pauliprop-sectorq-impl/results/own_perf_v1_n1/{a.case}_engine_r0.ir.json"
+    ir = json.load(open(path))
+    nq = ir["qubits"]
+    circuit = ps.Circuit(nq)
+    for o in ir["constructed_state_order"]:
+        q = o["qubits"]
+        if o["type"] == "rotation":
+            circuit.pauli_rotation("".join(o["pauli"][i] for i in q), q, o["angle"])
+        elif o["type"] == "clifford":
+            {"H": circuit.h, "X": circuit.x}[o["gate"]](q[0]) if o["gate"] in ("H", "X") else circuit.cz(q[0], q[1])
+        elif o["type"] == "pauli_noise":
+            circuit.pauli_channel(o["probabilities"][1], o["probabilities"][2], o["probabilities"][3], q)
+        else:
+            raise ValueError(o["type"])
+    obs = ps.PauliSum.from_strings([t["pauli"] for t in ir["observable"]], [t["coefficient"] for t in ir["observable"]], num_qubits=nq)
+else:
+    nq = 127
+    circuit = circuits.heavy_hex_kicked_ising(127, a.steps, a.theta)
+    obs = observables.single_z(a.obs, 127)
 kw = dict(direction="heisenberg")
 parts = 1
 if a.device:
@@ -62,7 +86,7 @@ if comm is not None:
     kw.update(comm=comm, result="local")
     parts = size
 if a.rows == "cut" and parts > 1:
-    bounds = [round(127 * i / parts) for i in range(parts + 1)]
+    bounds = [round(nq * i / parts) for i in range(parts + 1)]
     kw["partition_row_blocks"] = [list(range(bounds[i], bounds[i + 1])) for i in range(parts)]
 
 if comm is not None:
@@ -77,7 +101,7 @@ rss = next((float(l.split()[1]) / 1048576.0 for l in open("/proc/self/status") i
 if comm is not None:
     value, terms, rss = comm.allreduce(value), comm.allreduce(terms), comm.allreduce(rss)
 if rank == 0:
-    rec = dict(expectation=value, wall=round(seconds, 3), terms=terms, cutoff=a.cutoff, steps=a.steps, partitions=parts, ranks=size,
+    rec = dict(expectation=value, wall=round(seconds, 3), terms=terms, cutoff=a.cutoff, case=a.case or "ki (own builder)", partitions=parts, ranks=size,
                device=a.device, rows=a.rows, host_rss_gb=round(rss, 2), gates=len(circuit))
     for k in ("peak_terms", "layers"):
         try:

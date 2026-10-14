@@ -33,13 +33,14 @@ for round in $(seq 1 ${PP_P_ROUNDS:-10}); do
   fi
   echo "$(date +%m-%dT%H:%M:%S) allocation $JOB"
   echo $JOB > $Q/job_$NAME
-  # the one-node ladders side by side, one node each; then the ladders that take all four nodes
-  $PY jobs/p_drive.py --job $JOB --modes h1,h1u --node 0 &
-  $PY jobs/p_drive.py --job $JOB --modes h1c --node 1 &
-  $PY jobs/p_drive.py --job $JOB --modes g1,g4 --node 2 &
-  $PY jobs/p_drive.py --job $JOB --modes g4c --node 3 &
+  # the one-node ladders side by side, one node each; then the ladders that take all four nodes, the GPUs first
+  $PY jobs/p_drive.py --job $JOB --modes h1,h1u,g1 --circuits ki,tfim,noise,tfimsq --node 0 &
+  $PY jobs/p_drive.py --job $JOB --modes h1c,g1 --circuits ki,xxz,qaoa,hea --node 1 &
+  $PY jobs/p_drive.py --job $JOB --modes g4 --circuits ki,tfim,noise,tfimsq --node 2 &
+  $PY jobs/p_drive.py --job $JOB --modes g4c,g4 --circuits ki,xxz,qaoa,hea --node 3 &
   wait
-  $PY jobs/p_drive.py --job $JOB --modes m16,m16c,mg16,mg16c
+  $PY jobs/p_drive.py --job $JOB --modes mg16,mg16c
+  $PY jobs/p_drive.py --job $JOB --modes m16,m16c
   after=$($PY jobs/p_drive.py --count)
   if [ "$after" -le 0 ]; then [ $own -eq 1 ] && scancel $JOB; break; fi
   # runs are left: they did not fit in what remained of this allocation; let it go and take a fresh one
