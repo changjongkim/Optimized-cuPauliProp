@@ -1,0 +1,102 @@
+\section{SectorQ Design}
+\label{sec:design}
+% 규칙: 설계에는 측정값을 쓰지 않고 파라미터만(구간당 rotation 127개 안팎, 표본 200,000항, 구간당 sector 상한 256개, chunk 262,144항, 노드당 GPU 4장).
+% 절 도입은 앞 절의 요구사항(표 2)을 주어나 목적어로 받아 이음. 구조 순서: 전체 구조 -> 원리(sector) -> 실행 중 선택 -> 저장과 실행 -> 교환 -> frame -> 구현.
+
+\subsection{Overall Architecture}
+% 도입: 표 2의 요구사항을 SectorQ는 구간마다 한 번 도는 루프 하나로 만족함(그림 4).
+
+\noindent\textbf{Window Loop.}
+% 입력(회로, Clifford frame이 줄인 연산 목록, 관측량) -> 구간마다: (1) host memory의 sector, (2) GPU가 sector 하나씩 구간의 gate 적용·합치기·자르기,
+% (3) GPU가 도는 동안 표본으로 다음 구간의 행과 sector 수 선택, (4) 출력을 다음 행으로 나눔, (5) 구간 경계에서 교환. 마지막 구간 뒤에 기대값.
+
+\noindent\textbf{Data Placement.}
+% 항은 노드의 host memory에, 처리 중인 sector만 GPU에. 노드 사이 이동은 구간 경계뿐. 계획 단계가 따로 없음(Planner 아님).
+
+\begin{figure}[t]
+\centering
+\figsource{figures/v2/architecture.png (redraw per panel)}
+\caption{Overall architecture of \SectorQ}
+\label{fig:arch}
+\end{figure}
+
+\subsection{Window-Conserved Parity Sectors}
+% 도입: 루프의 sector는 구간의 모든 gate가 바꾸지 않는 parity로 정함.
+
+\noindent\textbf{Parity of a Term.}
+% 항의 Pauli string을 2n bit(x, z)로 보고, 행 r과의 내적(GF(2))이 parity. 행 g개가 sector 2^g개를 정함.
+
+\noindent\textbf{Rows Conserved by a Window.}
+% 생성자 Q인 rotation은 P를 P와 PQ로 바꿈 -> r(Q)=0인 행에서 두 항의 parity가 같음.
+% 구간의 생성자들이 만드는 공간이 d차원이면 유효한 행의 공간은 2n-d차원(GF(2) 소거). 이 공간이 n차원 이상인 동안 구간을 늘리고 truncation 직후에서 끊음.
+
+\noindent\textbf{Merge Locality.}
+% 정리: 구간 안에서 새 항과 합쳐질 상대는 같은 sector -> sector마다 합치고 자른 결과 = 전체에 대해 합치고 자른 결과(R1-R3). 증명 스케치.
+% 경계에서만 다음 구간의 행으로 다시 나눔(구간이 바뀌면 보존되는 parity가 바뀜).
+
+\begin{figure}[t]
+\centering
+\subfloat[Conserved parity]{\figsource{n08\_parity.png}}\hfill
+\subfloat[Sectors of one window]{\figsource{figures/v2/sectors.png}}
+\caption{Window-conserved parity sectors}
+\label{fig:sectors}
+\end{figure}
+
+\subsection{Run-Time Row and Sector Selection}
+% 도입: 유효한 행은 많고, 어느 행이 항을 고르게 나누는지는 살아 있는 항이 정함(R4).
+
+\noindent\textbf{Sampling the Live Terms.}
+% 구간이 시작할 때 노드마다 표본을 떠서 rank 0에 모음(합계 200,000항). 후보 행 조합마다 표본의 sector 크기를 세어 가장 큰 sector가 작은 것을 고름.
+
+\noindent\textbf{Overlap with the Running Window.}
+% 표본만 뜨고 worker를 먼저 띄움 -> main thread가 다음 구간의 행을 정함 -> worker는 출력을 나누기 직전에만 행을 기다림.
+
+\noindent\textbf{Number of Sectors.}
+% sector 수는 항 수와 GPU 수로 정함(상한 256개, 큰 규모에서 1,024/4,096개는 옵션). 항이 적은 동안은 sector 하나, GPU 하나(R6).
+% 주의: 상한을 정하는 규칙이 아직 없음 -> 설계로 정하거나 평가에서 민감도로 다룸(TODO).
+
+\subsection{Host-Memory Sector Store}
+% 도입: 고른 행으로 나눈 sector는 host memory에 두고 GPU에 하나씩 올림(R5).
+
+\noindent\textbf{Chunked Storage.}
+% sector는 고정 크기 chunk(262,144항)의 목록, chunk는 한 번 pin하고 재사용 -> GPU 복사와 노드 사이 메시지가 같은 메모리를 씀.
+
+\noindent\textbf{Sector Runs on GPUs.}
+% GPU마다 worker 하나, 노드의 다음 sector를 가져가 구간의 gate를 적용 -> 출력은 GPU 위에서 다음 행으로 나뉘어 host chunk에 쓰임.
+
+\noindent\textbf{Splitting Oversized Sectors.}
+% 구간 안에서 sector가 GPU 버퍼보다 커지면 남은 유효한 행으로 둘로 나눔 -> 두 절반은 남은 gate부터 이어서 처리, 답은 같음.
+
+\begin{figure}[t]
+\centering
+\figsource{figures/v2/store.png}
+\caption{Host memory and one GPU during a window}
+\label{fig:store}
+\end{figure}
+
+\subsection{Exchange at Window Boundaries}
+% 도입: 다음 행으로 나뉜 출력 가운데 다른 노드의 몫은 구간 경계에서 그 노드로 감(R2).
+
+\noindent\textbf{Sector Ownership.}
+% sector d는 노드 d mod N이 맡음 -> 보낼 곳을 각 노드가 계산(전원 통신 없음).
+
+\noindent\textbf{Exchange in Rounds.}
+% (보내는 노드, sector) 쌍마다 chunk 하나씩 라운드로 나름 -> 라운드가 끝나면 보낸 chunk를 반납 -> 노드가 동시에 가지는 것은 자기 출력과 한 라운드의 도착분.
+
+\noindent\textbf{Checkpoints.}
+% 구간 경계의 상태를 checkpoint로 씀.
+
+\begin{figure}[t]
+\centering
+\figsource{figures/v2/comm.png (keep the logic, drop measured bars per figure rules)}
+\caption{Global steps of \cuPP and \SectorQ on four GPUs}
+\label{fig:comm}
+\end{figure}
+
+\subsection{Clifford Frame}
+% Clifford gate는 데이터에 적용하지 않고 frame에 모아 뒤 연산의 생성자를 바꿈 -> 데이터에 적용하는 연산 수가 줄어듦(kicked Ising 5,420 gate -> 2,541 연산은 평가에서).
+
+\subsection{Implementation}
+% C++/CUDA, MPI(노드당 rank 하나, GPU 4장), gate 적용·merge·truncation은 cuPauliProp v0.5.0의 단일 GPU 연산을 그대로 호출.
+% 구성: 구간 결정과 sector 저장소·worker·교환·분할·checkpoint(pp_engine, 1,600여 줄), GF(2) 소거, 행 계산과 분할 kernel, noise channel 묶음.
+% 코드 이름 bucket = 본문의 sector. 식별자 이름은 본문에 쓰지 않고 동작으로 설명.

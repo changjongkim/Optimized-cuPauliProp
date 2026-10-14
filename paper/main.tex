@@ -1,0 +1,50 @@
+%% SectorQ paper: SIGMETRICS'27 (POMACS, acmsmall), the format of ScaleQsim (SIGMETRICS'26).
+%% Build: module load texlive/2024; bash scripts/build.sh   (output in build/main.pdf)
+%% Style check: python3 scripts/check_style.py               (0 findings before a draft is shown)
+\documentclass[acmsmall,screen,nonacm,review]{acmart}
+
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usepackage{caption}
+\usepackage{subfig}
+\usepackage{multirow}
+\usepackage{makecell}
+\usepackage{xspace}
+\usepackage{comment}
+
+\newcommand{\SectorQ}{\textit{SectorQ}\xspace}
+\newcommand{\cuPP}{\textit{cuPauliProp}\xspace}
+\newcommand{\todo}[1]{\textcolor{red}{[TODO: #1]}}
+% placeholder for a figure that is not drawn for the paper yet: the source it will be redrawn from
+\newcommand{\figsource}[1]{\fbox{\parbox{0.9\linewidth}{\centering\small\ttfamily #1}}}
+
+\AtBeginDocument{\providecommand\BibTeX{{Bib\TeX}}}
+
+\begin{document}
+
+\title{SectorQ: Highly Scalable Pauli Propagation on HPC Systems with Window-Conserved Parity Sectors}
+
+\author{Anonymous Author(s)}
+\affiliation{\institution{Submission under review}\country{Anonymous}}
+
+\begin{abstract}
+% FORMAT: five sentences, 140-180 words (see the draft in 0.Abstract.tex)
+\input{0.Abstract}
+\end{abstract}
+
+\maketitle
+
+\input{1.Introduction}
+\input{2.Background}
+\input{3.Design}
+\input{4.Evaluation}
+\input{5.RelatedWork}
+\input{6.Conclusion}
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{paper}
+
+\end{document}

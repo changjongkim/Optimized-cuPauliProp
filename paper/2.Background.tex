@@ -1,0 +1,176 @@
+\section{Background}
+\label{sec:background}
+% 구성(2026-10-14 사용자: "2.1과 2.2를 합치고, cascade처럼 실험 데이터로 필요성을" -> "섹션 3개로"):
+%   2.1 Pauli propagation과 병목 둘(개념 + 정확도 데이터)  2.2 기존 분산 방식의 도전 둘(cuPauliProp 측정)
+%   2.3 기회: 구간이 보존하는 parity(구간 수, 고정 분할이 옮기는 항, 실행 중에 바뀌는 항) -> 요구사항 표
+% 근거: pauliprop/README.md 1.1, 2.2-2.4, 3.3, 4.4절; analysis/fixed_rows.py(회로 일곱 개의 구조, frame 없는 좌표),
+%       analysis/geometric_rows.py(kicked Ising 덤프 둘), 엔진 로그의 windows= 줄; paulistrings-rs ARCHITECTURE.md 236행, docs 16행.
+% 범위: "고정 분할은 gate마다 항을 옮긴다"는 frame 없이 gate를 항에 적용하는 기존 구현에 대한 말.
+%       frame 위에서 첫 구간의 행을 고정하면 40-180개 연산에서만 옮김(analysis/fixed_rows.py) -> 평가의 고정 행 대 구간 행 비교가 답할 것.
+
+\subsection{Pauli Propagation beyond 100 Qubits}
+Classical simulation of a quantum circuit stores either the state or the observable.
+State vector simulation stores all $2^n$ amplitudes of the state, and this memory limits it to about 50 qubits on the largest HPC systems~\todo{cite}.
+Tensor network simulation compresses the state into small tensors, and its cost grows with the entanglement of the circuit~\cite{tindall2024efficient}.
+Pauli propagation tracks the observable, not the state, as a list of Pauli terms in the Heisenberg picture and computes its expectation value for circuits with more than 100 qubits~\cite{begusic2024fast, rudolph2025pauli}.
+This list sets the cost of the simulation, and our work focuses on Pauli propagation, since its cost follows the number of kept terms in place of the number of qubits.
+
+\noindent\textbf{Branch, Merge, and Truncate.}
+Each term of the list consists of a coefficient and a Pauli string, and the string maps to a bit vector with an x bit and a z bit for every qubit.
+With this bit vector, the product of two strings becomes the XOR of their bit vectors up to a phase.
+A rotation gate with generator $Q$ keeps every term that commutes with $Q$ and branches every anticommuting term $P$ into $P$ with $\cos\theta$ and $P \oplus Q$ with $\sin\theta$.
+These branches can double the number of terms at every rotation.
+The merge then sums the coefficients of the terms with equal strings, and the truncation removes the terms with a coefficient magnitude below the cutoff.
+Clifford gates map each string to one string and keep the number of terms, and noise channels scale the coefficients (Figure~\ref{fig:pp}).
+
+\noindent\textbf{Term Growth with Accuracy.}
+The cutoff of the truncation sets the accuracy and the number of terms together.
+On a 30-qubit circuit with an exact answer, the error decreases from 0.019 at cutoff $10^{-3}$ to 0.00007 at cutoff $10^{-7}$.
+On the 127-qubit kicked Ising circuit, the expectation value moves from 0.153 at cutoff $10^{-4}$ to 0.229 at $10^{-5}$ and 0.322 at $10^{-6}$.
+This movement requires lower cutoffs, and the circuit holds up to 22.5 million terms within a group of gates at cutoff $10^{-4}$, 1.4 billion at $10^{-5}$, and 100 billion at $10^{-6}$.
+These peaks exceed the terms that remain after the group, since the rotations of a group branch the terms faster than its truncations remove them.
+With 40 bytes per term, the peak at cutoff $10^{-6}$ occupies 4~TB, the memory of about 1,000 GPUs.
+
+\noindent\textbf{Merge before Truncation.}
+The truncation must see the merged coefficient of each string.
+Equal strings that arise from different parents carry parts of one coefficient, and each part can lie below the cutoff although their sum exceeds it.
+A truncation of these unmerged parts removes this sum and changes the answer.
+For example, the 127-qubit kicked Ising circuit at cutoff $10^{-4}$ yields 0.194-0.283 when the truncation sees unmerged parts, whereas the merged run yields 0.1531.
+The merge partner of a new term depends on the gate that creates it and not on the location of its parent.
+As a result, a distributed run cannot place the merge partners on one GPU in advance, in contrast to a state vector that places each amplitude by its index (Table~\ref{tab:sv_pp}).
+
+\begin{table}[t]
+\caption{Distribution of state vector simulation and Pauli propagation}
+\label{tab:sv_pp}
+\centering
+\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+ & \textbf{State Vector} & \textbf{Pauli Propagation} \\
+\midrule
+Data & $2^n$ amplitudes of fixed size & Terms that grow and shrink at every gate \\
+Location of the data & Known from the index & Known only at run time \\
+Work of a gate & Updates fixed positions & Creates, merges, and removes strings \\
+Communication & Gates on the qubits of the index & Every gate that may create a remote string \\
+Limit & Memory of $2^n$ amplitudes & Number of kept terms \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\subfloat[Operations of one gate]{\figsource{n06\_ops.png}}\hfill
+\subfloat[Error and value by cutoff]{\figsource{30-qubit error and 127-qubit kicked Ising value against the cutoff}}\hfill
+\subfloat[Kept terms by cutoff]{\figsource{n02\_accuracy\_terms.png (terms panel)}}
+\caption{Operations and accuracy of Pauli propagation}
+\label{fig:pp}
+\end{figure}
+
+These two bottlenecks intensify at scale.
+The terms of an accurate run must spread over the GPUs of many nodes, whereas every equal string must meet its merge partners before each truncation.
+Existing systems run Pauli propagation on one device~\cite{begusic2024fast, rudolph2025pauli}, merge the terms across all GPUs after every gate~\cite{cupauliprop}, or fix the partition of the strings before the run~\cite{paulistrings}.
+A partition that follows both the gates and the live terms across nodes is not available in these systems.
+
+\subsection{Challenges in Distributed Pauli Propagation}
+Existing distributed systems merge the terms across all GPUs after every gate or partition the strings by rules fixed before the run~\cite{cupauliprop, orqa, paulistrings}.
+We measure the first design with \cuPP~v0.5.0 on the 127-qubit kicked Ising circuit and NVIDIA A100 GPUs, and the measurement exposes two challenges, a global step after every gate and a capacity bound by the GPU memory.
+
+\noindent\textbf{Global Step after Every Gate.}
+\cuPP merges the terms of every gate in a global step, since a new term may merge with a term on any GPU.
+Each MPI rank applies the gate to its terms and calls allgather 22 times to merge and redistribute the terms with all other ranks, and 57\% of the gates have no term to exchange.
+This global step adds a fixed cost of 5.9, 22.5, and 29.8~ms per gate on 4, 8, and 16 GPUs, against 0.05-0.8~ms on one GPU (Figure~\ref{fig:anatomy}).
+As a result, a run with 22.5 million terms takes 2.9-3.2~s on one GPU and 33-48, 65, and 71~s on 4, 8, and 16 GPUs.
+The GPUs compute during 9\% of this run, and the terms remain evenly spread at 1.001 times the mean on the largest rank.
+Thus, the cost of the global step, not an imbalance of the terms, slows the run as GPUs are added.
+
+\noindent\textbf{Capacity Bound by the GPU Memory.}
+\cuPP also keeps all terms of every gate in GPU memory.
+Within a group of consecutive gates, the number of terms rises to 2.9-36 times its value at the start of the group in the seven circuits, and the merge requires working space next to these terms.
+As a result, \cuPP runs out of memory at 88-104 million terms per rank on 1 to 16 GPUs, and these kept terms occupy about 4~GB of the 36~GB that it uses on each GPU.
+A deferred merge reduces the global steps, but its unmerged copies exceed the memory of 16 GPUs on two of the seven circuits.
+A run without the global merge does not lift this bound and returns a wrong answer, 0.1675 on 4 GPUs and 0.189 on 16 GPUs against 0.1531, since its truncation discards parts of equal strings.
+
+\begin{figure}[t]
+\centering
+\subfloat[Time and GPUs]{\figsource{figures/bg\_scaling.png}}\hfill
+\subfloat[Fixed cost per gate]{\figsource{figures/bg\_gatecost.png}}\hfill
+\subfloat[Terms per GPU at failure]{\figsource{figures/bg\_capacity.png}}
+\caption{Distributed mode of \cuPP}
+\label{fig:anatomy}
+\end{figure}
+
+\subsection{Opportunity in Parities Conserved by Windows}
+The two challenges require a partition that keeps every merge partner on the GPU of its parent without a global step.
+We examine where this partition exists with the generators of the seven circuits and with the terms of the kicked Ising circuit.
+
+\noindent\textbf{Parities Conserved by Windows of Gates.}
+A rotation with generator $Q$ changes a term $P$ into $P \oplus Q$, and every parity $r$ with $r \cdot Q = 0$ assigns the same value to both terms.
+A group of consecutive gates, a window, conserves every parity orthogonal to all of its generators, and these parities divide the terms into sectors that keep the merge partners together.
+We count the windows in the seven circuits under the rule that a window grows while at least $n$ conserved parities remain (Table~\ref{tab:windows}).
+The circuits with 1,100-7,960 gates form 8-45 windows, and a partition by window parities moves terms only at the window boundaries, 89-398 times fewer than the gates.
+In contrast, the whole circuit conserves at most two parities, and every term keeps the value of the observable on these parities.
+Thus, no parity divides the terms for the whole run, and the partition must change between windows.
+
+\noindent\textbf{Fixed Partitions Move Terms.}
+Existing partitions fix their parities for the whole run and apply every gate to the terms~\cite{paulistrings}.
+Under these partitions, every gate that changes a fixed parity moves terms between processes.
+With 16 parts, rows over all bits move terms at 93-96\% of the gates of the seven circuits, and rows over only the x bits or only the z bits move terms at 31-95\% of the gates.
+On the kicked Ising circuit, random rows change the owner of 94\% of the terms at a layer of two-qubit gates, and rows over lattice regions reduce this share to 68-89\% with the largest of 16 parts at 1.65-3.37 times the mean.
+The library that implements these partitions keeps its rows for the whole run, since a changed row would move the owner of every term, and it lists the automatic choice of rows as an open problem~\cite{paulistrings}.
+
+\begin{table}[t]
+\caption{Windows and fixed partitions in seven circuits (16 parts, rows fixed without a Clifford frame)}
+\label{tab:windows}
+\centering
+\small
+\begin{tabular}{@{}lrrrrr@{}}
+\toprule
+\textbf{Circuit} & \textbf{Gates} & \textbf{Windows} & \makecell[r]{\textbf{Gates per}\\\textbf{Window}} & \makecell[r]{\textbf{Moving Gates}\\\textbf{(Random Rows)}} & \makecell[r]{\textbf{Moving Gates}\\\textbf{(z Rows)}} \\
+\midrule
+Kicked Ising & 5,420 & 20 & 271 & 94\% & 50\% \\
+TFIM heavy-hex & 5,420 & 45 & 120 & 93\% & 50\% \\
+Noisy kicked Ising & 7,960 & 20 & 398 & 95\% & 50\% \\
+TFIM 11$\times$11 & 3,410 & 24 & 142 & 94\% & 60\% \\
+XXZ 8$\times$8 & 2,048 & 23 & 89 & 94\% & 62\% \\
+QAOA & 1,100 & 8 & 138 & 94\% & 60\% \\
+Ansatz & 4,784 & 34 & 141 & 96\% & 95\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent\textbf{Partitions that Follow the Run.}
+The parities of each window follow its gates, and the balance of the sectors follows the live terms.
+On the kicked Ising circuit at cutoff $10^{-5}$, the terms at the start of a window grow from 1 to 159 million over the run, and the first windows hold too few terms to divide (Figure~\ref{fig:windows}).
+The terms within a window then rise to 2.9-36 times this start in the seven circuits, and the sectors of a balanced partition differ from window to window.
+As a result, only the live terms of the run determine the number of sectors and the parities that balance them.
+Thus, distributed Pauli propagation requires a partition that the system recomputes for every window from its gates and from the live terms during the run.
+
+\begin{figure}[t]
+\centering
+\subfloat[Gates and windows]{\figsource{analysis/fixed\_rows.json and engine logs: gates, windows, moving gates per circuit}}\hfill
+\subfloat[Terms at window starts]{\figsource{n11\_window\_terms.png (kicked Ising, cutoff 1e-5, 16 GPUs)}}
+\caption{Windows of gates in seven circuits}
+\label{fig:windows}
+\end{figure}
+
+These observations define six requirements for distributed Pauli propagation, listed in Table~\ref{tab:req}.
+A partition that keeps every merge partner in the part of its parent satisfies the first three requirements together.
+
+\begin{table}[t]
+\caption{Requirements of distributed Pauli propagation}
+\label{tab:req}
+\centering
+\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{\#} & \textbf{Requirement} & \textbf{Evidence} \\
+\midrule
+R1 & Merge every equal string before each truncation & Unmerged parts change the answer \\
+R2 & No coordination among GPUs during the gates & The fixed cost per gate grows with the GPUs \\
+R3 & No accumulation of unmerged copies & A deferred merge exceeds the GPU memory \\
+R4 & A partition recomputed during the run & Fixed rows move terms at 31-96\% of the gates \\
+R5 & A capacity beyond the GPU memory & Kept terms fill 4 of 36~GB on one GPU \\
+R6 & No loss on small problems & 0.42~s on one GPU becomes 32-47~s on four \\
+\bottomrule
+\end{tabular}
+\end{table}

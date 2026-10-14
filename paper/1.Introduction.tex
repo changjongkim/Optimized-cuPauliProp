@@ -1,0 +1,94 @@
+\section{Introduction}
+\label{sec:intro}
+% 구성(2026-10-14 사용자: "ScaleQsim처럼 서론 스타일을, 그림 넣는 것만 빼고"):
+%   ¶1 양자 컴퓨팅의 발전과 응용 -> ¶2 NISQ의 한계와 HPC 고전 시뮬레이션의 필요 -> ¶3 시뮬레이션 방법과 "Our work focuses on"
+%   -> ¶4 규모의 필요와 "However, the existing systems show limited performance and scalability" -> ¶5 시스템마다의 한계(수치)와 "To summarize"
+%   -> 표 1 + ¶6 "Many previous studies" -> ¶7 "SectorQ distinguishes itself" -> ¶8 In this paper(사용자가 받아들인 판)
+% ScaleQsim 형식이라 ¶4-¶5에 측정값이 여럿 들어감(사용자 지시가 "For example 한 문장" 규칙보다 우선).
+% \todo{cite}: 확인한 문헌을 찾아 넣을 자리(가짜 항목을 만들지 않음).
+
+% ¶1 DRAFT (2026-10-14)
+Quantum computers have advanced from demonstrations of quantum supremacy on sampling tasks to processors with more than 100 qubits that measure the expectation values of physical models~\cite{arute2019quantum, kim2023evidence}.
+These expectation values are the output of quantum simulation, the application that motivates quantum computing in physics, chemistry, and materials science~\todo{cite}.
+A 127-qubit processor, for example, measured the magnetization of a kicked Ising model at a scale beyond the exact classical methods~\cite{kim2023evidence}.
+This scale moves the comparison between quantum and classical computation from small benchmarks to the circuits of these applications.
+As a result, the range of expectation values that a classical computer can still produce has become a central question for the development of quantum computers.
+
+% ¶2 DRAFT (2026-10-14)
+Despite this progress, current processors remain noisy intermediate-scale quantum (NISQ) devices~\cite{preskill2018quantum}.
+The noise of these devices biases every measured expectation value, and error mitigation recovers an estimate from repeated runs at amplified noise~\cite{kim2023evidence}.
+These estimates require an independent reference, and classical simulation on high-performance computing (HPC) systems provides this reference without noise.
+This reference verifies the hardware, calibrates the error mitigation, and tests quantum algorithms before they run on a processor.
+Thus, several groups simulated the 127-qubit experiment soon after its publication, with tensor networks and with Pauli propagation~\cite{tindall2024efficient, begusic2024fast}.
+
+% ¶3 DRAFT (2026-10-14)
+Classical simulation of these circuits follows three approaches on HPC systems.
+State vector simulation stores all $2^n$ amplitudes of an $n$-qubit state, and this memory limits it to about 50 qubits on the largest systems~\todo{cite}.
+Tensor network simulation stores the state as a network of small tensors, and its cost grows with the entanglement of the circuit~\todo{cite}.
+Pauli propagation tracks the observable, not the state, as a list of Pauli terms, and its cost follows the number of kept terms in place of the number of qubits~\cite{begusic2024fast, rudolph2025pauli}.
+This cost extends Pauli propagation to circuits with more than 100 qubits, and NVIDIA and IBM now provide Pauli propagation in their quantum software stacks~\cite{cupauliprop}~\todo{cite Qiskit}.
+Our work focuses on Pauli propagation, since its accuracy follows the resources of the system in place of the number of qubits.
+
+% ¶4 DRAFT (2026-10-14)
+The accuracy of Pauli propagation, however, requires far more terms than one GPU holds.
+A lower cutoff on the coefficients keeps more terms, and the terms grow within each layer of gates before the truncation removes the small ones.
+For example, the 127-qubit kicked Ising circuit holds up to 1.4 billion terms within a layer at cutoff $10^{-5}$ and 100 billion terms at cutoff $10^{-6}$, the memory of about 14 and 1,000 GPUs.
+These counts place Pauli propagation on HPC systems, and recent systems run it on GPU clusters and on the Fugaku supercomputer with $2^{17}$ processes~\cite{cupauliprop, orqa}.
+However, the existing systems show limited performance and scalability as the number of terms grows.
+
+% ¶5 DRAFT v2 (2026-10-14): 사용자 지적("Atlas/HyQuas식 나열은 별로, 메모리 부족이 생기는 이유가 간략히 나와야")에 따라
+%   시스템별 나열을 빼고 원인 두 가지(gate마다의 전역 단계, GPU 메모리)와 메모리가 모자라는 이유를 씀. 시스템별 배수는 평가로.
+The existing systems have two limits, and the first is the global step after every gate.
+Since a new term may merge with a term on any GPU or process, these systems exchange the new terms of every gate across all GPUs or processes~\cite{cupauliprop, orqa, monoprop}.
+This step adds a fixed cost to every gate, from 5.9~ms on 4 GPUs to 29.8~ms on 16 GPUs in \cuPP.
+The second limit is the GPU memory.
+Between two truncations, every rotation branches the terms, and the list grows to several times its size at the truncation.
+The merge of these terms also requires working space on the same GPU.
+As a result, \cuPP holds about 100 million kept terms on a GPU with 36~GB, and paulistrings-rs keeps its device partitions on the GPUs by the same rule~\cite{paulistrings}.
+A deferred merge reduces the global steps, but the unmerged copies of equal strings fill this memory faster.
+To summarize, the existing systems bind the cost of every gate to the number of GPUs and the size of the problem to the GPU memory, and our work aims to remove both bounds.
+
+\begin{table}[t]
+\caption{Comparison with existing Pauli propagation systems (MN: Multi-Node, GPU: GPU Execution, LP: Locality-Preserving Partition, RP: Run-Time Partition from the Gates and the Live Terms, HM: Host Memory beyond GPU Memory)}
+\label{tab:prior}
+\centering
+\small
+\begin{tabular}{@{}llccccc@{}}
+\toprule
+\textbf{System} & \textbf{Method} & \textbf{MN} & \textbf{GPU} & \textbf{LP} & \textbf{RP} & \textbf{HM} \\
+\midrule
+PauliPropagation.jl~\cite{rudolph2025pauli} & Pauli propagation, one node & & & & & \\
+SPD~\cite{begusic2024fast} & Sparse Pauli dynamics & & \checkmark & & & \\
+ORQA~\cite{orqa} & Distributed strings by hash & \checkmark & & & & \\
+MonoProp~\cite{monoprop} & Distributed Pauli propagation & \checkmark & & & & \\
+\cuPP~\cite{cupauliprop} & Global merge after every gate & \checkmark & \checkmark & & & \\
+paulistrings-rs~\cite{paulistrings} & Fixed linear partition & \checkmark & \checkmark & \checkmark & & \\
+\midrule
+\textbf{\SectorQ (Ours)} & \textbf{Window-conserved parity sectors} & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ¶6 DRAFT (2026-10-14): "Many previous studies, as shown in Table 1"
+Many previous studies, as shown in Table~\ref{tab:prior}, have optimized Pauli propagation from different algorithm and architecture perspectives.
+Single-node simulators reduce the cost of each gate with sparse data structures, symmetries of the circuit, and GPU kernels~\cite{begusic2024fast, rudolph2025pauli}~\todo{cite}.
+Distributed CPU systems assign each Pauli string to one process by a hash or a distribution function and exchange the new strings after every gate~\cite{orqa, monoprop}.
+Distributed GPU engines keep the strings of each gate across all GPUs and merge them in a global step~\cite{cupauliprop}.
+Linear partitions assign each string by parities of its bits, and these parities remain fixed for the whole run~\cite{paulistrings}.
+Theory on the commutator graph of a circuit also shows that the generators of the gates divide the Pauli strings into components that never mix~\todo{cite West et al.}.
+
+% ¶7 DRAFT (2026-10-14): "SectorQ distinguishes itself from previous studies by"
+\SectorQ distinguishes itself from previous studies by recomputing the partition of the terms for every window of gates during the run.
+Previous systems merge the terms globally after every gate or fix the partition before the run, and these choices bind the exchange to the gates and the balance to rows chosen in advance.
+In contrast, \SectorQ derives the parities that each window conserves from the generators of its gates, chooses among them by the balance of a sample of the live terms, and assigns each sector to one node for the whole window.
+Each GPU loads one sector at a time from the host memory of its node, and the terms move between nodes only at window boundaries.
+This design removes the global step after every gate and the bound of the GPU memory, and enables scalable performance across circuits, problem sizes, and GPU counts.
+
+% ¶8 "In this paper": ACCEPTED by the user (2026-10-14), keep as it is.
+% (ScaleQsim형 대안 "The goal of SectorQ is to 1) 2) 3). To achieve these goals, SectorQ 1) 2) 3)."은 사용자가 고르면 바꿈)
+In this paper, we present \SectorQ, a Pauli propagation system for GPU clusters that partitions the terms by the parities that a window of gates conserves.
+A rotation gate maps each term to itself and to its product with the generator of the gate, and every parity that the generator leaves unchanged assigns the same value to both terms.
+Specifically, \SectorQ introduces 1) window-conserved parity sectors that the system recomputes for every window from the generators of its gates, 2) a run-time choice of the parities and the number of sectors from a sample of the live terms while the GPUs process the current window, and 3) a host-memory sector store from which each GPU loads one sector at a time.
+With these sectors, the terms move between nodes only at window boundaries, and the number of terms that \SectorQ holds follows the host memory of all nodes.
+Our evaluation on up to 512 NVIDIA A100 GPUs of the Perlmutter supercomputer shows that \SectorQ reduces the simulation time by 4.4-9.7$\times$ on 16 GPUs and increases the largest finished problem by 140$\times$ on 512 GPUs compared with \cuPP, the existing multi-GPU engine.
+We open-source \SectorQ at: \url{https://anonymous.4open.science/r/SectorQ}

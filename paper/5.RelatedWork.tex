@@ -1,0 +1,14 @@
+\section{Related Work}
+\label{sec:related}
+% 선행 연구는 무엇을 나누는지(분할 key)와 어디에서 실행하는지(한 GPU, CPU 분산, GPU 분산)로 보고함. "first"는 직접 확인한 범위로만.
+
+\noindent\textbf{Pauli Propagation Simulators.}
+% 한 노드: PauliPropagation.jl, ppvm, Qiskit pauli-prop, SPD(GPU 1장), OBP. 분산: cuPauliProp(gate마다 전역 합치기), ORQA(Fugaku, 분배 함수와 gate마다 MPI_Put), MonoProp.
+
+\noindent\textbf{Partitioning by Conserved Quantities.}
+% paulistrings-rs(GF(2) 선형 행, 실행 내내 고정, 행 조정은 열린 문제로 적음), iQCC 병렬 구현(bitmask-XOR로 목적지 계산),
+% commutator graph(생성자 집합 아래 섞이지 않는 성분, 회로 전체에 대한 이론), symmetry merging(단일 노드).
+% SectorQ의 차이: 구간마다 그 구간의 gate로 다시 계산, 실행 중 균형으로 선택, host memory sector.
+
+\noindent\textbf{Distributed Quantum Circuit Simulation.}
+% 상태 벡터: ScaleQsim, cusvaer, HyQuas -> global/local qubit 교환을 gate 묶음마다 하는 것과 같은 구조(구간마다 다시 나눔). tensor network: 분할 축약.
