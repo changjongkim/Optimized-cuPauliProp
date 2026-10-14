@@ -125,6 +125,7 @@ struct Opts {
   int snap = 1;                  // end a window right after a truncation, where the operator is locally smallest
   int pilot = 0;                 // run one bucket ahead through the window and end the window where it is smallest
   int pilotRows = 4;             // the pilot runs on 1/2^pilotRows of that bucket (a sub-bucket by further rows)
+  int fixedRows = 0;             // 1: the rows chosen when the terms are first divided stay for the rest of the run (ablation)
   int perGpu = 2;                // at least this many buckets per GPU once there are enough terms
   int stream = 0;                // 1: exchange between nodes while the window runs instead of after it
   long minBucket = 200000;       // ... but never buckets smaller than this at a window start
@@ -204,7 +205,8 @@ struct ChunkPool {
 static ChunkPool g_pool;
 
 struct Bucket { std::vector<Chunk> ch; long n = 0; };
-struct Work { Bucket b; int startOp; bool pendingTrunc = false; bool onGpu = false; };   // pendingTrunc: operation startOp-1 was applied, its deduplication and truncation were not; onGpu: the terms are the worker's current expansion (b.n of them), not host chunks
+struct Work { Bucket b; int startOp; int pendingTrunc = 0; bool onGpu = false; };   // pendingTrunc: operation startOp-1 was applied, its deduplication and truncation were not; onGpu: the terms are the worker's current expansion (b.n of them), not host chunks
+// pendingTrunc 2 (--fixed-rows): the bucket may hold equal strings from the exchange after a changed row; merge before operation startOp
 
 // Reserves room for c terms at the tail of a bucket (caller holds the bucket's lock if shared).
 static void reserveTail(Bucket& b, long c, std::vector<Seg>& out) {
@@ -241,7 +243,14 @@ struct Window {
   std::vector<BV> spare;            // further rows of the same window, for splitting
   int annDim = 0, generators = 0;
   double cosetFrac = 0;             // share of the sample in the largest coset of the generator span
+  int lastBreaks = 0;               // --fixed-rows: the last operation changes a fixed row; its truncation waits for the exchange
 };
+
+// --fixed-rows 1 (rank 0): the rows chosen for the first window that divides the terms, kept for the rest of the run. A later
+// window ends with the first branching rotation that changes one of the rows in use; that rotation is applied without its
+// truncation, the terms go to their buckets by the same rows at the boundary, and the next window merges and truncates first.
+static std::vector<BV> g_fixed;
+static Window planFixed(int b, int gWanted, const Opts& o, std::mt19937_64& rng);
 
 static int ownerCpu(const uint64_t* t, const std::vector<uint64_t>& rows, int g) {
   int ow = 0;
@@ -274,6 +283,7 @@ static double largestCosetShare(const std::vector<uint64_t>& sample, const Span&
 // Finds the window that starts at b and the rows that survive it.
 //   sample: strings as they will be at position b (may be empty); gWanted: desired log2(buckets).
 static Window planWindow(int b, int gWanted, const std::vector<uint64_t>& sample, const Opts& o, std::mt19937_64& rng) {
+  if (o.fixedRows && !g_fixed.empty()) return planFixed(b, gWanted, o, rng);
   const int W = g_L.words(), M = (int)g_ops.size(), n2 = 2 * g_L.n;
   gWanted = std::min(gWanted, o.gmax);
   const bool cosetRule = (o.window == "coset") && gWanted > 0 && !sample.empty();
@@ -356,6 +366,75 @@ static Window planWindow(int b, int gWanted, const std::vector<uint64_t>& sample
     if (mx < bestMax) { bestMax = mx; w.rows = rows; }
   }
   if (!ann.empty()) for (int i = 0; i < 32; i++) w.spare.push_back(randomRow());
+  if (o.fixedRows && g_fixed.empty() && w.g > 0) {
+    // The rows for the rest of the run: as many as the largest bucket count, the best-balanced set on this sample.
+    const int G = std::min(o.gmax, (int)ann.size());
+    std::vector<uint64_t> best;
+    double bestMx = 1e300;
+    for (int c = 0; c < std::max(1, o.cands); c++) {
+      std::vector<uint64_t> rows((size_t)G * W, 0);
+      for (int j = 0; j < G; j++) { BV r = randomRow(); std::copy(r.begin(), r.end(), rows.begin() + (size_t)j * W); }
+      std::vector<long> h((size_t)1 << G, 0);
+      for (size_t i = 0; i < ns; i++) h[ownerCpu(&sample[i * W], rows, G)]++;
+      const double mx = ns ? (double)*std::max_element(h.begin(), h.end()) : 0;
+      if (mx < bestMx) { bestMx = mx; best = rows; }
+    }
+    for (int j = 0; j < G; j++) g_fixed.emplace_back(best.begin() + (size_t)j * W, best.begin() + (size_t)(j + 1) * W);
+    for (int j = 0; j < w.g; j++) std::copy(g_fixed[j].begin(), g_fixed[j].end(), w.rows.begin() + (size_t)j * W);
+    if (g_rank == 0) printf("fixed rows: %d chosen at operation %d (largest of %d buckets on the sample: %.3f of the mean)\n",
+                            G, b, 1 << G, ns ? bestMx * (double)(1 << G) / (double)ns : 0.0);
+  }
+  return w;
+}
+
+static Window planFixed(int b, int gWanted, const Opts& o, std::mt19937_64& rng) {
+  const int W = g_L.words(), M = (int)g_ops.size();
+  static int lastBranch = -1;
+  if (lastBranch < 0) for (int k = 0; k < M; k++) if (g_ops[k].type == OP_ROT && g_ops[k].branches) lastBranch = k;
+  int g = std::max(0, std::min(std::min(gWanted, o.gmax), (int)g_fixed.size()));
+  Window w; w.b = b;
+  Span V; V.L = g_L;
+  std::vector<int> maps;
+  int k = b, gens = 0;
+  for (; k < M; k++) {
+    const Op& op = g_ops[k];
+    if (op.type == OP_ROT && op.branches) {
+      BV v = op.gen;
+      for (int j = (int)maps.size() - 1; j >= 0; --j) mapVec(g_ops[maps[j]], v.data(), g_L);
+      bool hit = false;
+      for (int j = 0; j < g && !hit; j++) hit = dotParity(g_fixed[j].data(), v.data(), W) != 0;
+      if (hit && k + 1 == M) {
+        // The last operation of the circuit: no exchange follows it. It runs in a window of its own without rows (one
+        // bucket), so that its truncation sees the merged terms.
+        if (k > b) break;                               // this window ends before it
+        g = 0;
+        V.add(v);
+        gens++;
+        continue;
+      }
+      if (hit) { w.lastBreaks = 1; k++; break; }       // the last operation of this window
+      V.add(v);
+      gens++;
+    } else if (changesBits(op)) {
+      if (k < lastBranch) die("--fixed-rows: an operation that changes the bits comes before the last branching rotation", __LINE__);
+      maps.push_back(k);
+    }
+  }
+  w.e = k;
+  w.generators = gens;
+  std::vector<BV> ann = V.annihilator();
+  w.annDim = (int)ann.size();
+  w.g = g;
+  w.rows.assign((size_t)std::max(g, 1) * W, 0);
+  for (int j = 0; j < g; j++) std::copy(g_fixed[j].begin(), g_fixed[j].end(), w.rows.begin() + (size_t)j * W);
+  // Rows for splitting a bucket inside the window: valid for every operation before the last one.
+  for (int i = 0; i < 32 && !ann.empty(); i++) {
+    BV r(W, 0);
+    bool any = false;
+    while (!any)
+      for (auto& a : ann) if (rng() & 1ULL) { any = true; for (int x = 0; x < W; x++) r[x] ^= a[x]; }
+    w.spare.push_back(r);
+  }
   return w;
 }
 
@@ -409,6 +488,7 @@ static Window planShared(int b, int gWanted, std::vector<uint64_t>& localSample,
     MPI_Bcast(payload.data(), len, MPI_UINT64_T, 0, MPI_COMM_WORLD);
     MPI_Bcast(&frac, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
     if (g_rank != 0) { w = unpackWindow(hdr, payload); w.cosetFrac = frac; }
+    if (o.fixedRows) { int lb = w.lastBreaks; MPI_Bcast(&lb, 1, MPI_INT, 0, MPI_COMM_WORLD); w.lastBreaks = lb; }
   }
   return w;
 }
@@ -665,11 +745,11 @@ struct Worker {
     }
   }
 
-  void makeExpansions(long nCur) {
+  void makeExpansions(long nCur, int hasDuplicates = 0) {
     if (haveEx) { CUPP(cupaulipropDestroyPauliExpansion(ex[0])); CUPP(cupaulipropDestroyPauliExpansion(ex[1])); }
     cur = 0;
     CUPP(cupaulipropCreatePauliExpansion(handle, g_L.n, xz[0], xzMem, cf[0], cfMem,
-                                         CUDA_R_64F, nCur, CUPAULIPROP_SORT_ORDER_NONE, 0, &ex[0]));
+                                         CUDA_R_64F, nCur, CUPAULIPROP_SORT_ORDER_NONE, hasDuplicates, &ex[0]));
     CUPP(cupaulipropCreatePauliExpansion(handle, g_L.n, xz[1], xzMem, cf[1], cfMem,
                                          CUDA_R_64F, 0, CUPAULIPROP_SORT_ORDER_NONE, 0, &ex[1]));
     haveEx = true;
@@ -684,7 +764,7 @@ struct Worker {
     return r;
   }
 
-  void requeue(Shared& sh, Bucket& piece, int startOp, bool pendingTrunc = false) {
+  void requeue(Shared& sh, Bucket& piece, int startOp, int pendingTrunc = 0) {
     { std::lock_guard<std::mutex> lk(sh.qm);
       sh.queue.push_front(Work());
       sh.queue.front().b.ch.swap(piece.ch); sh.queue.front().b.n = piece.n; sh.queue.front().startOp = startOp;
@@ -811,7 +891,7 @@ struct Worker {
   }
   // Splits the current expansion (strings at position k) by `bits` more rows of the window (one row: two halves)
   // and requeues the pieces.
-  void splitCurrent(const Window& w, Shared& sh, int k, bool pendingTrunc, bool share = false, int bits = 1) {
+  void splitCurrent(const Window& w, Shared& sh, int k, int pendingTrunc, bool share = false, int bits = 1) {
     sh.canStay = false;              // several pieces: they end in the next pool on the host
     const int words = g_L.words();
     const long m = numTerms();
@@ -910,7 +990,7 @@ struct Worker {
         off += k.n;
       }
       releaseBucket(b);
-      makeExpansions(nb0);
+      makeExpansions(nb0, wk.pendingTrunc ? 1 : 0);   // a piece with pending work may hold equal strings
       tH2D += now() - t0;
     }
 
@@ -942,11 +1022,11 @@ struct Worker {
     if (wk.pendingTrunc) {
       if (!dedupNow()) {
         if (!allowSplit) die("capacity (this mode cannot split)", __LINE__);
-        splitCurrent(w, sh, wk.startOp, true);
+        splitCurrent(w, sh, wk.startOp, wk.pendingTrunc);
         tOps += now() - t0;
         return;
       }
-      truncNow();
+      if (wk.pendingTrunc == 1) truncNow();
       sinceDedup = 0;
       merged = true;
     }
@@ -958,7 +1038,7 @@ struct Worker {
       if (sh.popAt) sh.popAt[k] += m;
       // Truncation: the scheduled one, or only numerical dust after a Clifford-angle rotation.
       const bool dust = (op.type == OP_ROT && !op.branches);
-      const bool fused = op.trunc && defer == 0;
+      const bool fused = op.trunc && defer == 0 && !(w.lastBreaks && k == w.e - 1);   // --fixed-rows: after the exchange
       const int32_t nT = fused ? (int32_t)trunc.size() : (dust ? 1 : 0);
       const cupaulipropTruncationStrategy_t* pT = fused ? trunc.data() : (dust ? junk.data() : nullptr);
       cupaulipropPauliExpansionView_t v;
@@ -1359,6 +1439,7 @@ int main(int argc, char** argv) {
     else if (a == "--kappa")       o.kappa = atof(next());
     else if (a == "--snap")        o.snap = atoi(next());
     else if (a == "--pilot")       o.pilot = atoi(next());
+    else if (a == "--fixed-rows")  o.fixedRows = atoi(next());
     else if (a == "--pilot-rows")  o.pilotRows = atoi(next());
     else if (a == "--per-gpu")     o.perGpu = atoi(next());
     else if (a == "--stream")      o.stream = atoi(next());
@@ -1546,6 +1627,7 @@ int main(int argc, char** argv) {
 
   std::vector<uint64_t> noSample;
   if (!haveWindow) w = planShared(pos, 0, noSample, o, rng);   // the pool is one bucket at the start
+  int prevBreaks = 0;                                          // --fixed-rows: the last window ended with a changed row
   for (int wi = firstWindow; ; wi++) {
     long NinLocal = 0, Nin = 0;
     for (auto& b : pool) NinLocal += b.n;
@@ -1595,6 +1677,7 @@ int main(int argc, char** argv) {
           if (bestEnd > 0) { newEnd = bestEnd; pilotEnds++; pilotGrowth = best / scaleTot; }
         }
       }
+      if (newEnd < w.e) w.lastBreaks = 0;
       w.e = newEnd;
       tPilot += now() - tq;
     }
@@ -1667,11 +1750,13 @@ int main(int argc, char** argv) {
       int inputs = workers[0].onGpu ? 1 : 0;
       for (const auto& b : pool) inputs += b.n > 0 ? 1 : 0;
       sh.canStay = !last && inputs == 1;
-      if (workers[0].onGpu) { sh.queue.push_back(Work()); sh.queue.back().b.n = workers[0].numTerms(); sh.queue.back().startOp = w.b; sh.queue.back().onGpu = true; }
+      if (workers[0].onGpu) { sh.queue.push_back(Work()); sh.queue.back().b.n = workers[0].numTerms(); sh.queue.back().startOp = w.b; sh.queue.back().onGpu = true;
+                              sh.queue.back().pendingTrunc = (prevBreaks && w.b > 0) ? (g_ops[w.b - 1].trunc ? 1 : 2) : 0; }
     }
     std::sort(pool.begin(), pool.end(), [](const Bucket& a, const Bucket& b) { return a.n > b.n; });
     for (auto& b : pool)
-      if (b.n > 0) { sh.queue.push_back(Work()); sh.queue.back().b.ch.swap(b.ch); sh.queue.back().b.n = b.n; sh.queue.back().startOp = w.b; b.n = 0; }
+      if (b.n > 0) { sh.queue.push_back(Work()); sh.queue.back().b.ch.swap(b.ch); sh.queue.back().b.n = b.n; sh.queue.back().startOp = w.b; b.n = 0;
+                     sh.queue.back().pendingTrunc = (prevBreaks && w.b > 0) ? (g_ops[w.b - 1].trunc ? 1 : 2) : 0; }
       else releaseBucket(b);
     sh.active = 0;
     std::vector<std::thread> th;
@@ -1733,6 +1818,7 @@ int main(int argc, char** argv) {
       writeCheckpoint(pos, wi, nextW);
       if (o.stopAtCkpt) { if (g_rank == 0) printf("stopped at checkpoint\n"); MPI_Finalize(); return 0; }
     }
+    prevBreaks = w.lastBreaks;
     w = nextW;
   }
   MPI_Barrier(MPI_COMM_WORLD);
