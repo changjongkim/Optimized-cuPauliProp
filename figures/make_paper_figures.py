@@ -1,0 +1,477 @@
+#!/usr/bin/env python3
+"""Data figures of the paper (paper/figures/*.pdf): one PDF per panel and one legend strip per figure.
+
+  ../env/bin/python3 make_paper_figures.py [name ...]      (default: every figure; names from FIGURES below)
+
+The panels are drawn by the functions of the README and deck figures (make_eval_figures.py, make_deck_figures.py: the
+same data, colors and markers); their save step is intercepted and every panel is placed again on a canvas of its own:
+  - the paper prints every panel and legend at SCALE of its size, so one font size on the canvas is one size in print:
+    T points for tick labels, axis labels and legends, V points for printed values, no bold text;
+  - a panel has the canvas of its place in the paper (PLACE: four, three, two or one panel per text width), with the
+    tick labels, axis labels and values inside it; tick labels that meet are thinned (to the powers of ten of a cutoff
+    ladder, else to every second or third label);
+  - no title (it becomes the subfloat caption, printed here), the common x label and the y label on every panel, the
+    legend in a strip of its own as wide as the text.
+Prints, per figure, the files with their captions, and the overlaps that the check of the deck figures still finds.
+"""
+import os
+import re
+import sys
+
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+from matplotlib import patheffects
+from matplotlib.text import Text
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+ARGS, sys.argv = sys.argv[1:], sys.argv[:1]
+sys.path.insert(0, HERE)
+import make_eval_figures as mf                      # noqa: E402
+import make_deck_figures as md                      # noqa: E402
+import make_prs_figure as mp                        # noqa: E402
+
+OUT = os.path.join(os.path.dirname(HERE), "paper", "figures")
+os.makedirs(OUT, exist_ok=True)
+SCALE = 0.6                                         # \includegraphics[scale=0.6] for every file of this script
+TEXT_W = 5.48 / SCALE                               # the text width of acmsmall (395.8 pt) on the canvas
+T, V = 12, 11                                       # points on the canvas: 7.2 and 6.6 points in print
+PLACE = {4: (2.17, 2.0), 3: (2.95, 2.0), 2: (4.5, 2.1), 1: (TEXT_W, 2.3)}      # canvas of a panel, by panels per text width
+HALO = [patheffects.withStroke(linewidth=2.4, foreground="white")]
+CAUGHT = {}
+
+
+def catch(fig, name, *a, **k):
+    CAUGHT[name] = fig
+
+
+md.finish = catch
+mf.save = catch
+
+
+# ----------------------------------------------------------------------------------------------- one panel
+def panels_of(fig):
+    return [ax for ax in fig.axes if ax.axison and (ax.lines or ax.patches or ax.collections)]
+
+
+def legend_items(fig):
+    """(handle, label) of every legend of the figure, in order, without repeats."""
+    out, seen = [], set()
+    legs = list(fig.legends) + [ax.get_legend() for ax in fig.axes if ax.get_legend() is not None]
+    for leg in legs:
+        for h, t in zip(leg.legend_handles, leg.get_texts()):
+            if t.get_text() not in seen:
+                seen.add(t.get_text())
+                out.append((h, t.get_text()))
+    return out
+
+
+def restyle(ax):
+    """Sizes for print: text, lines, markers, frame."""
+    for t in [ax.xaxis.label, ax.yaxis.label]:
+        t.set_fontsize(T)
+        t.set_fontweight("normal")
+    ax.tick_params(axis="both", which="major", labelsize=T, length=3.5, width=0.8, pad=2.5)
+    minor = [t for t in ax.xaxis.get_minor_ticks() if t.label1.get_text().strip()]
+    if minor:                                       # the second line of md.one_row, or the lower row of md.stagger
+        length = ax.xaxis.get_minor_ticks()[0].tick1line.get_markersize()
+        if length > 5:
+            ax.tick_params(axis="x", which="minor", length=2 * T * 1.36, width=0.5, labelsize=T, pad=2.5)
+        else:
+            ax.tick_params(axis="x", which="minor", length=0, labelsize=T, pad=2.5 + 3.5 + 1.22 * T)
+    else:
+        ax.tick_params(axis="both", which="minor", length=2, width=0.6)
+    for t in ax.get_xticklabels(which="both") + ax.get_yticklabels(which="both"):
+        t.set_fontweight("normal")
+    for t in ax.texts:
+        t.set_fontsize(V)
+        t.set_fontweight("normal")
+        if t.get_path_effects():
+            t.set_path_effects(HALO)
+    for s in ax.spines.values():
+        s.set_linewidth(0.8)
+
+
+def thin_lines(ax):
+    """Lines and markers for print (once per panel)."""
+    for line in ax.lines:
+        if line.get_linewidth() > 1.4:
+            line.set_linewidth(max(1.3, line.get_linewidth() * 0.5))
+        line.set_markersize(line.get_markersize() * 0.6)
+        line.set_markeredgewidth(min(line.get_markeredgewidth(), 1.0))
+
+
+def place(fig, ax, w, h, pad=0.04):
+    """Moves the panel until its labels reach `pad` inches from the canvas edges."""
+    fig.set_size_inches(w, h)
+    ax.set_position([0.2, 0.2, 0.7, 0.7])
+    for _ in range(6):
+        fig.canvas.draw()
+        r = fig.canvas.get_renderer()
+        tb, bb, d = ax.get_tightbbox(r), ax.get_window_extent(r), fig.dpi
+        x0 = (bb.x0 - tb.x0) / d + pad
+        x1 = w - (tb.x1 - bb.x1) / d - pad
+        y0 = (bb.y0 - tb.y0) / d + pad
+        y1 = h - (tb.y1 - bb.y1) / d - pad
+        new = [x0 / w, y0 / h, max(0.05, (x1 - x0) / w), max(0.05, (y1 - y0) / h)]
+        old = ax.get_position().bounds
+        ax.set_position(new)
+        if max(abs(a - b) for a, b in zip(new, old)) < 1e-4:
+            break
+
+
+def ticks_meet(fig, ax):
+    fig.canvas.draw()
+    r = fig.canvas.get_renderer()
+    for labels in (md.xlabels(ax), md.xlabels(ax, minor=True)):
+        boxes = sorted((t.get_window_extent(r) for t in labels), key=lambda b: b.x0)
+        if any(b.x0 - a.x1 < 0.25 * T * fig.dpi / 72 for a, b in zip(boxes, boxes[1:])):
+            return True
+    return False
+
+
+LABELS = {"Simulation Time (s)": "Time (s)", "Terms at the Start of the Window": "Terms at Window Start",
+          "Error Against the Exact Value": "Error", "Run Time / Mean of 10 Runs": "Time / Mean",
+          "Time per Term (ns)": "Time/Term (ns)", "Cutoff (Largest # of Terms)": "Cutoff (# of Terms)",
+          "Cutoff (Error against the Exact Value)": "Cutoff (Error)", "Fixed Cost per Gate (ms)": "Cost per Gate (ms)"}
+
+
+def merge_rows(ax, drop_minor):
+    """The labels of minor ticks (the lower row of md.stagger, the second lines of md.one_row) back into one row of
+    major labels, or dropped (`drop_minor`)."""
+    minor = [(t.get_loc(), t.label1.get_text()) for t in ax.xaxis.get_minor_ticks() if t.label1.get_text().strip()]
+    if not minor:
+        return
+    major = [(loc, t.get_text()) for loc, t in zip(ax.get_xticks(), ax.get_xticklabels())]
+    if drop_minor:
+        rows = major
+    else:
+        at = dict(major)
+        for loc, text in minor:
+            at[loc] = (at[loc] + "\n" + text) if at.get(loc) else text
+        rows = sorted(at.items())
+    ax.set_xticks([l for l, _ in rows])
+    ax.set_xticklabels([t for _, t in rows])
+    ax.set_xticks([], minor=True)
+    ax.grid(False, which="minor", axis="x")
+
+
+def tick_choices(labels):
+    """Ever sparser sets of the x tick labels: as drawn, without brackets on the second lines, the powers of ten of a
+    ladder of cutoffs, every second, third, fourth label. Labels that are not numbers (names) are never thinned."""
+    plain = [re.sub(r"\n\((.*)\)$", r"\n\1", l) for l in labels]
+    out = [labels, plain]
+    if not all(re.match(r"[0-9]", l) for l in labels if l):
+        return out
+    if sum(bool(re.match(r"1e-\d", l)) for l in plain) >= 2:
+        out.append([l if re.match(r"1e-\d", l) else "" for l in plain])
+    out += [[l if i % k == 0 else "" for i, l in enumerate(plain)] for k in (2, 3, 4)]
+    return out
+
+
+def spread_values(fig, ax):
+    """Printed values along a line that meet: the first and the last stay, a value between them stays only when it
+    meets none of the values kept."""
+    fig.canvas.draw()
+    r = fig.canvas.get_renderer()
+    vals = sorted((t for t in ax.texts if t.get_visible() and t.get_text().strip() and hasattr(t, "xyann")),
+                  key=lambda t: t.get_window_extent(r).x0)
+    if len(vals) < 3:
+        return
+    box = {id(t): t.get_window_extent(r) for t in vals}
+    meet = lambda a, b: min(box[id(a)].x1, box[id(b)].x1) - max(box[id(a)].x0, box[id(b)].x0) > -2 and \
+        min(box[id(a)].y1, box[id(b)].y1) - max(box[id(a)].y0, box[id(b)].y0) > -2
+    kept = [vals[0], vals[-1]]
+    for t in vals[1:-1]:
+        if any(meet(t, k) for k in kept):
+            t.set_visible(False)
+        else:
+            kept.append(t)
+
+
+def yticks_meet(fig, ax):
+    fig.canvas.draw()
+    r = fig.canvas.get_renderer()
+    lo, hi = sorted(ax.get_ylim())
+    boxes = sorted((t.label1.get_window_extent(r) for t in ax.yaxis.get_major_ticks()
+                    if t.label1.get_visible() and t.label1.get_text().strip() and lo <= t.get_loc() <= hi), key=lambda b: b.y0)
+    return any(b.y0 - a.y1 < 0 for a, b in zip(boxes, boxes[1:]))
+
+
+def corner_meets(fig, ax):
+    """The first x tick label meets the lowest y tick label."""
+    fig.canvas.draw()
+    r = fig.canvas.get_renderer()
+    xs = md.xlabels(ax)
+    lo, hi = sorted(ax.get_ylim())
+    ys = [t.label1 for t in ax.yaxis.get_major_ticks() if t.label1.get_visible() and t.label1.get_text().strip() and lo <= t.get_loc() <= hi]
+    if not xs or not ys:
+        return False
+    a = min(xs, key=lambda t: t.get_window_extent(r).x0).get_window_extent(r)
+    return any(min(a.x1, b.x1) - max(a.x0, b.x0) > 0 and min(a.y1, b.y1) - max(a.y0, b.y0) > 0
+               for b in (t.get_window_extent(r) for t in ys))
+
+
+def panel(fig, ax, name, w, h, xlabel=None, ylabel=None, before=None, drop_minor=False):
+    """Writes the panel `ax` of `fig` alone on a w x h canvas as OUT/<name>.pdf; returns its title."""
+    axes = fig.axes
+    state = [(a, a.get_visible(), a.axison) for a in axes]
+    texts = [(t, t.get_visible()) for a in axes for t in a.texts] + [(t, t.get_visible()) for t in fig.texts]
+    legs = list(fig.legends) + [a.get_legend() for a in axes if a.get_legend() is not None]
+    for a in axes:
+        if a is not ax:
+            a.set_visible(False)
+            a.set_axis_off()
+            for t in a.texts:
+                t.set_visible(False)
+    for t in fig.texts:
+        t.set_visible(False)
+    for leg in legs:
+        leg.set_visible(False)
+    groups = getattr(fig, "_align_label_groups", None)
+    if groups:                                      # labels aligned with other panels (fig.align_xlabels) stay put
+        from matplotlib import cbook
+        for k in groups:
+            groups[k] = cbook.Grouper()
+    title = re.sub(r"^\([a-z]\)\s*", "", ax.get_title())
+    ax.set_title("")
+    if xlabel is not None:
+        ax.set_xlabel(xlabel)
+    if ylabel is not None:
+        ax.set_ylabel(ylabel)
+    ax.set_xlabel(LABELS.get(ax.get_xlabel(), ax.get_xlabel()))
+    ax.set_ylabel(LABELS.get(ax.get_ylabel(), ax.get_ylabel()))
+    ax.tick_params(axis="y", labelleft=True)
+    if before:
+        before(ax)
+    merge_rows(ax, drop_minor)
+    restyle(ax)
+    thin_lines(ax)
+    labels = [t.get_text() for t in ax.get_xticklabels()]
+    ticks = list(ax.get_xticks())
+    for choice in tick_choices(labels):
+        ax.set_xticks(ticks)
+        ax.set_xticklabels(choice)
+        restyle(ax)
+        place(fig, ax, w, h)
+        if not ticks_meet(fig, ax):
+            break
+    if yticks_meet(fig, ax):                        # every second y tick
+        ax.set_yticks(ax.get_yticks()[::2])
+        place(fig, ax, w, h)
+    if corner_meets(fig, ax):
+        lo, hi = ax.get_xlim()
+        ax.set_xlim(lo - 0.3, hi)
+        place(fig, ax, w, h)
+    spread_values(fig, ax)
+    place(fig, ax, w, h)
+    figlegs, axlegs = list(fig.legends), [(a, a.legend_) for a in axes]
+    fig.legends.clear()                             # hidden legends are not part of this panel
+    for a in axes:
+        a.legend_ = None
+    md.check(fig, name)
+    fig.savefig(os.path.join(OUT, name + ".pdf"))
+    fig.legends.extend(figlegs)
+    for a, leg in axlegs:
+        a.legend_ = leg
+    for a, vis, on in state:
+        a.set_visible(vis)
+        if on:
+            a.set_axis_on()
+    for t, vis in texts:
+        t.set_visible(vis)
+    return title
+
+
+def strip(items, name, width=TEXT_W, ncol=None):
+    """The legend strip of a figure: the entries in as few rows as fit the text width."""
+    items = [(h, l) for h, l in items if l and not l.startswith("_")]
+    for n in ([ncol] if ncol else range(len(items), 0, -1)):
+        fig = plt.figure(figsize=(width, 1.0))
+        leg = fig.legend([h for h, _ in items], [l for _, l in items], loc="center", ncol=n, fontsize=T, frameon=False,
+                         columnspacing=1.2, handlelength=2.0, handletextpad=0.5, borderpad=0.1, labelspacing=0.3)
+        for hd in leg.legend_handles:
+            if hasattr(hd, "set_linewidth") and hasattr(hd, "get_marker"):
+                hd.set_linewidth(max(1.3, hd.get_linewidth() * 0.5) if hd.get_linewidth() > 1.4 else hd.get_linewidth())
+                hd.set_markersize(hd.get_markersize() * 0.55)
+        for t in leg.get_texts():
+            t.set_fontweight("normal")
+        fig.canvas.draw()
+        bb = leg.get_window_extent(fig.canvas.get_renderer())
+        if bb.width <= width * fig.dpi or n == 1:
+            box = bb.transformed(fig.dpi_scale_trans.inverted()).padded(0.02)
+            fig.savefig(os.path.join(OUT, name + ".pdf"), bbox_inches=box)
+            plt.close(fig)
+            return n
+        plt.close(fig)
+
+
+def split(fig, base, per_row, xlabel=None, ylabel=None, legend=True, size=None, before=None, only=None, drop_minor=False):
+    """Every panel of `fig` as OUT/<base>_<letter>.pdf on the canvas of `per_row` panels per text width, and the legend
+    strip as OUT/<base>_legend.pdf. Returns [(file, title)]."""
+    w, h = size or PLACE[per_row]
+    axes = panels_of(fig)
+    sup = getattr(fig, "_supxlabel", None)
+    common_x = xlabel or (sup.get_text() if sup is not None else None)
+    common_y = ylabel or next((a.get_ylabel() for a in axes if a.get_ylabel()), None)
+    items = legend_items(fig) if legend else []
+    out = []
+    for i, ax in enumerate(axes):
+        if only is not None and i not in only:
+            continue
+        name = f"{base}_{chr(97 + len(out))}"
+        x = None if ax.get_xlabel() and not xlabel else common_x
+        y = None if ax.get_ylabel() and not ylabel else common_y
+        out.append((name, panel(fig, ax, name, w, h, x, y, before, drop_minor)))
+    if items:
+        strip(items, base + "_legend")
+        out.append((base + "_legend", ""))
+    plt.close(fig)
+    print(f"{base}: " + "  ".join(f"{n} [{t}]" for n, t in out))
+    return out, items
+
+
+# ----------------------------------------------------------------------------------------------- background
+def bg_anatomy():
+    """cuPauliProp's distributed mode on kicked Ising: time, fixed cost per gate, terms per GPU at the failure."""
+    mf.background()
+    col = mf.SQ["cupp"][0]
+    for name, base, ylabel in (("bg_scaling.png", "bg_time", None), ("bg_gatecost.png", "bg_gatecost", None),
+                               ("bg_capacity.png", "bg_capacity", "Terms per GPU (M)")):
+        fig = CAUGHT.pop(name)
+        for p in fig.axes[0].patches:
+            p.set_facecolor(col)
+        fig.axes[0].set_ylim(fig.axes[0].get_ylim()[0], fig.axes[0].get_ylim()[1] * 2)
+        split(fig, base, 3, xlabel="# of GPUs", ylabel=ylabel, legend=False)
+
+
+def bg_accuracy():
+    md.n02()
+    fewer = lambda ax: ax.set_yticks([0, 0.2, 0.4]) if ax.get_ylabel().startswith("Expectation") else None
+    split(CAUGHT.pop("n02_accuracy_terms"), "bg_accuracy", 4, size=(2.6, 2.0), legend=False, before=fewer)
+
+
+def bg_windows():
+    """(a) gates, gates at which 16 fixed parts move terms, and windows per circuit; (b) terms at the window starts."""
+    import json
+    d = json.load(open(os.path.join(os.path.dirname(HERE), "analysis", "fixed_rows.json")))
+    logs = {"Kicked Ising": (5420, 20), "TFIM heavy-hex": (5420, 45), "Noisy kicked Ising": (7960, 20), "TFIM 11x11": (3410, 24),
+            "XXZ 8x8": (2048, 23), "QAOA": (1100, 8), "Ansatz": (4784, 34)}           # gates and windows of the engine runs
+    names = list(logs)
+    short = ["KI", "TFIM\nHH", "Noisy\nKI", "TFIM\n2D", "XXZ", "QAOA", "Ansatz"]
+    fig, ax = plt.subplots()
+    x = range(len(names))
+    w = 0.27
+    series = (([logs[n][0] for n in names], "#9aa3ad", "Gates"),
+              ([d[n]["fixed_random"] * logs[n][0] / d[n]["gates"] for n in names], mf.SQ["cupp"][0], "Gates That Move Terms, Fixed Rows"),
+              ([logs[n][1] for n in names], mf.SQ["ours"][0], "Windows of SectorQ"))
+    for k, (vals, col, lab) in enumerate(series):
+        ax.bar([i + (k - 1) * w for i in x], vals, width=w, color=col, label=lab, zorder=3)
+    ax.set_yscale("log")
+    ax.set_ylim(3, 30000)
+    ax.set_xticks(list(x))
+    ax.set_xticklabels(short)
+    ax.set_xlim(-0.45, len(names) - 0.55)
+    ax.set_ylabel("Count")
+    ax.grid(axis="y", linestyle=":", color="#c8ccd2", zorder=0)
+    fig.legend(*ax.get_legend_handles_labels())
+    split(fig, "bg_windows", 2)
+    md.n11()
+    split(CAUGHT.pop("n11_window_terms"), "bg_window_terms", 2, legend=False)
+
+
+# ----------------------------------------------------------------------------------------------- evaluation
+def ev_single():
+    md.d_single_node()
+    split(CAUGHT.pop("d_single_node"), "ev_single", 1, size=(TEXT_W, 2.5))
+
+
+def ev_circuits():
+    md.d_circuits_all()
+    split(CAUGHT.pop("d_circuits_all"), "ev_circuits", 4)
+    md.d_cost_all()
+    split(CAUGHT.pop("d_cost_all"), "ev_cost", 4)
+
+
+def ev_prs():
+    fig = plt.figure()
+    axes = [fig.add_subplot(2, 4, k + 1) for k in range(7)]
+    mp.draw(axes, 13)
+    for ax in axes:
+        ax.set_ylabel("Time (s)")
+        ax.set_xlabel(mf.xl_cut())
+    handles, names = axes[0].get_legend_handles_labels()
+    fig.legend(handles, names)
+    split(fig, "ev_prs", 4)
+
+
+def ev_size():
+    """Qubits (two cutoffs) and depth in one figure of three panels, one legend."""
+    md.d_qubits()
+    fig = CAUGHT.pop("d_qubits")
+    items = legend_items(fig)
+    split(fig, "ev_size", 3, legend=False)
+    md.d_depth()
+    fig = CAUGHT.pop("d_depth")
+    ax = panels_of(fig)[0]
+    title = panel(fig, ax, "ev_size_c", *PLACE[3])
+    seen = {l for _, l in items}
+    union = items + [(h, l) for h, l in legend_items(fig) if l not in seen]
+    strip(union, "ev_size_legend")
+    plt.close(fig)
+    print(f"ev_size: + ev_size_c [{title}] ev_size_legend")
+
+
+def ev_accuracy():
+    md.d_accuracy()
+    split(CAUGHT.pop("d_accuracy"), "ev_accuracy", 2)
+
+
+def ev_breakdown():
+    md.d_breakdown()
+    fig = CAUGHT.pop("d_breakdown")
+    for ax in fig.axes:
+        for t in ax.texts:                          # the shares too small to print inside their bar
+            m = re.match(r"(\d+)%$", t.get_text())
+            if m and int(m.group(1)) < 10:
+                t.set_text("")
+    split(fig, "ev_breakdown", 1, size=(TEXT_W, 1.9), xlabel="Share of the Run Time (%)")
+
+
+def ev_variability():
+    md.d_variability()
+    split(CAUGHT.pop("d_variability"), "ev_variability", 2)
+
+
+def ev_staircase():
+    md.n14()
+    fig = CAUGHT.pop("n14_staircase")
+    ax = panels_of(fig)[0]
+    ax.set_xticks(range(4))
+    ax.set_xticklabels(["cuPauliProp", "+ Clifford\nFrame", "+ Deferred\nDedup", "+ Sectors\n(SectorQ)"])
+    split(fig, "ev_staircase", 2)
+
+
+def ev_knobs():
+    md.n13()
+    split(CAUGHT.pop("n13_knobs"), "ev_knobs", 3)
+
+
+def ev_weak():
+    md.d_weak()
+    split(CAUGHT.pop("d_weak"), "ev_weak", 3, drop_minor=True, xlabel="# of GPUs")
+
+
+def ev_scaleout():
+    md.d_scaleout()
+    split(CAUGHT.pop("d_scaleout"), "ev_scaleout", 2)
+
+
+FIGURES = [bg_anatomy, bg_accuracy, bg_windows, ev_single, ev_circuits, ev_prs, ev_size, ev_accuracy, ev_breakdown, ev_variability,
+           ev_staircase, ev_knobs, ev_weak]
+
+if __name__ == "__main__":
+    want = [a for a in ARGS if not a.startswith("-")]
+    for f in FIGURES:
+        if not want or f.__name__ in want:
+            f()

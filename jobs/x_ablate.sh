@@ -48,7 +48,9 @@ run() {   # mode (re|fx), circuit, GPUs, cutoff, extra tag, extra arguments
   [ $code -ne 0 ] && touch logs/x/stop.$m.$c.g$g$tag
   echo "$(date +%m-%dT%H:%M:%S) $m $c $g GPUs $x$tag: $(grep -m1 '^expectation=' $log) $(grep -o '^wall=[0-9.]* s' $log | head -1) $(grep -m1 -o '^windows=[0-9]*' $log) exit=$code"
 }
-declare -A LADDER=([ki]="1e-4 3e-5 1e-5 3e-6 1e-6" [tfim]="1e-4 3e-5 1e-5 3e-6 1e-6" [tfimsq]="1e-4 3e-5 1e-5 3e-6"
+# kicked Ising and TFIM heavy-hex stop at 3e-6: with fixed rows kicked Ising takes 1,095 s there (9.3 times the default),
+# so 1e-6 would exceed the 40 minutes of a run; the default mode at 1e-6 is in campaign r (1,518 s on 16 GPUs)
+declare -A LADDER=([ki]="1e-4 3e-5 1e-5 3e-6" [tfim]="1e-4 3e-5 1e-5 3e-6" [tfimsq]="1e-4 3e-5 1e-5 3e-6"
                    [xxz]="1e-4 3e-5 1e-5 3e-6" [qaoa]="1e-4 3e-5 1e-5 3e-6 1e-6" [hea]="1e-4 3e-5 1e-5 3e-6 1e-6")
 # 1. check of the answer (one node, a truncation after every operation)
 for c in ki tfim tfimsq xxz qaoa hea; do for m in re fx; do run $m $c 4 1e-4 .t1 --trunc-every 1; done; done
