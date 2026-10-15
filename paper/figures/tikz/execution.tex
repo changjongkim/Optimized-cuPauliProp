@@ -1,0 +1,123 @@
+% Design, Fig. D (Section 3.4): host-memory sector execution and the exchange at the window boundary, on node 1 of the
+% running example (node 1 owns sectors 01 and 11 of W_k). (1) GPU 1 loads sector 11, a list of fixed-size chunks in
+% host memory; (2) it applies the gates of W_k (Fig. B); (3) when the output outgrows the buffer, the sector is split by
+% one more row of the kernel of W_k (x2) and both halves continue; (4) the output is split by the rows of W_k+1 (x0, z2):
+% sector 01' stays on node 1 and is appended to its chunk list, sectors 00' and 10' belong to node 0; (5) at the window
+% boundary the Sector Exchanger sends them over MPI in rounds of one chunk per sector, and the sent chunks return to the
+% pool.
+\begin{tikzpicture}[x=1cm, y=1cm]
+  \tikzset{chip/.style={cl, anchor=center, minimum width=0.20cm, minimum height=0.15cm},
+           rcv/.style={chip, draw=dred, line width=0.7pt},
+           wbox/.style={draw=black!80, fill=white, line width=0.4pt, rounded corners=1.5pt, inner sep=1.6pt,
+                        font=\rmfamily\sixpt, minimum height=0.28cm},
+           cell/.style={td, minimum height=0.25cm, text height=0.14cm, text depth=0.04cm},
+           hcell/.style={th, minimum height=0.25cm, text height=0.14cm, text depth=0.04cm},
+           thick arr/.style={arr, line width=0.8pt},
+           lbl/.style={sann, anchor=north}}
+  % chunk list in a table cell: \chunks{x of the cell}{y of the row}{color}{full}{empty}{received}
+  \newcommand{\chunks}[6]{%
+    \foreach \j in {1,...,#4} \node[chip, fill=#3] at ({#1+0.22*\j-0.08},{#2-0.125}) {};
+    \ifnum#5>0 \foreach \j in {1,...,#5} \node[chip, filling=#3] at ({#1+0.22*(#4+\j)-0.08},{#2-0.125}) {};\fi
+    \ifnum#6>0 \foreach \j in {1,...,#6} \node[chip, received=#3] at ({#1+0.22*(#4+\j)-0.08},{#2-0.125}) {};\fi}
+  % ================================================================ node 1
+  \draw[node] (0,0) rectangle (10.50,-2.72);
+  \node[ptitle c] at (5.25,-0.06) {Node 1};
+  % ---- sector store
+  \draw[host] (0.10,-0.40) rectangle (2.55,-2.62);
+  \node[ctitle c] at (1.325,-0.43) {Sector Store};
+  \node[lbl] at (1.325,-0.64) {host memory};
+  \node[hcell, minimum width=0.60cm] at (0.20,-0.92) {};
+  \node[hcell, minimum width=0.58cm] at (0.80,-0.92) {Sector};
+  \node[hcell, minimum width=1.07cm] at (1.38,-0.92) {Chunks};
+  \node[cell, fill=wkc, minimum width=0.60cm, minimum height=0.50cm] at (0.20,-1.17) {$W_k$};
+  \node[cell, fill=wk1c, minimum width=0.60cm, minimum height=0.50cm] at (0.20,-1.67) {$W_{k+1}$};
+  \foreach \k/\c/\f/\e/\i in {01/sb/3/0/0, 11/sd/4/0/1, 01$'$/sb/1/1/2, 11$'$/sd/0/1/3}
+  {
+    \node[cell, fill=\c, minimum width=0.58cm] at (0.80,{-1.17-0.25*\i}) {\k};
+    \node[cell, minimum width=1.07cm] at (1.38,{-1.17-0.25*\i}) {};
+  }
+  \chunks{1.38}{-1.17}{sb}{3}{0}{0}
+  \chunks{1.38}{-1.42}{sd}{4}{0}{0}
+  \chunks{1.38}{-1.67}{sb}{1}{1}{0}
+  \node[chip, filling=sd] at (1.52,-2.045) {};
+  \node[cell, minimum width=1.18cm] at (0.20,-2.17) {chunk pool};
+  \node[cell, minimum width=1.07cm] at (1.38,-2.17) {};
+  \foreach \j in {1,...,4} \node[free, anchor=center, minimum width=0.20cm, minimum height=0.15cm] at ({1.38+0.22*\j-0.08},-2.295) {};
+  % ---- GPU 1
+  \draw[gpubox] (3.00,-0.40) rectangle (8.15,-2.62);
+  \node[ctitle c] at (5.575,-0.43) {GPU 1};
+  \foreach \t/\c/\a/\b in {input: sector 11/sd/3.12/4.40, output/white/4.40/5.06, scratch/pan2/5.06/5.62}
+  {
+    \draw[draw=black!80, fill=\c, line width=0.4pt] (\a,-0.74) rectangle (\b,-0.98);
+    \node[font=\rmfamily\fontsize{5}{6}\selectfont] at ({(\a+\b)/2},-0.86) {\t};
+  }
+  \node[wbox] (apply) at (3.62,-1.48) {Apply $W_k$};
+  \node[op, minimum width=0.86cm, inner sep=0pt] (fits) at (4.95,-1.48) {fits?};
+  \node[wbox] (half) at (4.95,-2.32) {Split by $x_2$};
+  \draw[arr] (apply) -- (fits);
+  \draw[arr] (fits) -- node[right, sann] {no} (half);
+  \draw[dsh] (half.west) -| node[pos=0.70, left, sann, align=right] {both\\halves} (apply.south);
+  \node[num, anchor=south] at ([yshift=0.02cm]apply.north) {2};
+  \node[num, anchor=south] at ([yshift=-0.04cm]fits.north) {3};
+  \node[wbox] (split) at (7.08,-0.76) {Split by $x_0, z_2$};
+  \node[num, anchor=west] at ([xshift=0.05cm]split.east) {4};
+  \draw[arr] (fits.east) -- (5.78,-1.48) |- node[pos=0.25, left, sann] {yes} (split.west);
+  \node[hcell, minimum width=0.84cm] at (5.95,-1.02) {Term};
+  \node[hcell, minimum width=0.66cm] at (6.79,-1.02) {Sector};
+  \node[hcell, minimum width=0.62cm] at (7.45,-1.02) {Node};
+  \foreach \s/\k/\c/\o [count=\i from 0] in {Z0X1/00$'$/sa/0, Y0X1/10$'$/sc/0, Y1/00$'$/sa/0, Z0Y1Z2/01$'$/sb/1, X1Z2/01$'$/sb/1}
+  {
+    \node[cell, minimum width=0.84cm, minimum height=0.25cm] at (5.95,{-1.27-0.25*\i}) {\s};
+    \node[cell, fill=\c, minimum width=0.66cm, minimum height=0.25cm] at (6.79,{-1.27-0.25*\i}) {\k};
+    \node[cell, minimum width=0.62cm, minimum height=0.25cm] at (7.45,{-1.27-0.25*\i}) {\o};
+  }
+  % ---- sector exchanger
+  \draw[node] (8.50,-0.40) rectangle (10.42,-2.62);
+  \node[ctitle c] at (9.46,-0.43) {Sector Exchanger};
+  \node[hcell, minimum width=0.56cm] at (8.57,-0.72) {Round};
+  \node[hcell, minimum width=0.56cm] at (9.13,-0.72) {Chunk};
+  \node[hcell, minimum width=0.66cm] at (9.69,-0.72) {To};
+  \foreach \r/\k/\c [count=\i from 0] in {1/00$'$/sa, 2/10$'$/sc}
+  {
+    \node[cell, minimum width=0.56cm] at (8.57,{-0.97-0.25*\i}) {\r};
+    \node[cell, fill=\c, minimum width=0.56cm] at (9.13,{-0.97-0.25*\i}) {\k};
+    \node[cell, minimum width=0.66cm] at (9.69,{-0.97-0.25*\i}) {node 0};
+  }
+  \node[lbl, align=center] at (9.46,-1.56) {one chunk per sector\\per round};
+  \node[lbl] at (9.46,-2.10) {sent chunks to the pool};
+  \foreach \j in {0,1,2} \node[free, anchor=center, minimum width=0.20cm, minimum height=0.15cm] at ({9.24+0.22*\j},-2.46) {};
+  % ---- paths
+  \draw[thick arr] (2.55,-1.30) -- (3.00,-1.30);
+  \node[num] at (2.775,-1.06) {1};
+  \draw[thick arr, dashed] (3.00,-1.80) -- (2.55,-1.80);
+  \node[stxt] at (2.775,-2.00) {01$'$};
+  \draw[thick arr] (8.15,-1.30) -- (8.50,-1.30);
+  % ================================================================ node 0
+  \draw[node] (11.05,0) rectangle (13.90,-2.72);
+  \node[ptitle c] at (12.475,-0.06) {Node 0};
+  \foreach \g/\c/\k/\x in {0/sa/00/11.15, 1/sc/10/12.52}
+  {
+    \draw[gpubox] (\x,-0.38) rectangle ({\x+1.28},-0.92);
+    \node[ctitle] at ({\x+0.42},-0.65) {GPU \g};
+    \node[item, fill=\c, minimum width=0.34cm] at ({\x+1.00},-0.65) {\k};
+  }
+  \draw[host] (11.15,-1.02) rectangle (13.80,-2.62);
+  \node[ctitle, anchor=north west] at (11.20,-1.04) {Sector Store};
+  \node[chip, received=pan2] at (12.92,-1.155) {};
+  \node[sann, anchor=west] at (13.04,-1.155) {received};
+  \node[hcell, minimum width=0.60cm] at (11.23,-1.34) {};
+  \node[hcell, minimum width=0.58cm] at (11.83,-1.34) {Sector};
+  \node[hcell, minimum width=1.28cm] at (12.41,-1.34) {Chunks};
+  \node[cell, fill=wkc, minimum width=0.60cm, minimum height=0.48cm] at (11.23,-1.59) {$W_k$};
+  \node[cell, fill=wk1c, minimum width=0.60cm, minimum height=0.48cm] at (11.23,-2.07) {$W_{k+1}$};
+  \foreach \k/\c/\i in {00/sa/0, 10/sc/1, 00$'$/sa/2, 10$'$/sc/3}
+  {
+    \node[cell, fill=\c, minimum width=0.58cm, minimum height=0.24cm] at (11.83,{-1.59-0.24*\i}) {\k};
+    \node[cell, minimum width=1.28cm, minimum height=0.24cm] at (12.41,{-1.59-0.24*\i}) {};
+  }
+  \foreach \c/\f/\r/\i in {sa/3/0/0, sc/2/0/1, sa/2/1/2, sc/1/1/3}
+    \chunks{12.41}{-1.59-0.24*\i+0.005}{\c}{\f}{0}{\r}
+  \draw[mpi] (10.42,-1.30) -- (11.05,-1.30);
+  \node[font=\rmfamily\bfseries\itshape\sixpt, text=dred] at (10.735,-1.10) {MPI};
+  \node[num] at (10.735,-1.56) {5};
+\end{tikzpicture}

@@ -1,0 +1,80 @@
+% Design, Fig. C (Section 3.3): runtime re-sectoring at the boundary of W_k and W_k+1 on the running example.
+% (1) A sample of the live terms at the start of W_k, a share from every node (moved through the Clifford operations of
+% W_k; branching is ignored). (2) The Row Solver computes the rows that every gate of W_k+1 conserves (the GF(2) kernel
+% of its generators); x1, a row of W_k, is not among them, since X1 flips it. (3) The Sector Balancer draws candidate
+% row pairs from the kernel, counts the sample in each sector, and keeps the pair whose largest sector is smallest; the
+% number of rows g follows the expected terms per sector and the GPU count. (4) The rows go to the split on every GPU;
+% sector d of W_k+1 belongs to node d mod N. All of this runs on the CPU while the GPUs apply W_k.
+\begin{tikzpicture}[x=1cm, y=1cm]
+  \tikzset{rowchip/.style={rowb, minimum width=0.38cm},
+           cnt/.style={td, minimum width=0.50cm, minimum height=0.28cm},
+           lbl/.style={sann, anchor=north},
+           ttl/.style={ctitle, anchor=north}}
+  \draw[pan] (0,0) rectangle (13.90,-3.30);
+  \node[ptitle c] at (6.95,-0.06) {Runtime Re-Sectoring at the Boundary of $W_k$ and $W_{k+1}$};
+  \node[lbl] at (6.95,-0.40) {on the CPU, while the GPUs apply $W_k$};
+  % ---------------------------------------------------------------- 1. sample
+  \draw[node] (0.12,-0.75) rectangle (3.25,-3.18);
+  \node[ttl] (t1) at (1.685,-0.78) {Sample};
+  \node[num, anchor=east] at ([xshift=-0.06cm, yshift=-0.01cm]t1.west) {1};
+  \foreach \x in {0.26, 1.69}
+  {
+    \node[th, minimum width=0.95cm] at (\x,-1.16) {Term};
+    \node[th, minimum width=0.48cm] at ({\x+0.95},-1.16) {$W_k$};
+  }
+  \foreach \s/\k/\c/\x/\i in {Z0X1/11/sd/0.26/0, Y1/11/sd/0.26/1, X0Z1Z2/00/sa/0.26/2, Y0Z2/00/sa/0.26/3,
+                              X0Z1/01/sb/1.69/0, Y0/01/sb/1.69/1, Z0X1Z2/10/sc/1.69/2, Y1Y2X3/10/sc/1.69/3}
+  {
+    \node[td, minimum width=0.95cm, minimum height=0.28cm] at (\x,{-1.46-0.28*\i}) {\s};
+    \node[td, fill=\c, minimum width=0.48cm, minimum height=0.28cm] at ({\x+0.95},{-1.46-0.28*\i}) {\k};
+  }
+  \node[lbl] at (1.685,-2.68) {a share from every node};
+  \node[barrow] at (3.475,-1.95) {};
+  % ---------------------------------------------------------------- 2. row solver
+  \draw[node] (3.70,-0.75) rectangle (6.00,-3.18);
+  \node[ttl] (t2) at (4.85,-0.78) {Row Solver};
+  \node[num, anchor=east] at ([xshift=-0.06cm, yshift=-0.01cm]t2.west) {2};
+  \foreach \s/\x in {X3/3.98, X2/4.42, X1/4.86, Z0Z1/5.44}
+    \node[gateb] at (\x,-1.30) {\s};
+  \node[op, minimum width=1.00cm, inner sep=0pt] (gf) at (4.85,-1.86) {GF(2)};
+  \fill[navy] (4.78,-1.50) -- (4.92,-1.50) -- (4.85,-1.58) -- cycle;
+  \fill[navy] (4.78,-2.14) -- (4.92,-2.14) -- (4.85,-2.22) -- cycle;
+  \foreach \s/\x/\y in {{$x_0$}/4.435/-2.40, {$z_0{\oplus}z_1$}/5.08/-2.40, {$z_2$}/4.435/-2.70, {$z_3$}/5.08/-2.70}
+    \node[rowchip] at (\x,\y) {\s};
+  \node[lbl] at (4.85,-2.86) {kernel of $W_{k+1}$};
+  \node[barrow] at (6.225,-1.95) {};
+  % ---------------------------------------------------------------- 3. sector balancer
+  \draw[node] (6.45,-0.75) rectangle (10.95,-3.18);
+  \node[ttl] (t3) at (8.70,-0.78) {Sector Balancer};
+  \node[num, anchor=east] at ([xshift=-0.06cm, yshift=-0.01cm]t3.west) {3};
+  \node[th, minimum width=1.24cm] at (6.63,-1.16) {Row Pair};
+  \foreach \k/\c [count=\j from 0] in {00/sa, 01/sb, 10/sc, 11/sd}
+    \node[td, fill=\c, minimum width=0.50cm] at ({7.87+0.50*\j},-1.16) {\k};
+  \node[th, minimum width=0.80cm] at (9.87,-1.16) {Largest};
+  \foreach \r/\h/\m [count=\i from 0] in {{$z_0{\oplus}z_1$, $z_3$}/{0,0,8,0}/8, {$z_2$, $z_3$}/{4,0,4,0}/4, {$x_0$, $z_2$}/{2,2,2,2}/2}
+  {
+    \node[td, minimum width=1.24cm, minimum height=0.28cm] at (6.63,{-1.46-0.28*\i}) {\r};
+    \foreach \v [count=\j from 0] in \h
+      \node[cnt] at ({7.87+0.50*\j},{-1.46-0.28*\i}) {\v};
+    \node[td, minimum width=0.80cm, minimum height=0.28cm] at (9.87,{-1.46-0.28*\i}) {\m};
+  }
+  \draw[dred, line width=0.9pt, rounded corners=1pt] (6.57,-2.00) rectangle (10.73,-2.32);
+  \node[stxt, text=dred] at (10.84,-2.16) {$\checkmark$};
+  \node[lbl] at (8.70,-2.42) {keep the pair whose largest sector is smallest};
+  \node[lbl] at (8.70,-2.72) {$g = 2$ rows: 4 sectors for 4 GPUs};
+  \node[barrow] at (11.175,-1.95) {};
+  % ---------------------------------------------------------------- 4. rows of W_k+1
+  \draw[node] (11.40,-0.75) rectangle (13.78,-3.18);
+  \node[ttl] (t4) at (12.59,-0.78) {Rows of $W_{k+1}$};
+  \node[num, anchor=east] at ([xshift=-0.06cm, yshift=-0.01cm]t4.west) {4};
+  \node[rowchip] at (12.30,-1.27) {$x_0$};
+  \node[rowchip] at (12.88,-1.27) {$z_2$};
+  \node[th, minimum width=1.00cm] at (11.58,-1.46) {Sector};
+  \node[th, minimum width=1.04cm] at (12.58,-1.46) {Node};
+  \foreach \k/\c/\o [count=\i from 0] in {00$'$/sa/0, 01$'$/sb/1, 10$'$/sc/0, 11$'$/sd/1}
+  {
+    \node[td, fill=\c, minimum width=1.00cm, minimum height=0.28cm] at (11.58,{-1.76-0.28*\i}) {\k};
+    \node[td, minimum width=1.04cm, minimum height=0.28cm] at (12.58,{-1.76-0.28*\i}) {\o};
+  }
+  \node[lbl] at (12.59,-2.92) {$d \bmod N$};
+\end{tikzpicture}

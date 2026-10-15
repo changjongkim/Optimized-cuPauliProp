@@ -1,102 +1,110 @@
 \section{SectorQ Design}
 \label{sec:design}
-% 규칙: 설계에는 측정값을 쓰지 않고 파라미터만(구간당 rotation 127개 안팎, 표본 200,000항, 구간당 sector 상한 256개, chunk 262,144항, 노드당 GPU 4장).
-% 절 도입은 앞 절의 요구사항(표 2)을 주어나 목적어로 받아 이음. 구조 순서: 전체 구조 -> 원리(sector) -> 실행 중 선택 -> 저장과 실행 -> 교환 -> frame -> 구현.
+% 구성(2026-10-14 사용자 승인: 노벨티로 디자인을 구성, CASCADE·ScaleQsim처럼 Overall + 노벨티마다 한 절 + 구현):
+%   3.1 Overall Architecture (그림 fig:overview)  3.2 Window-Conserved Parity Sectors = N1 (fig:sectors)
+%   3.3 Runtime Re-Sectoring = N2 (fig:resector)  3.4 Host-Memory Sector Execution and Exchange = N3 (fig:execution)  3.5 Implementation
+% 네 그림은 같은 예시(4 qubit, 구간 W_k와 W_{k+1}, 노드 2개 x GPU 2장, sector 4개)의 같은 경계를 다룬다:
+%   W_k 생성자 X0, Z2Z3, Z1Z2, Z0Z1 -> kernel x1, x2, x3, z0+z1+z2+z3 -> 행 r1 = x1, r2 = z0+..+z3
+%   W_{k+1} 생성자 X3(H를 거친 Z3), X2, X1, Z0Z1 -> kernel x0, z0+z1, z2, z3 -> 표본 8항에서 (x0, z2)가 2/2/2/2로 뽑힘
+%   sector 11(노드 1, GPU 1)의 항: Z0X1, Y0X1 -> W_k 뒤 Z0X1, Y0X1, Y1, Z0Y1Z2, X1Z2 (Y0Y1Z2는 잘림) -> 다음 sector 00', 10', 00', 01', 01'
+% 규칙: 설계에는 측정값을 쓰지 않고 파라미터만(표본 200,000항, sector 목표 항 수, GPU당 sector 2개, 상한 256개, chunk 262,144항, 노드당 GPU 4장).
+% 구성 요소 이름(본문에서 기울임): Window Builder, Sector Store, Sector Executor, Runtime Re-Sectoring(Row Solver, Sector Balancer), Sector Exchanger.
+% 차이를 적을 상대: 3.2 고정 parity 분할(paulistrings-rs)·hash 분배(ORQA, iQCC)와 state vector의 stage 분할(Atlas: 진폭 자리가 고정이라 합치기 문제가 없음),
+%   Z2 대칭(tapering)과 같은 선형대수임을 인용; 3.3 실행 전에 정하는 stage(Atlas ILP)와 고정 행(paulistrings-rs: 균형은 open research);
+%   3.4 모든 항을 GPU에 두는 방식(cuPauliProp), 분할 하나를 장치 하나에 묶는 방식(paulistrings-rs P <= 64 = rank).
+% 도입 문단(3-4문장): 2.2의 두 도전(gate마다 전역 단계, GPU 메모리에 묶인 용량)과 표 2의 요구사항에 대해 SectorQ가 답하는 세 가지
+%   (무엇으로 나누나: 구간이 보존하는 parity / 언제 고르나: 실행 중 / 어디에 두고 어떻게 옮기나: host memory, 경계 교환).
 
 \subsection{Overall Architecture}
-% 도입: 표 2의 요구사항을 SectorQ는 구간마다 한 번 도는 루프 하나로 만족함(그림 4).
+% 도입: 그림 fig:overview. 두 단계 - Window Formation(회로마다 한 번), Window Loop(구간마다, 실행 중).
+
+\noindent\textbf{Window Formation.}
+% Window Builder: Clifford gate를 frame에 모아 뒤 rotation의 생성자를 바꾸고(예: H 뒤의 Z3 -> X3), 처리 순서의 rotation을
+% 생성자가 n차원을 넘기 직전까지 한 구간으로 묶음. 구간 경계는 truncation 직후로 맞춤. frame은 노벨티가 아니라 입력 단계.
 
 \noindent\textbf{Window Loop.}
-% 입력(회로, Clifford frame이 줄인 연산 목록, 관측량) -> 구간마다: (1) host memory의 sector, (2) GPU가 sector 하나씩 구간의 gate 적용·합치기·자르기,
-% (3) GPU가 도는 동안 표본으로 다음 구간의 행과 sector 수 선택, (4) 출력을 다음 행으로 나눔, (5) 구간 경계에서 교환. 마지막 구간 뒤에 기대값.
-
-\noindent\textbf{Data Placement.}
-% 항은 노드의 host memory에, 처리 중인 sector만 GPU에. 노드 사이 이동은 구간 경계뿐. 계획 단계가 따로 없음(Planner 아님).
+% 노드마다 같은 고리: (1) Sector Store(host memory)에서 sector 하나를 GPU로, (2) Sector Executor가 구간의 gate를 적용,
+% (3) 그동안 Runtime Re-Sectoring이 표본으로 다음 구간의 행을 고름, (4) GPU가 출력을 다음 행으로 나눔 - 자기 sector는 store로,
+% (5) 다른 노드의 sector는 Sector Exchanger가 구간 경계에서 보냄(sector d -> 노드 d mod N). 모든 결정은 실행 중에 내림.
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\textwidth]{figures/arch.pdf}
+\includegraphics[width=\textwidth]{figures/overview.pdf}
 \caption{Overall architecture of \SectorQ}
-\label{fig:arch}
+\label{fig:overview}
 \end{figure}
 
 \subsection{Window-Conserved Parity Sectors}
-% 도입: 루프의 sector는 구간의 모든 gate가 바꾸지 않는 parity로 정함.
-
-\noindent\textbf{Parity of a Term.}
-% 항의 Pauli string을 2n bit(x, z)로 보고, 행 r과의 내적(GF(2))이 parity. 행 g개가 sector 2^g개를 정함.
+% 도입(N1): 합칠 짝을 모두 모아야 자를 수 있다(R1-R3). 구간의 모든 gate가 보존하는 parity로 나누면 짝이 늘 한 sector에 있다(그림 fig:sectors).
+% 차이: state vector의 stage(Atlas)는 진폭 자리가 고정이라 이 문제가 없음; 고정 parity(paulistrings-rs)는 행을 깨는 gate마다 항을 옮김.
 
 \noindent\textbf{Rows Conserved by a Window.}
-% 생성자 Q인 rotation은 P를 P와 PQ로 바꿈 -> r(Q)=0인 행에서 두 항의 parity가 같음.
-% 구간의 생성자들이 만드는 공간이 d차원이면 유효한 행의 공간은 2n-d차원(GF(2) 소거). 이 공간이 n차원 이상인 동안 구간을 늘리고 truncation 직후에서 끊음.
+% 항 = 2n bit(x, z), 행 r과의 내적이 parity. rotation(생성자 Q)은 P를 P와 P xor Q로 가름 -> r.Q = 0이면 같은 parity.
+% Row Solver: 구간 생성자들의 GF(2) 소거로 r.Q = 0인 행 공간(kernel)을 구함. 생성자가 n차원 이하라 kernel은 n차원 이상.
+% Z2 대칭(qubit tapering)과 같은 선형대수임을 밝히고 인용. 예: W_k의 kernel x1, x2, x3, z0+..+z3.
 
 \noindent\textbf{Merge Locality.}
-% 정리: 구간 안에서 새 항과 합쳐질 상대는 같은 sector -> sector마다 합치고 자른 결과 = 전체에 대해 합치고 자른 결과(R1-R3). 증명 스케치.
-% 경계에서만 다음 구간의 행으로 다시 나눔(구간이 바뀌면 보존되는 parity가 바뀜).
+% 정리: 구간 안에서 sector의 항이 만드는 새 항은 같은 sector에 남는다 -> 같은 문자열은 같은 sector -> sector마다 합치고 자른 결과 = 전체 결과.
+% 증명 스케치(귀납). 예: sector 11의 Z0X1, Y0X1이 W_k 안에서 두 번 합쳐지고 넷이 새로 생겨도 모두 11에 남음.
+
+\noindent\textbf{Exchange Only at Window Boundaries.}
+% 구간이 바뀌면 보존되는 행이 바뀜(W_{k+1}의 X1이 x1을 뒤집음) -> 경계에서만 다음 행으로 다시 나눔.
+% 회로 전체가 보존하는 행은 0-2개뿐(배경 표 tab:windows)이라 하나의 고정 분할로는 나눌 수 없음.
 
 \begin{figure}[t]
 \centering
-\subfloat[Parity conserved by a gate]{\includegraphics{figures/parity.pdf}}\hfill
-\subfloat[Sectors of two windows]{\includegraphics{figures/windows.pdf}}
+\includegraphics[width=\textwidth]{figures/sectors.pdf}
 \caption{Window-conserved parity sectors}
 \label{fig:sectors}
 \end{figure}
 
-\subsection{Run-Time Row and Sector Selection}
-% 도입: 유효한 행은 많고, 어느 행이 항을 고르게 나누는지는 살아 있는 항이 정함(R4).
+\subsection{Runtime Re-Sectoring}
+% 도입(N2): 어느 유효 행이 고르게 나누는지와 sector 수는 살아 있는 항이 정함(R4, R6). 다음 구간의 행을 지금 구간이 도는 동안 고름(그림 fig:resector).
+% 차이: Atlas는 stage를 실행 전에 회로만 보고 정함; paulistrings-rs는 균형을 따지지 않음("open research").
 
 \noindent\textbf{Sampling the Live Terms.}
-% 구간이 시작할 때 노드마다 표본을 떠서 rank 0에 모음(합계 200,000항). 후보 행 조합마다 표본의 sector 크기를 세어 가장 큰 sector가 작은 것을 고름.
+% 구간이 시작할 때 노드마다 자기 몫의 표본을 뜸(합계 200,000항), 구간의 Clifford 연산만 통과시킴(branch는 무시). rank 0에 모아 행을 정하고 알림.
+
+\noindent\textbf{Balanced Row Selection.}
+% Sector Balancer: kernel에서 무작위 행 조합 후보 여럿(8개)을 뽑아 표본의 sector 크기를 세고, 가장 큰 sector가 가장 작은 조합을 고름.
+% 예: (z0+z1, z3) 최대 8, (z2, z3) 최대 4, (x0, z2) 2/2/2/2. sector 수 g: 예상 항 수/목표 이하, GPU마다 하나 이상(긴 구간이면 둘), 상한 256.
+% 항이 적은 첫 구간은 sector 하나, GPU 하나(R6).
 
 \noindent\textbf{Overlap with the Running Window.}
-% 표본만 뜨고 worker를 먼저 띄움 -> main thread가 다음 구간의 행을 정함 -> worker는 출력을 나누기 직전에만 행을 기다림.
-
-\noindent\textbf{Number of Sectors.}
-% sector 수는 항 수와 GPU 수로 정함(상한 256개, 큰 규모에서 1,024/4,096개는 옵션). 항이 적은 동안은 sector 하나, GPU 하나(R6).
-% 주의: 상한을 정하는 규칙이 아직 없음 -> 설계로 정하거나 평가에서 민감도로 다룸(TODO).
-
-\subsection{Host-Memory Sector Store}
-% 도입: 고른 행으로 나눈 sector는 host memory에 두고 GPU에 하나씩 올림(R5).
-
-\noindent\textbf{Chunked Storage.}
-% sector는 고정 크기 chunk(262,144항)의 목록, chunk는 한 번 pin하고 재사용 -> GPU 복사와 노드 사이 메시지가 같은 메모리를 씀.
-
-\noindent\textbf{Sector Runs on GPUs.}
-% GPU마다 worker 하나, 노드의 다음 sector를 가져가 구간의 gate를 적용 -> 출력은 GPU 위에서 다음 행으로 나뉘어 host chunk에 쓰임.
-
-\noindent\textbf{Splitting Oversized Sectors.}
-% 구간 안에서 sector가 GPU 버퍼보다 커지면 남은 유효한 행으로 둘로 나눔 -> 두 절반은 남은 gate부터 이어서 처리, 답은 같음.
+% 표본은 GPU가 시작하기 전에 뜨고, 행은 GPU가 구간을 도는 동안 CPU가 고름 -> GPU는 출력을 나누기 직전에만 행을 씀, 기다리지 않음.
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\textwidth]{figures/store.pdf}
-\caption{Host memory and one GPU during a window}
-\label{fig:store}
+\includegraphics[width=\textwidth]{figures/resector.pdf}
+\caption{Runtime re-sectoring at a window boundary}
+\label{fig:resector}
 \end{figure}
 
-\subsection{Exchange at Window Boundaries}
-% 도입: 다음 행으로 나뉜 출력 가운데 다른 노드의 몫은 구간 경계에서 그 노드로 감(R2).
+\subsection{Host-Memory Sector Execution and Exchange}
+% 도입(N3): sector를 장치에서 떼어 host memory에 두고 GPU가 하나씩 처리 -> 용량이 host memory를 따름(R5), 항은 경계에서만 이동(R2)(그림 fig:execution).
+% 차이: cuPauliProp은 모든 항을 GPU에 둠; paulistrings-rs는 분할 하나 = rank 하나(P <= 64).
 
-\noindent\textbf{Sector Ownership.}
-% sector d는 노드 d mod N이 맡음 -> 보낼 곳을 각 노드가 계산(전원 통신 없음).
+\noindent\textbf{Chunked Sector Store.}
+% sector = 고정 크기 chunk(262,144항) 목록, chunk는 한 번 pin하고 pool에서 재사용 -> GPU 복사와 MPI가 같은 메모리를 씀. sector 수는 GPU 수와 무관.
 
-\noindent\textbf{Exchange in Rounds.}
-% (보내는 노드, sector) 쌍마다 chunk 하나씩 라운드로 나름 -> 라운드가 끝나면 보낸 chunk를 반납 -> 노드가 동시에 가지는 것은 자기 출력과 한 라운드의 도착분.
+\noindent\textbf{Sector Execution on GPUs.}
+% GPU마다 worker 하나, 노드의 다음 sector를 가져가 구간을 적용(GPU 메모리: 입력, 출력, 작업 공간). 출력이 버퍼를 넘으면
+% kernel의 행 하나를 더 써서 sector를 둘로 나누고 두 절반이 남은 gate부터 이어감(두 절반도 구간에 닫혀 있음, 답은 같음).
 
-\noindent\textbf{Checkpoints.}
-% 구간 경계의 상태를 checkpoint로 씀.
+\noindent\textbf{Boundary Exchange.}
+% 출력을 GPU 위에서 다음 행으로 나눠 chunk에 씀: 자기 노드의 sector는 store의 chunk 목록에 붙이고, 다른 노드 몫은 Sector Exchanger가
+% 경계에서 보냄. 라운드마다 (보내는 노드, sector)당 chunk 하나, 보낸 chunk는 pool로 -> 노드가 동시에 가지는 것은 자기 출력과 한 라운드의 도착분.
+% 경계의 상태는 checkpoint로도 씀.
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\textwidth]{figures/comm.pdf}
-\caption{Global steps of \cuPP and \SectorQ on four GPUs}
-\label{fig:comm}
+\includegraphics[width=\textwidth]{figures/execution.pdf}
+\caption{Host-memory sector execution and the exchange at a window boundary}
+\label{fig:execution}
 \end{figure}
-
-\subsection{Clifford Frame}
-% Clifford gate는 데이터에 적용하지 않고 frame에 모아 뒤 연산의 생성자를 바꿈 -> 데이터에 적용하는 연산 수가 줄어듦(kicked Ising 5,420 gate -> 2,541 연산은 평가에서).
 
 \subsection{Implementation}
-% C++/CUDA, MPI(노드당 rank 하나, GPU 4장), gate 적용·merge·truncation은 cuPauliProp v0.5.0의 단일 GPU 연산을 그대로 호출.
-% 구성: 구간 결정과 sector 저장소·worker·교환·분할·checkpoint(pp_engine, 1,600여 줄), GF(2) 소거, 행 계산과 분할 kernel, noise channel 묶음.
+% C++/CUDA, MPI(노드당 rank 하나, GPU 4장), sector마다 cuPauliProp v0.5.0의 단일 GPU 연산(gate 적용, merge, truncation) 호출.
+% Clifford frame의 세부(bit를 바꾸는 연산의 기록, 생성자 변환), GF(2) 소거, 행 계산과 분할 kernel, noise channel 묶음, checkpoint.
+% 파라미터 표: 표본 200,000항, 후보 8개, 목표 항 수, GPU당 sector 2개, 상한 256, chunk 262,144항, GPU 메모리 배분.
 % 코드 이름 bucket = 본문의 sector. 식별자 이름은 본문에 쓰지 않고 동작으로 설명.

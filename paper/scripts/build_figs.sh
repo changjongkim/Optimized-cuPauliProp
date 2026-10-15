@@ -4,7 +4,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/../figures/tikz"
 module load texlive/2024 2>/dev/null || true
-if [ $# -gt 0 ]; then list="$*"; else list=$(ls *.tex | grep -v -e '^style.tex$' -e '^standalone.tex$' | sed 's/\.tex$//'); fi
+if [ $# -gt 0 ]; then list="$*"; else list=$(ls *.tex | grep -v -e '^style.tex$' -e '^standalone.tex$' -e '^palette_' | sed 's/\.tex$//'); fi
 for n in $list; do
   pdflatex -interaction=nonstopmode -halt-on-error -jobname="$n" "\def\figfile{$n.tex}\input{standalone.tex}" > "$n.build.log" 2>&1 \
     || { grep -A6 '^!' "$n.build.log" | head -20; exit 1; }

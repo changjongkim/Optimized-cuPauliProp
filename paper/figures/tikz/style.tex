@@ -1,53 +1,69 @@
 % Style of the concept figures of the paper: the look of the design figures of the README (figures/src/tikz_style2.tex,
-% after the ScaleQsim paper) at the size of the paper. Every figure is drawn at its printed size (full width: 13.9 cm),
-% so the fonts are the printed fonts: panel names \small, component names and text \footnotesize, bits \scriptsize.
-% Rules: the logic of the operations only (no measured values), about four arrows, groups shown by one color each,
-% component names as labels.
-\definecolor{pan}{HTML}{D9D8C4}     % panel
-\definecolor{pan2}{HTML}{EDEDED}
-\definecolor{navy}{HTML}{1F3864}
-\definecolor{thblue}{HTML}{0070C0}
-\definecolor{dred}{HTML}{C00000}
-\definecolor{nA}{HTML}{F8E3D4}      % nodes
-\definecolor{nB}{HTML}{C5E0E6}
-\definecolor{nC}{HTML}{EDE9B4}
-\definecolor{nD}{HTML}{D3DAF6}
-\definecolor{gpuc}{HTML}{DDDAB8}    % a GPU
-\definecolor{actc}{HTML}{FFE699}    % an action
-\definecolor{tune}{HTML}{D5F2E3}    % a decision made at run time
-\definecolor{sa}{HTML}{8FAADC}      % sectors 00, 01, 10, 11
-\definecolor{sb}{HTML}{A9D18E}
-\definecolor{sc}{HTML}{FFD966}
-\definecolor{sd}{HTML}{CDB5E8}
-\definecolor{genc}{HTML}{F4B183}    % a generator Q
-\definecolor{rowc}{HTML}{9FD8CB}    % a parity row
-\definecolor{newc}{HTML}{ED7D31}    % a new term
-\definecolor{gatec}{HTML}{F8E3D4}   % a gate
+% after the ScaleQsim paper) at the printed size (full width: 13.9 cm), so the fonts are the printed fonts.
+% Rules (2026-10-14):
+%   bold        only the names of panels and components, and one key message per figure (red, italic)
+%   regular     everything inside a component: table cells and headers, chips, action and decision boxes, labels
+%   italic      short notes (no sentences; explanations belong in the caption and the text)
+%   arrows      run through the gaps between components and end at their borders; text stays inside its own box
+%   values      the running example only, no measured values
+% colors: one palette file (palette_<name>.tex) defines every color name below; the default is set in standalone.tex
+\input{\ifdefined\palette\palette\else palette_accent\fi.tex}
+% font sizes (2026-10-14, one step smaller than before): panel titles 8 pt, component titles 7 pt, contents 6 pt
+\providecommand{\sixpt}{\fontsize{6}{7.2}\selectfont}
 \tikzset{
-  every node/.append style={execute at begin node=\boldmath},
-  pan/.style={draw=black!75, fill=pan, line width=0.5pt},
-  pan2/.style={draw=black!75, fill=pan2, line width=0.5pt},
+  bold/.style={execute at begin node=\boldmath},
+  pan/.style={draw=panline, fill=pan, line width=0.5pt},
+  pan2/.style={draw=panline, fill=pan2, line width=0.4pt},
   comp/.style={draw=navy, fill=white, line width=0.6pt},
-  ptitle/.style={font=\rmfamily\bfseries\small, inner sep=1pt},
-  ctitle/.style={font=\rmfamily\bfseries\footnotesize, inner sep=1pt},
-  txt/.style={font=\rmfamily\bfseries\footnotesize, inner sep=1pt, align=center},
-  stxt/.style={font=\rmfamily\bfseries\scriptsize, inner sep=1pt, align=center},
-  ann/.style={font=\rmfamily\bfseries\itshape\footnotesize, inner sep=1pt, align=center},
-  sann/.style={font=\rmfamily\bfseries\itshape\scriptsize, inner sep=1pt, align=center},
-  key/.style={font=\rmfamily\bfseries\itshape\footnotesize, text=dred, inner sep=1pt, align=center},
-  cl/.style={draw=black!80, line width=0.4pt, anchor=west, inner sep=0pt, minimum width=0.36cm, minimum height=0.32cm,
-             font=\rmfamily\bfseries\scriptsize},
+  ptitle/.style={bold, font=\rmfamily\bfseries\footnotesize, inner sep=1pt},
+  ctitle/.style={bold, font=\rmfamily\bfseries\scriptsize, inner sep=1pt},
+  key/.style={bold, font=\rmfamily\bfseries\itshape\scriptsize, text=dred, inner sep=1pt, align=center},
+  txt/.style={font=\rmfamily\sixpt, inner sep=1pt, align=center},
+  stxt/.style={font=\rmfamily\sixpt, inner sep=1pt, align=center},
+  ann/.style={font=\rmfamily\itshape\scriptsize, inner sep=1pt, align=center},
+  sann/.style={font=\rmfamily\itshape\sixpt, inner sep=1pt, align=center},
+  tag/.style={font=\rmfamily\itshape\sixpt, text=dred, inner sep=1pt},
+  cl/.style={draw=navy, line width=0.4pt, anchor=west, inner sep=0pt, minimum width=0.36cm, minimum height=0.32cm,
+             font=\rmfamily\sixpt},
   free/.style={cl, pattern=north east lines, pattern color=black!50},
-  act/.style={draw=black, fill=actc, rounded corners=2.5pt, line width=0.5pt, font=\rmfamily\bfseries\footnotesize, align=center,
-              inner sep=2pt, minimum height=0.48cm},
-  dec/.style={draw=black, fill=tune, line width=0.5pt, font=\rmfamily\bfseries\footnotesize, align=center, inner sep=2pt,
-              minimum height=0.48cm},
-  box/.style={draw=black, fill=white, line width=0.5pt, font=\rmfamily\bfseries\footnotesize, align=center, inner sep=2pt,
-              minimum height=0.48cm},
-  gpu/.style={draw=black!85, fill=gpuc, line width=0.5pt},
-  barrow/.style={single arrow, fill=black, draw=black, inner xsep=0pt, inner ysep=0.08cm, minimum height=0.5cm,
-                 single arrow head extend=0.11cm, single arrow tip angle=90},
-  arr/.style={-{Latex[length=1.8mm,width=1.5mm]}, line width=0.9pt},
-  dsh/.style={-{Latex[length=1.8mm,width=1.5mm]}, line width=0.9pt, dashed},
-  num/.style={circle, fill=black, text=white, font=\sffamily\bfseries\scriptsize, inner sep=0.4pt, minimum size=0.34cm},
+  act/.style={draw=navy, fill=actc, rounded corners=2pt, line width=0.5pt, font=\rmfamily\sixpt, align=center,
+              inner sep=2pt, minimum height=0.44cm},
+  dec/.style={draw=navy, fill=tune, line width=0.5pt, font=\rmfamily\sixpt, align=center, inner sep=2pt,
+              minimum height=0.44cm},
+  box/.style={draw=black, fill=white, line width=0.5pt, font=\rmfamily\sixpt, align=center, inner sep=2pt,
+              minimum height=0.44cm},
+  gpu/.style={draw=navy, fill=gpuc, line width=0.5pt},
+  barrow/.style={single arrow, fill=navy, draw=navy, inner xsep=0pt, inner ysep=0.07cm, minimum height=0.30cm,
+                 single arrow head extend=0.09cm, single arrow tip angle=90},
+  arr/.style={-{Latex[length=1.6mm,width=1.3mm]}, line width=0.7pt, draw=navy},
+  dsh/.style={-{Latex[length=1.6mm,width=1.3mm]}, line width=0.7pt, dashed, draw=navy},
+  num/.style={circle, fill=navy, text=white, font=\sffamily\bfseries\sixpt, inner sep=0.2pt, minimum size=0.28cm},
+  th/.style={draw=navy, fill=thblue, text=thtext, font=\rmfamily\sixpt, anchor=north west, inner sep=0pt,
+             minimum height=0.30cm, text height=0.17cm, text depth=0.05cm, line width=0.35pt},
+  td/.style={draw=navy, fill=white, font=\rmfamily\sixpt, anchor=north west, inner sep=0pt,
+             minimum height=0.30cm, text height=0.17cm, text depth=0.05cm, line width=0.35pt},
+  chip/.style={draw=navy, line width=0.35pt, rounded corners=1pt, inner sep=1.2pt, minimum height=0.28cm,
+               font=\rmfamily\sixpt, text height=0.16cm, text depth=0.04cm},
+  wk/.style={draw=wkline, line width=0.9pt, dash pattern=on 3pt off 1.5pt},
+  wk1/.style={draw=thgreen, line width=0.9pt, dash pattern=on 3pt off 1.5pt},
+}
+\tikzset{
+  node/.style={draw=black!80, fill=white, line width=0.5pt},
+  host/.style={draw=black!80, fill=hostc, line width=0.5pt},
+  gpubox/.style={draw=black!80, fill=gpuc, line width=0.5pt},
+  ctitle c/.style={ctitle, anchor=north},
+  ptitle c/.style={ptitle, anchor=north},
+  op/.style={diamond, aspect=1.9, draw=black!70, fill=opc, line width=0.4pt, inner sep=0.4pt, font=\rmfamily\itshape\scriptsize},
+  item/.style={draw=black!80, line width=0.4pt, inner sep=1pt, minimum height=0.26cm, font=\rmfamily\sixpt,
+               text height=0.15cm, text depth=0.04cm},
+  gateb/.style={item, fill=gatec, text=gatetext},
+  rowb/.style={item, fill=rowc, text=rowtext},
+  mpi/.style={{Latex[length=2.2mm,width=2.0mm]}-{Latex[length=2.2mm,width=2.0mm]}, line width=1.6pt, draw=dred},
+}
+% chunks, no white inside a chunk: full = sector color, being filled = a light tint of the sector color, received over
+% MPI = sector color with black hatching, free (pool) = gray with gray hatching
+\tikzset{
+  filling/.style={fill=#1!40},
+  received/.style={fill=#1, postaction={pattern=north west lines, pattern color=black!85}},
+  free/.style={cl, fill=black!14, postaction={pattern=north east lines, pattern color=black!55}},
 }

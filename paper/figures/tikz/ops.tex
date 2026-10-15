@@ -10,21 +10,21 @@
   \foreach \c/\t in {0/Terms, 1/Branch, 2/Merge, 3/Truncate}
     \node[ctitle] at ({\c*\pitch+0.52}, -0.12) {\t};
   % input
-  \term{0}{0}{XZ}{0.50}{nB}{}
-  \term{0}{1}{ZZ}{0.36}{nC}{}
+  \term{0}{0}{XZ}{0.50}{sa}{}
+  \term{0}{1}{ZZ}{0.36}{sc}{}
   % branch: rotation about Y on the first qubit
-  \term{1}{0}{XZ}{0.44}{nB}{}
-  \term{1}{1}{ZZ}{0.22}{nC}{draw=newc, line width=1.1pt}
-  \term{1}{2}{ZZ}{0.32}{nC}{}
-  \term{1}{3}{XZ}{0.17}{nB}{draw=newc, line width=1.1pt}
+  \term{1}{0}{XZ}{0.44}{sa}{}
+  \term{1}{1}{ZZ}{0.22}{sc}{draw=newc, line width=1.1pt}
+  \term{1}{2}{ZZ}{0.32}{sc}{}
+  \term{1}{3}{XZ}{0.17}{sa}{draw=newc, line width=1.1pt}
   % merge: one term per string
-  \term{2}{0}{XZ}{0.27}{nB}{}
-  \term{2}{1}{ZZ}{0.50}{nC}{}
+  \term{2}{0}{XZ}{0.27}{sa}{}
+  \term{2}{1}{ZZ}{0.50}{sc}{}
   % truncate
   \node[cl, fill=black!8, text=black!40, minimum width=\sw cm] (gone) at ({3*\pitch}, -0.55) {XZ};
   \fill[black!15] ({3*\pitch+\sw+0.04}, -0.65) rectangle ++(0.27, 0.20);
   \draw[dred, line width=0.9pt] ([xshift=-0.04cm]gone.west) -- ({3*\pitch+\sw+0.36}, -0.55);
-  \term{3}{1}{ZZ}{0.50}{nC}{}
+  \term{3}{1}{ZZ}{0.50}{sc}{}
   \draw[dred, line width=0.7pt, dashed] ({3*\pitch+\sw+0.04+0.30}, -0.30) -- ({3*\pitch+\sw+0.04+0.30}, -1.42);
   \node[sann, text=dred, anchor=north] at ({3*\pitch+\sw+0.34}, -1.42) {Cutoff};
   % the steps

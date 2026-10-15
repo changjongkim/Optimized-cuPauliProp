@@ -1,0 +1,93 @@
+% Design, Fig. B (Section 3.2): window-conserved parity sectors on the running example.
+% Left: the Row Solver. The generators of W_k as bit vectors (x | z); GF(2) elimination gives the rows r with r.Q = 0
+% for every generator Q of the window; r1 = x1 and r2 = z0+z1+z2+z3 are the rows of W_k (picked on the sample, Fig. C).
+% Right: sector 11 (r1.P = r2.P = 1) through the gates of W_k in processing order. A rotation about Q branches P into P
+% and P xor Q (outlined: a new term; +: a new copy merged into an existing term); since r.Q = 0, every new term keeps the
+% parities of its parent, so the sector merges and truncates alone. Bottom: x0, a row that W_k does not keep (X0 flips
+% it), sends the new term Y0X1 to another part.
+\begin{tikzpicture}[x=1cm, y=1cm]
+  \tikzset{bit/.style={cl, anchor=center, minimum width=0.32cm, minimum height=0.25cm},
+           lab/.style={td, minimum width=1.10cm, anchor=center, minimum height=0.25cm, text height=0.14cm, text depth=0.04cm},
+           hb/.style={th, anchor=center, minimum height=0.25cm, text height=0.14cm, text depth=0.04cm},
+           g0/.style={bit, fill=white}, g1/.style={bit, fill=genc}, r0/.style={bit, fill=white}, r1/.style={bit, fill=rowc, text=rowtext},
+           term/.style={item, fill=sd, minimum width=1.06cm},
+           newt/.style={term, draw=newc, line width=1.0pt},
+           t0/.style={term}, t1/.style={newt},
+           hd/.style={item, minimum width=1.06cm, minimum height=0.30cm},
+           plus/.style={circle, draw=newc, fill=white, line width=0.7pt, inner sep=0pt, minimum size=0.19cm,
+                        font=\rmfamily\tiny, text=newc},
+           lbl/.style={sann, anchor=north}}
+  \def\bx{1.42+0.32*\i+0.10*(\i>3)}
+  % ================================================================ row solver
+  \draw[pan] (0,0) rectangle (4.80,-3.80);
+  \node[ptitle c] at (2.40,-0.06) {Row Solver on $W_k$};
+  \node[hb, minimum width=1.10cm] at (0.72,-0.58) {Generator};
+  \foreach \t [count=\i from 0] in {$x_0$,$x_1$,$x_2$,$x_3$,$z_0$,$z_1$,$z_2$,$z_3$}
+    \node[hb, minimum width=0.32cm] at ({\bx},-0.58) {\t};
+  \foreach \g/\bits [count=\r from 1] in {X0/{1,0,0,0,0,0,0,0}, Z2Z3/{0,0,0,0,0,0,1,1}, Z1Z2/{0,0,0,0,0,1,1,0}, Z0Z1/{0,0,0,0,1,1,0,0}}
+  {
+    \node[lab, fill=gatec] at (0.72,{-0.58-0.25*\r}) {\g};
+    \foreach \b [count=\i from 0] in \bits
+      \node[g\b] at ({\bx},{-0.58-0.25*\r}) {\b};
+  }
+  \node[op, minimum width=0.90cm, inner sep=0pt] (el) at (2.40,-2.05) {GF(2)};
+  \fill[navy] (2.33,-1.73) -- (2.47,-1.73) -- (2.40,-1.80) -- cycle;
+  \fill[navy] (2.33,-2.30) -- (2.47,-2.30) -- (2.40,-2.37) -- cycle;
+  \node[lbl, anchor=west] at (2.92,-2.05) {elimination};
+  \node[hb, minimum width=1.10cm] at (0.72,-2.50) {Valid Row};
+  \foreach \t [count=\i from 0] in {$x_0$,$x_1$,$x_2$,$x_3$,$z_0$,$z_1$,$z_2$,$z_3$}
+    \node[hb, minimum width=0.32cm] at ({\bx},-2.50) {\t};
+  \foreach \g/\bits [count=\r from 1] in {{$x_1$}/{0,1,0,0,0,0,0,0}, {$x_2$}/{0,0,1,0,0,0,0,0}, {$x_3$}/{0,0,0,1,0,0,0,0}, {$\oplus_q z_q$}/{0,0,0,0,1,1,1,1}}
+  {
+    \node[lab] at (0.72,{-2.50-0.25*\r}) {\g};
+    \foreach \b [count=\i from 0] in \bits
+      \node[r\b] at ({\bx},{-2.50-0.25*\r}) {\b};
+  }
+  \draw[dred, line width=0.8pt, rounded corners=1pt] (0.13,-2.615) rectangle (3.97,-2.885);
+  \draw[dred, line width=0.8pt, rounded corners=1pt] (0.13,-3.365) rectangle (3.97,-3.635);
+  \node[stxt, text=dred, anchor=west] at (4.03,-2.75) {$r_1$};
+  \node[stxt, text=dred, anchor=west] at (4.03,-3.50) {$r_2$};
+  % ================================================================ sector 11 through W_k
+  \draw[pan] (5.05,0) rectangle (13.90,-3.80);
+  \node[ptitle c] at (9.475,-0.06) {Sector 11 Through $W_k$};
+  \def\cx{5.86+1.40*\i}
+  \foreach \t/\f [count=\i from 0] in {Start/pan2, X0/gatec, Z2Z3/gatec, Z1Z2/gatec, Z0Z1/gatec, Truncate/white}
+    \node[hd, fill=\f] at ({\cx},-0.70) {\t};
+  \foreach \i in {0,...,4}
+    \fill[navy] ({\cx+0.62},-0.63) -- ({\cx+0.76},-0.70) -- ({\cx+0.62},-0.77) -- cycle;
+  \foreach \i/\list in {0/{Z0X1/0,Y0X1/0}, 1/{Z0X1/0,Y0X1/0}, 2/{Z0X1/0,Y0X1/0}, 3/{Z0X1/0,Y0X1/0,Z0Y1Z2/1,Y0Y1Z2/1},
+                       4/{Z0X1/0,Y0X1/0,Z0Y1Z2/0,Y0Y1Z2/0,Y1/1,X1Z2/1}}
+    \foreach \s/\n [count=\r from 0] in \list
+      \node[t\n] at ({\cx},{-1.08-0.32*\r}) {\s};
+  \foreach \r in {0,1}
+    \node[plus] at ({5.86+1.40+0.54},{-1.08-0.32*\r}) {+};
+  \foreach \s [count=\r from 0] in {Z0X1, Y0X1, Z0Y1Z2}
+    \node[term] at ({5.86+1.40*5},{-1.08-0.32*\r}) {\s};
+  \node[term, fill=pan2, text=black!40] (gone) at ({5.86+1.40*5},-2.04) {Y0Y1Z2};
+  \draw[dred, line width=0.8pt] ([xshift=-0.03cm]gone.west) -- ([xshift=0.03cm]gone.east);
+  \foreach \s [count=\r from 4] in {Y1, X1Z2}
+    \node[term] at ({5.86+1.40*5},{-1.08-0.32*\r}) {\s};
+  % legend, in the space the early gates leave free
+  \node[term, minimum width=0.40cm] at (5.52,-1.80) {};
+  \node[sann, anchor=west] at (5.76,-1.80) {sector 11};
+  \node[newt, minimum width=0.40cm] at (5.52,-2.10) {};
+  \node[sann, anchor=west] at (5.76,-2.10) {new term};
+  \node[plus] at (5.52,-2.40) {+};
+  \node[sann, anchor=west] at (5.76,-2.40) {merged copy};
+  \node[term, fill=pan2, minimum width=0.40cm] at (5.52,-2.70) {};
+  \draw[dred, line width=0.8pt] (5.28,-2.70) -- (5.76,-2.70);
+  \node[sann, anchor=west] at (5.80,-2.70) {below the cutoff};
+  % new terms that must move to another part, per gate: with the rows of W_k, and with x0 (not kept by W_k) instead
+  \tikzset{mv/.style={td, anchor=center, minimum width=1.08cm, minimum height=0.26cm, text height=0.15cm, text depth=0.04cm}}
+  \node[mv, minimum width=1.34cm, fill=wkc] at (5.92,-3.32) {rows of $W_k$};
+  \node[mv, minimum width=1.34cm, fill=pan2] at (5.92,-3.60) {$x_0$ instead};
+  \foreach \i/\a/\b in {1/0/2, 2/0/0, 3/0/0, 4/0/0}
+  {
+    \node[mv, fill=wkc] at ({5.86+1.40*\i},-3.32) {\a};
+    \node[mv, fill=pan2] at ({5.86+1.40*\i},-3.60) {\ifnum\b>0 \textcolor{dred}{\b}\else\b\fi};
+  }
+  \node[mv, fill=wkc] at ({5.86+1.40*5},-3.32) {in the sector};
+  \node[mv, fill=pan2, text=dred] at ({5.86+1.40*5},-3.60) {across parts};
+  \node[sann] at (8.66,-3.04) {new terms that must move to another part, per gate};
+  \node[sann] at ({5.86+1.40*5},-3.04) {merge};
+\end{tikzpicture}
