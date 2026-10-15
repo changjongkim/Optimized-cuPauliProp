@@ -708,7 +708,7 @@ def d_cost_all():
     return circuits16("d_cost_all", per_term=True)
 
 
-def circuits_big(g, ladder=("1e-4", "3e-5", "1e-5", "5e-6", "3e-6", "2e-6", "1e-6", "7e-7", "5e-7", "3e-7", "2e-7")):
+def circuits_big(g, ladder=("1e-4", "3e-5", "1e-5", "5e-6", "3e-6", "2e-6", "1e-6", "7e-7", "5e-7", "3e-7", "2e-7"), original_baseline=False):
     """The three circuits of the scaling jobs on `g` GPUs in one picture as wide as a slide (1744 x 580 px there): time
     against the cutoff for SectorQ and the two modes of cuPauliProp on the same nodes, in the form of d_circuits_all.
     SectorQ at cutoff 1e-6 and below: the runs of the ladder of the scale campaign (a higher sector limit), as in
@@ -719,6 +719,9 @@ def circuits_big(g, ladder=("1e-4", "3e-5", "1e-5", "5e-6", "3e-6", "2e-6", "1e-
     def run(kind, c, x):
         if kind in ("orqa", "monoprop"):                 # the CPU implementations on the same nodes (queue_s)
             return mf.as_big(mf.scale_rec(f"{kind}.{c}.{x}.n{g // 4}"))
+        if original_baseline and kind == "cupp" and c in ("ki", "noise"):
+            # Do not replace missing original-circuit measurements with frame-input runs.
+            return mf.as_big(mf.scale_rec(f"o.cupp.{c}.{x}.g{g}"))
         if kind != "ours":
             return mf.find(big, "cupp", mf.BIG_NAME[c], float(x), gpus=g, tuned=(kind == "defer"))
         hits = [r for r in big if r["kind"] == "engine" and r["circuit"] == mf.BIG_NAME[c] and abs(r["coef"] / float(x) - 1) < 1e-9]

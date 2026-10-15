@@ -464,11 +464,87 @@ def ev_weak():
 
 def ev_scaleout():
     md.d_scaleout()
-    split(CAUGHT.pop("d_scaleout"), "ev_scaleout", 2)
+    split(CAUGHT.pop("d_scaleout"), "ev_scaleout", 1, size=(TEXT_W, 2.8))
+
+
+def ev_circuits128():
+    md.circuits_big(128, original_baseline=True)
+    fig = CAUGHT.pop("d_circuits_g128")
+    for ax in panels_of(fig):
+        # The ratios are stated in the text; keep the new narrow panels legible.
+        for label in list(ax.texts):
+            label.remove()
+        lo, hi = ax.get_ylim()
+        ax.set_yticks([y for y in (1, 10, 100, 1000, 10000) if lo <= y <= hi])
+    split(fig, "ev_circuits128", 3, size=(PLACE[3][0], 2.3))
+
+
+def ev_fixed_rows():
+    """Clean, same-engine fixed-row ablation; archived contention logs are excluded by the reader."""
+    import json
+    data = json.load(open(os.path.join(os.path.dirname(HERE), "analysis", "paper_fixed_rows.json")))
+    data = [r for r in data if r["gpus"] == 16]
+    fig, axes = plt.subplots(2, 3)
+    cases = [("ki", "Kicked Ising"), ("tfim", "TFIM heavy-hex"), ("tfimsq", "TFIM 11x11"),
+             ("xxz", "XXZ 8x8"), ("qaoa", "QAOA"), ("hea", "Ansatz")]
+    for ax, (c, title) in zip(axes.flat, cases):
+        runs = {(r["mode"], r["cutoff"]): r for r in data if r["circuit"] == c}
+        cuts = sorted({x for m, x in runs if runs[m, x]["exit"] == 0}, key=float, reverse=True)
+        for mode, label, color, marker in [("re", "Recomputed Rows (SectorQ)", mf.SQ["ours"][0], "o"),
+                                            ("fx", "Fixed Rows", mf.SQ["cupp"][0], "s")]:
+            points = [(i, runs[mode, x]["wall"]) for i, x in enumerate(cuts)
+                      if (mode, x) in runs and runs[mode, x]["exit"] == 0]
+            ax.plot([p[0] for p in points], [p[1] for p in points], color=color, marker=marker,
+                    linewidth=2, label=label)
+        ticks = []
+        for i, x in enumerate(cuts):
+            a, b = runs.get(("re", x)), runs.get(("fx", x))
+            terms = a["terms"] if a and a["exit"] == 0 else None
+            ticks.append(x + ("\n" + mf.count(terms).replace(" ", "") if terms else ""))
+            if a and b and a["exit"] == b["exit"] == 0:
+                ax.annotate(f'{b["wall"] / a["wall"]:.1f}', (i, b["wall"]), xytext=(0, 5),
+                            textcoords="offset points", ha="center", fontsize=V)
+        ax.set_xticks(range(len(cuts)), ticks)
+        ax.set_yscale("log")
+        ax.set_ylim(0.1, 4000)
+        ax.set_xlabel("Cutoff (# of Terms)")
+        ax.set_ylabel("Time (s)")
+        ax.set_title(title)
+        ax.grid(axis="y", linestyle=":", color="#c8ccd2")
+    fig.legend(*axes.flat[0].get_legend_handles_labels())
+    split(fig, "ev_fixed_rows", 3, size=(PLACE[3][0], 2.3))
+
+
+def ev_large_time():
+    """Worker-time averages and node-time averages, using the existing breakdown palette."""
+    import json
+    rows = json.load(open(os.path.join(os.path.dirname(HERE), "analysis", "paper_large_time.json")))
+    by_id = {r["id"]: r for r in rows}
+    fig, axes = plt.subplots(1, 3)
+    for j, (c, title) in enumerate(mf.G3):
+        ax = axes[j]
+        for i, g in enumerate((128, 256, 512)):
+            prefix = "i.ref" if c == "ki" else "n.eng"
+            r = by_id[f"{prefix}.{c}.3e-6.g{g}"]
+            values = dict(operations=r["operations_avg"], copies=r["h2d_avg"] + r["d2h_avg"],
+                          partition=r["partition_avg"], idle=r["idle_avg"], waiting=r["sync"],
+                          exchange=r["exchange"], other=r["residual"])
+            assert values["other"] >= -0.01, r["id"]
+            bottom = 0
+            for label, key, color in mf.SIZE_PARTS:
+                label = "Idle Workers" if key == "idle" else label
+                ax.bar(i, values[key], bottom=bottom, width=0.65, color=color, label=label if i == 0 else None)
+                bottom += values[key]
+        ax.set_xticks(range(3), ["128", "256", "512"])
+        ax.set_xlabel("# of GPUs")
+        ax.set_ylabel("Time (s)")
+        ax.set_title(title)
+    fig.legend(*axes[0].get_legend_handles_labels())
+    split(fig, "ev_large_time", 3)
 
 
 FIGURES = [bg_anatomy, bg_accuracy, bg_windows, ev_single, ev_circuits, ev_prs, ev_size, ev_accuracy, ev_breakdown, ev_variability,
-           ev_staircase, ev_knobs, ev_weak]
+           ev_staircase, ev_knobs, ev_weak, ev_scaleout, ev_fixed_rows, ev_large_time, ev_circuits128]
 
 if __name__ == "__main__":
     want = [a for a in ARGS if not a.startswith("-")]
