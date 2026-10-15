@@ -125,3 +125,15 @@ python3 paper/scripts/check_style.py
 - 생성기의 글자/범례/데이터 경계 및 겹침 검사 0건. 데이터 그림이 있는 PDF 4–6, 12–21쪽을 모두 렌더링해 확인했다. 컴파일 성공, check_style 0건, 미해결 인용/참조 및 Overfull 없음. 본문 8,623단어(Evaluation 2,757단어), 23쪽이다.
 - 재생성은 `figures/`에서 `MPLCONFIGDIR=/pscratch/sd/s/sgkim/kcj/pauliprop/paper/build/matplotlib ../env/bin/python3 make_paper_figures.py`로 한다. 검사 로그와 미리보기는 git 제외인 `paper/build/`에 있다.
 - 이번 변경은 로컬 커밋만 하며 새 push 요청은 아직 없다. 이 편집 작업에서는 실험/job 상태를 다시 조회하지 않았다.
+
+## 후속 변경 — Figure 17의 cutoff별 3×3 배치 (2026-10-15)
+
+- 앞선 데이터 그림 정리 후 사용자의 push 요청으로 `6fcb59c`까지 GitHub main에 push했다.
+- 사용자가 Figure 17도 cutoff별로 보여 달라고 요청했고, GPU 수는 16·64·256의 세 행으로 지정했다. 열은 kicked Ising, TFIM heavy-hex, noisy kicked Ising이다. 모든 패널을 시간 비중(%)과 공통 로그 cutoff 축으로 통일했다.
+- 새 `analysis/paper_time_sweeps.py`가 기존 완료 로그 103개를 JSON/CSV로 정리한다. 16 GPU는 기존 그림과 동일한 15개 실행, 64/128/256/512 GPU는 기본 cap=256, truncEvery=10, 회로별 동일 target의 88개 실행이다. 그림에는 16/64/256 GPU의 59개만 사용하고 128/512 GPU도 분석 파일에 보관했다. 새 실험은 없다.
+- 16 GPU의 1e-4/3e-5/1e-5는 `logs/g/eng.*`의 `pp_engine_h`, 3e-6/1e-6은 `logs/r/eng.*`의 `pp_engine_i`로 기존 출처를 유지했다. 64 GPU 이상은 `logs/s/i.ref.ki.*`와 `logs/s/n.eng.*`의 `pp_engine_i`다. 같은 바이너리 버전으로 모두 재측정한 sweep이라고 주장하지 않는다.
+- higher-cap/chunk KI 실행은 비교 조건이 다르므로 새 cutoff 그림에서 제외했다. 기존 `paper_large_time.*`와 최대 용량 결과는 그대로다. worker counter/GPU 수와 node-average exchange/sync를 합산하며, Other는 wall에서 남는 시간이다. 103개 모두 음수 성분이 없고 합이 wall과 일치한다.
+- 본문에 64 GPU의 idle worker 비중이 cutoff 1e-4에서 41–48%, 회로별 최저 표시 cutoff에서 1–2%라는 결과를 추가했다. 기존 512 GPU의 idle 40%는 별도 측정임을 명시했다.
+- `figures/make_paper_figures.py ev_runtime`으로 새 패널 9개와 공통 범례만 생성했다. 기존 PDF 83개는 SHA-256이 모두 같아 Figure 16과 설계 그림을 포함한 다른 그림은 바뀌지 않았다.
+- 컴파일 성공, check_style 0건, 미해결 인용/참조와 Overfull 없음. 19쪽을 렌더링해 배치와 가독성을 확인했다. 23쪽, 본문 8,647단어(Evaluation 2,781단어)다. 미리보기는 `paper/build/runtime-cutoffs.png`에 있다.
+- 새 변경은 코드/논문 커밋을 분리해 로컬에 남긴다. 이번 변경에 대한 새 push 요청은 아직 없다. 이 편집 작업에서는 실험/job 상태를 다시 조회하지 않았다.

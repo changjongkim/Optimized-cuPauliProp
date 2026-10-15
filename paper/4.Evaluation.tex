@@ -291,26 +291,30 @@ Ansatz & 34 & 1,392 & 8.3 & 107.7 \\
 % Distinguish imbalance over nonempty sectors from imbalance over all 2**rows labels.
 
 \noindent\textbf{Time Breakdown across Scales.}
-Figure~\ref{fig:runtime} combines the 16-GPU cutoff sweeps with the 128-512 GPU decomposition at cutoff $3\times10^{-6}$.
+Figure~\ref{fig:runtime} profiles completed cutoff sweeps on 16, 64, and 256 GPUs with the default sector cap.
 Worker counters are divided by the GPU count and compared with wall time.
 Library-call time is not sampled GPU utilization.
 For large 16-GPU settings, library operations account for 69-89\% and inter-node exchange for 3-13\%.
+On 64 GPUs, idle worker time falls from 41-48\% at cutoff $10^{-4}$ to 1-2\% at the lowest plotted cutoff of each circuit.
 The original-circuit \cuPP baseline separately records 39-44\% of its large-setting time inside MPI calls.
-At kicked Ising cutoff $3\times10^{-6}$, average worker idle time rises from 9\% to 40\% of wall time as the GPU count increases from 256 to 512.
+The separate 512-GPU measurements show that average worker idle time rises from 9\% to 40\% of wall time relative to 256 GPUs at kicked Ising cutoff $3\times10^{-6}$.
 The largest capacity run uses a higher sector cap and has a different composition, with 46\% in library calls, 26\% in exchange, and 9\% in GPU-host copies.
 Its exchange includes 607~s in transfer, 280~s in posting, and under two seconds in counts.
 These measurements distinguish insufficient task concurrency from exchange overhead.
 
 \begin{figure}[tp]
 \centering
-\panel{ev_large_time_legend}\\[-2pt]
-\subfloat[Kicked Ising, 16 GPUs]{\panel{ev_breakdown_a}}\hfill
-\subfloat[TFIM heavy-hex, 16 GPUs]{\panel{ev_breakdown_b}}\hfill
-\subfloat[Noisy kicked Ising, 16 GPUs]{\panel{ev_breakdown_c}}\\[4pt]
-\subfloat[Kicked Ising, 128-512 GPUs]{\panel{ev_large_time_a}}\hfill
-\subfloat[TFIM heavy-hex, 128-512 GPUs]{\panel{ev_large_time_b}}\hfill
-\subfloat[Noisy kicked Ising, 128-512 GPUs]{\panel{ev_large_time_c}}
-\caption{Time by activity across problem sizes and GPU counts. Panels (a)-(c) show shares of wall time, and (d)-(f) show seconds at cutoff $3\times10^{-6}$}
+\panel{ev_runtime_legend}\\[-2pt]
+\subfloat[Kicked Ising, 16 GPUs]{\panel{ev_runtime_a}}\hfill
+\subfloat[TFIM heavy-hex, 16 GPUs]{\panel{ev_runtime_b}}\hfill
+\subfloat[Noisy kicked Ising, 16 GPUs]{\panel{ev_runtime_c}}\\[4pt]
+\subfloat[Kicked Ising, 64 GPUs]{\panel{ev_runtime_d}}\hfill
+\subfloat[TFIM heavy-hex, 64 GPUs]{\panel{ev_runtime_e}}\hfill
+\subfloat[Noisy kicked Ising, 64 GPUs]{\panel{ev_runtime_f}}\\[4pt]
+\subfloat[Kicked Ising, 256 GPUs]{\panel{ev_runtime_g}}\hfill
+\subfloat[TFIM heavy-hex, 256 GPUs]{\panel{ev_runtime_h}}\hfill
+\subfloat[Noisy kicked Ising, 256 GPUs]{\panel{ev_runtime_i}}
+\caption{Shares of wall time across cutoffs on 16, 64, and 256 GPUs. Logarithmic cutoff axes and completed runs with the default sector cap}
 \label{fig:runtime}
 \end{figure}
 
