@@ -327,6 +327,8 @@ def panel(fig, ax, name, w, h, xlabel=None, ylabel=None, before=None, drop_minor
         assert all(not current or current == original for current, original in zip(shown, labels)), name
         assert shown[0] == labels[0] and shown[-1] == labels[-1], name
         assert all("\n" not in text for text in shown) if ax.get_xlabel().startswith("Cutoff") else True
+        if getattr(ax, '_paper_require_all_xticks', False):
+            assert shown == labels, name
     figlegs, axlegs = list(fig.legends), [(a, a.legend_) for a in axes]
     fig.legends.clear()                             # hidden legends are not part of this panel
     for a in axes:
@@ -679,22 +681,28 @@ def ev_large_time():
 
 
 def ev_runtime():
-    """Cutoff-dependent activity shares, with one GPU count per row and circuit per column."""
+    """Activity shares at a fixed small case and larger workloads for larger allocations."""
     import json
-    rows = json.load(open(os.path.join(os.path.dirname(HERE), "analysis", "paper_time_sweeps.json")))
+    rows = json.load(open(os.path.join(os.path.dirname(HERE), "analysis", "paper_runtime_profiles.json")))
     fig, axes = plt.subplots(3, 3)
     for row, g in enumerate((16, 64, 256)):
         for column, (c, title) in enumerate(mf.G3):
             ax = axes[row, column]
-            samples = {float(r["cutoff"]): r for r in rows if r["gpus"] == g and r["circuit"] == c}
+            samples = sorted((r for r in rows if r["gpus"] == g and r["circuit"] == c), key=lambda r: r['point'])
+            assert len(samples) == 3
             ticks = []
-            for i, cutoff in enumerate((1e-4, 1e-5, 1e-6)):
-                r = samples.get(cutoff)
-                label = f"1e-{4 + i}"
-                if r is None:
+            for i, r in enumerate(samples):
+                label = r['cutoff'] + ('*' if r['sector_cap'] > 256 else '')
+                if r['status'] != 'complete':
                     ticks.append(label)
-                    ax.text(i, 50, "Pending", ha="center", va="center", color="#666666")
+                    ax.text(i, 50, r['status'].title(), ha="center", va="center", color="#666666")
                     continue
+                # All three cutoffs remain visible. Show size at the endpoints
+                # so the middle label fits on the same single line.
+                if i != 1:
+                    scale, suffix = (1e9, 'B') if r['terms'] >= 1e9 else (1e6, 'M')
+                    count = float(f"{r['terms'] / scale:.2g}")
+                    label += f" ({count:g}{suffix})"
                 ticks.append(label)
                 bottom = 0
                 for label, key, color in mf.SIZE_PARTS:
@@ -706,9 +714,10 @@ def ev_runtime():
                 assert abs(bottom - 100) < 1e-8, r["id"]
             ax.set_xlim(-0.5, 2.5)
             ax.set_xticks(range(3), ticks)
+            ax._paper_require_all_xticks = True
             ax.set_ylim(0, 100)
             ax.set_yticks([0, 50, 100])
-            ax.set_xlabel("Cutoff")
+            ax.set_xlabel("Cutoff (# of Terms)")
             ax.set_ylabel("Time Share (%)")
             ax.set_title(f"{title}, {g} GPUs")
     fig.legend(*axes[0, 0].get_legend_handles_labels())
