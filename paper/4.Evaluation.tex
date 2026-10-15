@@ -2,7 +2,7 @@
 \label{sec:eval}
 
 \subsection{Evaluation Setup}
-We evaluate performance and capacity, the contribution of the design choices, numerical agreement, and sensitivity to execution parameters.
+We evaluate execution time, scaling and capacity, design contributions, numerical agreement, and parameter sensitivity under the following conditions.
 
 \noindent\textbf{Hardware Specification.}
 All experiments use NERSC Perlmutter GPU nodes, each with four NVIDIA A100 GPUs with 40~GB of device memory each, a 64-core CPU, and 256~GiB of host memory.
@@ -13,23 +13,24 @@ The largest configuration contains 128 nodes and 512 GPUs.
 CPU implementations use the same nodes as the corresponding GPU configuration.
 ORQA uses 64 ranks per node, MonoProp uses eight ranks with eight threads each, and threaded single-node implementations use 64 threads.
 Qiskit uses one thread.
-The comparisons identify the node count and execution devices rather than assuming equivalent CPU and GPU resources.
+CPU and GPU comparisons use equal node counts, with the rank and thread configurations specified above.
 
 \noindent\textbf{Evaluation Scope.}
 The experiments measure Heisenberg-picture propagation that returns an observable expectation value.
-Unless stated otherwise, each setting is measured once with a 40-minute limit.
+Unless stated otherwise, each configuration is measured once with a 40-minute limit.
 The size and exact-reference experiments use a 20-minute limit, and capacity ladders allow \SectorQ up to two hours per run.
-A ladder stops after memory exhaustion or its time limit, and an unexecuted point is not a measured failure.
-Times cover propagation rather than queue or process-launch delays, including initialization performed lazily within the timed region.
+A cutoff sweep stops after memory exhaustion or its time limit.
+The plots distinguish completed measurements, observed failures, and unexecuted configurations.
+Reported times cover propagation and any initialization performed lazily within the timed call, excluding queue and process-launch delays.
 Horizontal-axis term counts denote the largest population at a \SectorQ window boundary under the stated truncation rule.
 These counts differ from intermediate expansion within a window and the final output size.
-Separate experiments assess numerical error and repeated-run variability.
-Thus, the main sweeps compare completed propagations under explicit input, truncation, resource, and timing conditions.
+Separate exact-reference and repeated-run experiments assess approximation error and timing variability.
 
 \noindent\textbf{Circuits.}
 The seven circuits in Table~\ref{tab:windows} vary the interaction graph, gate family, and observable.
 The principal workload is a 127-qubit heavy-hex kicked Ising circuit with 20 steps and rotation angle $\pi/4$.
-A second heavy-hex circuit uses transverse-field Ising model (TFIM) rotations at general angles, and a noisy variant adds depolarizing channels with probability 0.005.
+A second heavy-hex circuit uses transverse-field Ising model (TFIM) rotations at general angles.
+Noisy kicked Ising adds depolarizing channels with probability 0.005 to the principal workload.
 The remaining circuits are TFIM on an $11\times11$ lattice, XXZ on an $8\times8$ lattice, a 100-qubit QAOA circuit on a random regular graph, and a 100-qubit hardware-efficient ansatz.
 Their respective depths are 10 steps, 6 steps, 4 layers, and 16 layers.
 The observables include local magnetization and the edge sum of QAOA.
@@ -42,16 +43,17 @@ The second baseline uses a Clifford-frame input and defers global deduplication 
 We report the fastest successful deferred interval among those tested.
 The paulistrings-rs comparison uses original gates and truncation after each operation in both systems to match its gate-level coefficient decisions.
 Other comparisons use the authors' SPD, MonoProp, PauliPropagation.jl, and ppvm implementations, Qiskit's Pauli propagation package, and our reproduction of ORQA.
-These external implementations, except paulistrings-rs, receive the exported Clifford-frame operation list.
-MonoProp has a different truncation rule, and its times do not represent equal-error comparisons.
+The external implementations other than paulistrings-rs receive the exported Clifford-frame operation list.
+MonoProp has a different truncation rule and requires separate error measurements for a comparison at equal accuracy.
 The ORQA results describe our reproduction rather than the authors' implementation.
-These distinctions apply throughout the performance comparisons below.
+The default \SectorQ truncation interval is ten operations, with gate-level truncation used for the matched paulistrings-rs comparison.
 
 \subsection{Performance Compared with Existing Systems}
-We compare implementations from one node to 128 GPUs, retaining separate experiments when their truncation schedules differ.
+The comparisons cover one node, seven circuits on 16 GPUs, and three circuits on 128 GPUs.
+The paulistrings-rs experiment uses a separate matched truncation schedule.
 
 \noindent\textbf{Single-Node Performance.}
-Figure~\ref{fig:single} establishes the arithmetic and capacity behavior before inter-node exchange.
+Figure~\ref{fig:single} compares propagation time and completed cutoff ranges on one node.
 Across circuits that fit one GPU, the ratio of the \cuPP time to the \SectorQ time is 0.6-1.5.
 SPD is up to 2.9 times faster on one GPU, but its kicked Ising run exhausts memory at cutoff $10^{-5}$.
 At their shared cutoff $3\times10^{-5}$, \SectorQ on four GPUs takes 5.25~s and distributed \cuPP takes 44.3~s.
@@ -59,7 +61,8 @@ At their shared cutoff $3\times10^{-5}$, \SectorQ on four GPUs takes 5.25~s and 
 At the largest shared settings across circuits, the four-GPU implementation is 108-269 times faster than PauliPropagation.jl, 157-755 than ppvm, and over 1,800 than single-threaded Qiskit.
 The ORQA reproduction is 18-71 times slower on the same node.
 MonoProp remains faster on several small settings below two seconds, including kicked Ising at $10^{-3}$.
-The single-node result therefore includes both the small-problem advantages of other implementations and the broader executable range of \SectorQ.
+The small-expansion measurements provide no consistent advantage for \SectorQ.
+Its four-GPU execution completes larger expansions after several single-device implementations exhaust memory.
 
 \begin{figure}[t]
 \centering
@@ -74,10 +77,10 @@ Figure~\ref{fig:circuits} compares the seven circuits on four nodes.
 At the largest setting completed by the original-circuit \cuPP baseline for each circuit, \SectorQ is 4.4-9.7 times faster.
 Deferred deduplication remains 2.2-4.6 times slower at the shared settings and exhausts memory in two circuits at the primary baseline's largest completed setting.
 \SectorQ completes lower cutoffs in all seven circuits, including TFIM and XXZ inputs without removable Clifford gates.
-The improvement therefore extends beyond Clifford preprocessing.
-The same measurements yield 17-130~ns per boundary term for \SectorQ at settings above 100 million terms, compared with 908-39,000~ns for the primary baseline at cutoff $10^{-4}$.
-This normalization divides propagation time by the largest boundary count, rather than measuring one gate application.
-It relates the time curves to the operator sizes already shown on their axes, with no assumption of identical work per term across circuits.
+The TFIM and XXZ results demonstrate a reduction in propagation time even without removable Clifford operations.
+For context, total propagation time divided by the maximum boundary count is 17-130~ns per term for \SectorQ above 100 million terms.
+The primary baseline records 908-39,000~ns per term at cutoff $10^{-4}$.
+These values describe amortized propagation time at different operator sizes, not a matched-size speedup or the cost of one gate per term.
 % The ev_cost panels normalize these same time measurements by boundary count.
 % Their summary is integrated here rather than repeating a seven-panel figure.
 
@@ -96,14 +99,14 @@ It relates the time curves to the operator sizes already shown on their axes, wi
 \end{figure}
 
 \noindent\textbf{Three Circuits on 128 GPUs.}
-Figure~\ref{fig:circuits128} extends the comparison to 32 nodes with completed original-circuit \cuPP sweeps.
+Figure~\ref{fig:circuits128} compares three circuits on 32 nodes using the original-circuit \cuPP baseline.
 Kicked Ising and its noisy variant use those original inputs, while the TFIM input is identical with and without a Clifford frame.
 At the largest setting completed by the primary baseline in each sweep, \SectorQ is 7.4-13.4 times faster.
 For kicked Ising at cutoff $5\times10^{-6}$, the times are about 7.6 and 101.6~s.
 The CPU comparisons use the same 32 nodes.
 MonoProp remains competitive at the smallest settings, subject to its different truncation rule.
-The additional CPU ladders remain incomplete, and their curves end at the last completed point.
-This comparison establishes the benefit relative to other systems at a larger resource count, while the scaling experiments below measure the effect of adding resources to \SectorQ itself.
+Additional CPU cutoff sweeps remain incomplete, and their curves end at the last completed measurement.
+The completed GPU comparisons retain a time advantage at 128 GPUs, including a 13.4-fold reduction for the specified kicked Ising input.
 % TBD: append completed CPU ladders from job 59768998.
 
 \begin{figure}[t]
@@ -112,7 +115,7 @@ This comparison establishes the benefit relative to other systems at a larger re
 \subfloat[Kicked Ising]{\panel{ev_circuits128_a}}\hfill
 \subfloat[TFIM heavy-hex]{\panel{ev_circuits128_b}}\hfill
 \subfloat[Noisy kicked Ising]{\panel{ev_circuits128_c}}
-\caption{Three circuits on 128 GPUs with original-circuit primary baselines}
+\caption{Simulation time of three circuits on 128 GPUs}
 \label{fig:circuits128}
 \end{figure}
 
@@ -121,10 +124,9 @@ Figure~\ref{fig:prs} compares \SectorQ with paulistrings-rs on 16 GPUs using tru
 The fixed partition uses the library's seeded rows.
 \SectorQ is 1.6-5.4 times faster over all 30 shared settings and 1.6-4.1 times faster at the largest shared setting of each circuit.
 At the next tested cutoff in five circuits, paulistrings-rs exhausts GPU memory while \SectorQ completes in 29-880~s.
-Small-setting times include any lazy GPU kernel compilation in the propagation call.
-These curves remain separate from Figure~\ref{fig:circuits} because its default truncation interval differs.
-The comparison measures complete implementations, including their arithmetic and storage choices.
-Section~\ref{sec:design-eval} isolates row recomputation within the same engine, and Section~\ref{sec:accuracy} reports numerical agreement for the matched schedules.
+Times at small configurations include any lazy GPU kernel compilation within the propagation call.
+This comparison includes differences in arithmetic kernels, storage, and partition management under a common truncation schedule.
+The same-engine ablation in Section~\ref{sec:design-eval} isolates row recomputation, while Section~\ref{sec:accuracy} verifies the numerical agreement of the matched schedules.
 % TBD: paulistrings-rs 32/64 GPU results from jobs 59769001 and 59769002.
 
 \begin{figure}[t]
@@ -148,11 +150,11 @@ We vary the GPU count, circuit dimensions, and retained operator size to disting
 For fixed large problems, \SectorQ achieves speedups of 81-166 on 256 GPUs and 83-180 on 512 GPUs relative to one GPU.
 The representative settings are kicked Ising at cutoff $3\times10^{-6}$ and heavy-hex TFIM and noisy kicked Ising at $5\times10^{-6}$.
 Figure~\ref{fig:scaleout} also shows the kicked Ising cutoff ladder from one to 512 GPUs.
-The gain beyond 256 GPUs is modest under the default cap of 256 sectors.
+The default cap of 256 sectors limits additional speedup beyond 256 GPUs.
 At kicked Ising cutoff $3\times10^{-6}$, time decreases from 10.48 to 9.67~s.
-The trace has at most 256 nonempty sectors and no GPU splits, limiting concurrent sector execution below the 512 workers.
-Small problems also saturate, with cutoff $10^{-5}$ near three seconds from 128 GPUs onward.
-The time decomposition in Section~\ref{sec:design-eval} relates this limit to worker idle time and the remaining fixed costs.
+The trace contains at most 256 nonempty sectors and no GPU splits, leaving fewer concurrent tasks than the 512 available workers.
+At cutoff $10^{-5}$, execution time remains near three seconds from 128 GPUs onward.
+Additional GPUs cannot reduce this time proportionally when the sector count and per-window fixed costs limit parallel execution.
 
 \begin{figure}[t]
 \centering
@@ -167,10 +169,10 @@ Figure~\ref{fig:weak} increases the boundary term count with the GPU count by lo
 Efficiency is boundary-term throughput per GPU relative to the corresponding one-GPU run, accounting for the counts actually produced.
 For the large load, \SectorQ retains 80-88\% of this throughput on 16 GPUs and 72-80\% on 64 GPUs across the three circuits.
 The range falls to 23-38\% on 512 GPUs under the default sector cap.
-The measured \cuPP large-load configurations exhaust GPU memory, whereas the small load permits time comparisons on both systems.
+The measured large-load \cuPP configurations exhaust GPU memory, whereas the small load permits time comparisons between both systems.
 On 16 GPUs, \SectorQ is 8.1-12 times faster than the original-circuit baseline for the small load.
-CPU results appear where completed, with missing measurements omitted rather than interpreted as failures.
-Together, the weak and strong sweeps show that capacity continues to grow after the throughput per GPU decreases.
+CPU results appear at completed configurations.
+The retained population increases with GPU count, but throughput per GPU decreases at the largest configurations under the default sector cap.
 % TBD: remaining CPU and 512-GPU baseline weak points from the fill campaign.
 
 \begin{figure}[t]
@@ -190,11 +192,11 @@ Together, the weak and strong sweeps show that capacity continues to grow after 
 Figure~\ref{fig:size} varies the TFIM lattice size and kicked Ising depth on 16 GPUs.
 The lattice sweep covers 36-1,024 qubits with total magnetization as the observable, changing string length, graph size, and observable size together.
 At 1,024 qubits on a $32\times32$ lattice, \SectorQ completes in 90.4~s and is 4.1 times faster than original-circuit \cuPP.
-This qubit count is the supported library limit in the experiment, not a measured limit of the partition rule.
+The sweep ends at the library's supported limit of 1,024 qubits.
 The depth sweep keeps the kicked Ising graph fixed and increases its Trotter steps.
 At 60 steps, \SectorQ takes 160~s and is 50 times faster than the primary baseline.
-Longer propagation changes both the number of windows and the surviving operator, without implying proportional growth in retained terms.
-These two sweeps extend the result beyond the main circuit dimensions without extrapolating cost from qubit or gate count alone.
+The lower execution time persists across changes in string length, interaction graph, and propagation depth.
+The term counts on the horizontal axes also vary across these configurations because retained operator size depends on the resulting branching and truncation.
 
 \begin{figure}[t]
 \centering
@@ -207,38 +209,38 @@ These two sweeps extend the result beyond the main circuit dimensions without ex
 \end{figure}
 
 \noindent\textbf{Largest Operator and Host Memory.}
-The capacity ladder reaches 448.2 billion boundary terms on 512 GPUs at cutoff $1.5\times10^{-7}$, completing in 3,413~s.
+The kicked Ising capacity sweep reaches 448.2 billion boundary terms on 512 GPUs at cutoff $1.5\times10^{-7}$, completing in 3,413~s.
 The 17.9~TB expansion is 140 times larger than the largest completed original-circuit \cuPP setting on the same GPUs, 3.2 billion terms at $2\times10^{-6}$.
 The host chunk pool occupies 21,079~GiB across 128 nodes, 64\% of installed host memory.
-This allocation includes reusable chunks and transient storage, rather than measuring the processes' total resident memory.
+This allocation includes reusable chunks and transient storage and excludes memory outside the chunk pool.
 Round-based exchange limits additional receive storage, and each sector must still admit a finer valid partition if its working set exceeds GPU memory.
 On 128 GPUs, \SectorQ completes 117.5 billion terms.
 The 256-GPU endpoint remains under remeasurement after a stalled run.
-We distinguish completed runs, measured failures, and settings rejected from estimated storage requirements.
-The 140-fold comparison is specifically against \cuPP and does not establish a capacity advantage over every CPU implementation.
+Configurations rejected from estimated storage requirements remain distinct from measured failures.
+The 140-fold capacity ratio compares completed \SectorQ and \cuPP runs on the same GPUs.
 % TBD: 256-GPU endpoint and CPU reach from jobs 59768854 and the fill campaign.
 
 \subsection{Contribution of the Design Choices}
 \label{sec:design-eval}
-We combine controlled changes to the engine with time counters to identify the source and limits of the observed gains.
+Controlled engine variants evaluate preprocessing and window-dependent rows.
+Time counters quantify computation, copies, exchange, and worker idle time across GPU counts.
 
 \noindent\textbf{Preprocessing and Window Sectors.}
 Figure~\ref{fig:staircase} measures successive changes on kicked Ising at cutoff $10^{-5}$ and 16 GPUs.
 The original-circuit \cuPP baseline takes 95.0~s.
 A Clifford-frame input reduces time to 54.3~s, and deferred global deduplication reduces it to 48.8~s.
 Window-sector execution reaches 12.2~s with the same underlying library operations.
-This sequence separates the benefit of preprocessing from the execution structure built around those operations.
-It also shows that fewer global merges alone do not account for the observed time reduction.
-The fixed-row experiment below further tests whether one partition chosen in advance can obtain the same effect.
-Its recomputed run takes 11.9~s at this setting, from a separate allocation.
-We retain the two measurements separately rather than treating their small difference as the effect of another design change.
-Together, the experiments distinguish the execution mechanism from implementation differences between simulators.
+The reduction from 48.8 to 12.2~s remains after Clifford preprocessing and deferred deduplication, identifying an additional benefit from sector execution.
+The sequence changes the surrounding execution structure while retaining the library's single-GPU arithmetic.
+The following fixed-row experiment compares partition rules within that sector engine.
+Its recomputed variant takes 11.9~s at the same cutoff in a separate allocation.
+The 11.9 and 12.2~s measurements are separate executions of the same design, and their difference is not attributed to another mechanism.
 
 \begin{figure}[t]
 \centering
 \panel{ev_staircase_legend}\\[-2pt]
 \panel{ev_staircase_a}
-\caption{Run time as each element is added on 16 GPUs}
+\caption{Effect of preprocessing and sector execution on 16 GPUs}
 \label{fig:staircase}
 \end{figure}
 
@@ -251,7 +253,8 @@ All pairs have identical printed expectation values.
 Several fixed-row runs exhaust host memory at lower cutoffs that the recomputed variant completes.
 Noisy kicked Ising is excluded because the fixed variant does not support its explicit Clifford operations between rotations.
 Table~\ref{tab:fixedrows} connects the time difference to window count and traffic.
-For kicked Ising at $10^{-5}$, recomputation reduces 878 windows to 20 and 698.5~GB to 45.2~GB, supporting the benefit of window-dependent partitions within one engine.
+For kicked Ising at $10^{-5}$, recomputation reduces the window count from 878 to 20 and inter-node traffic from 698.5 to 45.2~GB.
+Fewer boundaries reduce the frequency of sector redistribution and the associated host-device transfers.
 
 \begin{figure}[t]
 \centering
@@ -290,23 +293,26 @@ Ansatz & 34 & 1,392 & 8.3 & 107.7 \\
 % Add Balanced Row Selection here when time, occupancy, split, and answer data exist.
 % Distinguish imbalance over nonempty sectors from imbalance over all 2**rows labels.
 
-\noindent\textbf{Time Breakdown across Scales.}
-Figure~\ref{fig:runtime} retains cutoff $10^{-4}$ as a small reference and increases the other workloads with the GPU count.
+\noindent\textbf{Time Breakdown across GPU Counts.}
+Figure~\ref{fig:runtime} uses cutoff $10^{-4}$ as a small reference and increases the other workloads with GPU count.
 Within each circuit, the middle points keep boundary terms per GPU within a factor of 1.5.
 The 64- and 256-GPU capacity points use sector caps of 1,024 and 4,096, with 65,536-term chunks on 256 GPUs.
-These profiles assess activity at larger problem sizes, rather than speedup for a fixed input.
-Worker counters are divided by the GPU count and compared with wall time.
-Library-call time is not sampled GPU utilization.
+The capacity configurations are marked with asterisks, and parentheses denote boundary term counts.
+Worker times are averaged over GPUs, exchange and synchronization times over nodes, and each is normalized by wall time.
+The Other component is the residual wall time after these recorded components.
+The library-call component measures elapsed call time and does not represent sampled device utilization.
 On 64 GPUs, kicked Ising reaches 44.3 billion boundary terms at the largest point, with 0.7\% average worker idle time.
-Five capacity points remain pending, including kicked Ising on 256 GPUs and TFIM and noisy kicked Ising on both larger allocations.
+Five capacity measurements remain pending, including kicked Ising on 256 GPUs and TFIM and noisy kicked Ising on both larger allocations.
+These points have no measured time shares or term counts.
 
+\noindent\textbf{Concurrency and Exchange Costs.}
 The small reference spends 37-52\% of wall time in average worker idle time across the nine profiles.
-At the largest 16-GPU settings, library operations account for 70-89\% and inter-node exchange for 3-13\%.
+At the largest 16-GPU settings, library operations occupy 70-89\% of wall time and inter-node exchange occupies 3-13\%.
 The original-circuit \cuPP baseline separately records 39-44\% of its large-setting time inside MPI calls.
 The separate 512-GPU measurements show that average worker idle time rises from 9\% to 40\% of wall time relative to 256 GPUs at kicked Ising cutoff $3\times10^{-6}$.
 The largest capacity run uses a higher sector cap and has a different composition, with 46\% in library calls, 26\% in exchange, and 9\% in GPU-host copies.
-Its exchange includes 607~s in transfer, 280~s in posting, and under two seconds in counts.
-These measurements distinguish insufficient task concurrency from exchange overhead.
+Its exchange time is concentrated in data transfer and request posting, with under two seconds spent exchanging counts.
+The fixed-input trace identifies limited task concurrency under the default cap, whereas the larger capacity run has a substantial exchange component despite low worker idle time.
 
 \begin{figure}[tp]
 \centering
@@ -320,33 +326,32 @@ These measurements distinguish insufficient task concurrency from exchange overh
 \subfloat[Kicked Ising, 256 GPUs]{\panel{ev_runtime_g}}\hfill
 \subfloat[TFIM heavy-hex, 256 GPUs]{\panel{ev_runtime_h}}\hfill
 \subfloat[Noisy kicked Ising, 256 GPUs]{\panel{ev_runtime_i}}
-\caption{Time shares for a fixed small reference and larger workloads at each GPU count. Parentheses show boundary term counts. Asterisks mark capacity settings with higher sector caps. Pending points have no completed measurement}
+\caption{Time shares for a fixed small reference and larger workloads by GPU count}
 \label{fig:runtime}
 \end{figure}
 
 \subsection{Numerical Agreement and Accuracy}
 \label{sec:accuracy}
-Numerical validation separates faithful distributed execution from the approximation introduced by coefficient truncation.
+We compare implementations under matched truncation schedules and assess approximation error against an exact reference.
 
 \noindent\textbf{Agreement across Implementations.}
 Across 68 circuit-cutoff settings with at least two successful runs under a common truncation rule, the largest absolute expectation difference is $4.9\times10^{-11}$.
 This comparison includes the single-GPU reference, distributed \cuPP, and external implementations with the same coefficient decisions.
 The largest difference occurs for QAOA's edge-sum observable.
 The separate gate-level truncation comparison with paulistrings-rs agrees within $4.7\times10^{-11}$ over 75 completed settings on one, four, and 16 GPUs.
-\SectorQ also preserves the printed answer when sector count, GPU count, window rule, or device-memory budget changes.
-These checks exercise the partition, exchange, and merge operations across the evaluated configurations.
-They validate the distributed implementation of a specified truncation schedule, without establishing that the chosen cutoff approximates the exact quantum expectation sufficiently well.
-The exact-reference experiment below tests this separate approximation question.
+\SectorQ also preserves the printed expectation value when sector count, GPU count, window rule, or device-memory budget changes.
+This agreement supports the merge-locality property across the evaluated partition and resource configurations.
+It measures consistency under the specified truncation schedule, while approximation error requires a reference without that truncation.
 
 \noindent\textbf{Error against an Exact Reference.}
 Figure~\ref{fig:accuracy} uses a 30-qubit TFIM on a $5\times6$ lattice with an exact state-vector reference, checked against untruncated Pauli propagation on smaller grids.
 The four-step circuit reaches absolute error $7.2\times10^{-5}$ at cutoff $10^{-7}$, with \SectorQ on 16 GPUs completing in 29.2~s.
 Implementations with the same truncation rule have the same error at a given cutoff, whereas MonoProp requires a separate error comparison.
 The six-step circuit reaches time or memory limits at higher cutoffs.
-Neither sweep has strictly monotonic error at every intermediate cutoff.
-The large kicked Ising workload has no exact reference at the evaluated scale and is also nonmonotonic.
-Its values from cutoff $10^{-6}$ to $1.5\times10^{-7}$ are approximately 0.3217, 0.3256, 0.3265, 0.3226, 0.3153, and 0.3089.
-Thus, the capacity result extends the accessible truncated computation without asserting convergence or a guaranteed reduction in physical error.
+Error is nonmonotonic at intermediate cutoffs in both sweeps.
+The large kicked Ising workload has no exact reference at the evaluated scale, and its expectation values are also nonmonotonic as the cutoff decreases.
+For example, the value increases from approximately 0.3217 at $10^{-6}$ to 0.3265 at an intermediate cutoff, then decreases to 0.3089 at $1.5\times10^{-7}$.
+The larger completed expansions establish computational capacity, but convergence of the kicked Ising expectation remains unverified.
 
 \begin{figure}[t]
 \centering
@@ -358,27 +363,27 @@ Thus, the capacity result extends the accessible truncated computation without a
 \end{figure}
 
 \subsection{Parameter Sensitivity and Repeatability}
-Figure~\ref{fig:robustness} groups parameter changes and repeated measurements to test the stability of the execution behavior.
+Figure~\ref{fig:robustness} reports the effect of sector and memory parameters and the variability of repeated execution times.
 
 \noindent\textbf{Sector Granularity and Device Memory.}
 At cutoff $10^{-5}$, a target sector size one quarter of the default increases time by 9-26\%, whereas twice the target reduces it by 2-9\% across the representative circuits.
 One to four tasks per GPU differ by at most 9\%, and eight can increase time by up to 35\% on 16 GPUs.
 The tradeoff is between additional library invocations with small sectors and working-buffer pressure with large sectors.
-Reducing the device-memory budget from 36 to 4~GB increases time by 12-64\% but preserves the tested answers through finer sector execution.
-More concurrency alone is not sufficient at large scale.
+With a device-memory budget of 4~GB, execution time increases by 12-64\% relative to 36~GB, while finer sectors preserve the tested expectation values.
+A larger task count can also increase total time.
 A 512-GPU kicked Ising run at $3\times10^{-6}$ with a 4,096-sector cap and smaller host chunks takes 11.6~s, against the default's 9.7~s.
-This joint change does not isolate the cap and does not establish one configuration as optimal across cluster sizes.
+The larger cap and smaller chunks change together in this experiment, preventing attribution of the time increase to either parameter alone.
 
 \noindent\textbf{Repeated Measurements.}
 The repetition experiment contains 160 completed kicked Ising runs, with ten measurements per setting.
-We define spread as maximum minus minimum time divided by their mean.
+We define spread as the difference between the maximum and minimum times divided by the mean of all repetitions.
 On 16 GPUs, spread is 1.4-7.2\% for \SectorQ and 3.4-7.6\% for original-circuit \cuPP.
 All repetitions preserve the printed expectation value.
-Each system's 16-GPU repetitions use one allocation, but the systems use different allocations.
-This avoids allocation changes within a system's spread while retaining that distinction in the comparison.
+Each system's 16-GPU repetitions use one allocation, with different allocations for the two systems.
+The reported spread measures variation within those allocations.
 At cutoff $10^{-5}$, the ratio of ten-run means is 7.6, close to the main sweep's single-run ratio of 7.8.
 Panels (d) and (e) show the repeated times across problem sizes and GPU counts, respectively.
-The repetition results support the observed performance difference without treating a single-run measurement as a confidence interval.
+The difference between the systems' mean times persists across the ten repetitions at this configuration.
 
 \begin{figure}[tp]
 \centering

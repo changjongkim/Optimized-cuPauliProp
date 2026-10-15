@@ -2,45 +2,45 @@
 \label{sec:background}
 % 구성(2026-10-14 사용자: "2.1과 2.2를 합치고, cascade처럼 실험 데이터로 필요성을" -> "섹션 3개로"):
 %   2.1 Pauli propagation과 병목 둘(개념 + 정확도 데이터)  2.2 기존 분산 방식의 도전 둘(cuPauliProp 측정)
-%   2.3 기회: 구간이 보존하는 parity(구간 수, 고정 분할이 옮기는 항, 실행 중에 바뀌는 항) -> 요구사항 표
+%   2.3 기회: 구간이 보존하는 parity, 고정 분할의 통신, 실행 중 분할 선택 -> 설계 메커니즘
 % 근거: pauliprop/README.md 1.1, 2.2-2.4, 3.3, 4.4절; analysis/fixed_rows.py(회로 일곱 개의 구조, frame 없는 좌표),
 %       analysis/geometric_rows.py(kicked Ising 덤프 둘), 엔진 로그의 windows= 줄; paulistrings-rs ARCHITECTURE.md 236행, docs 16행.
 % 범위: "고정 분할은 gate마다 항을 옮긴다"는 frame 없이 gate를 항에 적용하는 기존 구현에 대한 말.
 %       frame 위에서 첫 구간의 행을 고정하면 40-180개 연산에서만 옮김(analysis/fixed_rows.py) -> 평가의 고정 행 대 구간 행 비교가 답할 것.
 
 \subsection{Pauli Propagation beyond 100 Qubits}
-Classical simulation of a quantum circuit stores either the state or the observable.
-State vector simulation stores all $2^n$ amplitudes of the state, requiring 16~PiB for 50 qubits in double precision~\cite{haner2017petabyte}.
-Tensor network simulation compresses the state into small tensors, and its cost grows with the entanglement of the circuit~\cite{tindall2024efficient}.
-Pauli propagation tracks the observable, not the state, as a list of Pauli terms in the Heisenberg picture and computes its expectation value for circuits with more than 100 qubits~\cite{begusic2024fast, rudolph2025pauli}.
-This list sets the cost of the simulation, and our work focuses on Pauli propagation, since its cost follows the number of kept terms in place of the number of qubits.
+Pauli propagation represents an observable as a sparse sum of Pauli strings and applies circuit operations in the Heisenberg picture~\cite{begusic2024fast,rudolph2025pauli}.
+The propagated observable is evaluated against the initial state to obtain an expectation value.
+This representation has supported circuits with more than 100 qubits, with execution cost determined by the retained expansion, string length, and gate sequence.
 
 \noindent\textbf{Branch, Merge, and Truncate.}
-Each term of the list consists of a coefficient and a Pauli string, and the string maps to a bit vector with an x bit and a z bit for every qubit.
-With this bit vector, the product of two strings becomes the XOR of their bit vectors up to a phase.
-A rotation gate with generator $Q$ keeps every term that commutes with $Q$ and branches every anticommuting term $P$ into $P$ with $\cos\theta$ and $P \oplus Q$ with $\sin\theta$.
-These branches can double the number of terms at every rotation.
-The merge then sums the coefficients of the terms with equal strings, and the truncation removes the terms with a coefficient magnitude below the cutoff.
-Clifford gates map each string to one string and keep the number of terms, and noise channels scale the coefficients (Figure~\ref{fig:pp}).
+Each term consists of a coefficient and a Pauli string, represented by one x bit and one z bit per qubit.
+The product of two strings corresponds to the XOR of their bit vectors, with the multiplication phase included in the coefficient.
+A rotation with generator $Q$ preserves a commuting string and branches an anticommuting string $P$ into strings $P$ and $P\oplus Q$ with cosine and sine factors, respectively.
+One rotation can consequently double the term population before merging.
+The merge sums coefficients with identical strings, and truncation removes terms whose merged coefficient magnitude is below the cutoff.
+Clifford operations map each string to one string, while the Pauli noise channels considered here scale coefficients without changing their strings (Figure~\ref{fig:pp}).
+The expansion size changes at branching, merging, and truncation, requiring storage for intermediate terms as well as retained terms.
 
-\noindent\textbf{Term Growth with Accuracy.}
-The cutoff of the truncation sets the accuracy and the number of terms together.
-On a 30-qubit circuit with an exact answer, the error decreases from 0.019 at cutoff $10^{-3}$ to 0.00007 at cutoff $10^{-7}$.
-On the 127-qubit kicked Ising circuit, the expectation value moves from 0.153 at cutoff $10^{-4}$ to 0.229 at $10^{-5}$ and 0.322 at $10^{-6}$.
+\noindent\textbf{Term Growth with the Coefficient Cutoff.}
+The coefficient cutoff controls the retained expansion and affects the approximation error.
+On a 30-qubit circuit with an exact reference, the absolute error is 0.019 at cutoff $10^{-3}$ and 0.00007 at $10^{-7}$.
+On the 127-qubit kicked Ising circuit, the expectation value is 0.153 at cutoff $10^{-4}$, 0.229 at $10^{-5}$, and 0.322 at $10^{-6}$.
 The largest boundary count rises to 159 million terms at cutoff $10^{-5}$ and 11.9 billion at $10^{-6}$.
 The latter occupies about 475~GB at 40 bytes per term before execution buffers.
 Within a window, we also sum the maximum term count reached by each sector execution.
 The largest of these sums reaches 1.4 billion and 100 billion at the two cutoffs, respectively.
-This counter captures intermediate expansion across sector executions, not a simultaneous memory footprint.
+These sums quantify intermediate expansion across sector executions, whose maxima can occur at different times.
+The boundary population measures stored operator size, while the sector maxima characterize the additional working-buffer requirement.
 
 \noindent\textbf{Merge before Truncation.}
-The truncation must see the merged coefficient of each string.
-Equal strings that arise from different parents carry parts of one coefficient, and each part can lie below the cutoff although their sum exceeds it.
-A truncation of these unmerged parts removes this sum and changes the answer.
-For example, the 127-qubit kicked Ising circuit at cutoff $10^{-4}$ yields 0.194-0.283 when the truncation sees unmerged parts, whereas the merged run yields 0.1531.
-The merge partner of a new term depends on the gate that creates it and not on the location of its parent.
-An arbitrary distribution of the parents does not guarantee that their merge partners are local.
-A locality-preserving partition must account for the generators that create these partners (Table~\ref{tab:sv_pp}).
+Coefficient truncation applies to the sum of all contributions with the same Pauli string.
+Contributions from different input terms can individually fall below the cutoff even when their sum exceeds it.
+Independent truncation of those contributions changes the retained operator.
+For example, the 127-qubit kicked Ising circuit at cutoff $10^{-4}$ produces expectation values of 0.194-0.283 with truncation before the global merge, compared with 0.1531 after the merge.
+The gate generator determines which input strings can contribute to an identical output string.
+A distribution based only on the current locations of input terms cannot guarantee that these contributions are local.
+A locality-preserving partition must constrain generator-induced changes to string labels while accommodating the expansion's storage requirements (Table~\ref{tab:sv_pp}).
 
 \begin{table}[t]
 \caption{Distribution of state vector simulation and Pauli propagation}
@@ -51,11 +51,11 @@ A locality-preserving partition must account for the generators that create thes
 \toprule
  & \textbf{State Vector} & \textbf{Pauli Propagation} \\
 \midrule
-Data & $2^n$ amplitudes of fixed size & Terms that grow and shrink at every gate \\
-Location of the data & Fixed amplitude indices & Live strings and counts emerge at run time \\
-Work of a gate & Updates fixed positions & Creates, merges, and removes strings \\
-Communication & Gates on the qubits of the index & Every gate that may create a remote string \\
-Limit & Memory of $2^n$ amplitudes & Number of kept terms \\
+Representation & $2^n$ amplitudes & Variable number of Pauli terms \\
+Index space & Fixed amplitude indices & Strings retained during propagation \\
+Gate operation & Updates indexed amplitudes & Branches, merges, and truncates terms \\
+Remote dependence & Distributed amplitude indices & Equal strings across partitions \\
+Storage requirement & $2^n$ complex amplitudes & Retained terms and intermediate expansion \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -69,29 +69,28 @@ Limit & Memory of $2^n$ amplitudes & Number of kept terms \\
 \label{fig:pp}
 \end{figure}
 
-These two bottlenecks intensify at scale.
-The terms of an accurate run must spread over the GPUs of many nodes, whereas every equal string must meet its merge partners before each truncation.
-Existing systems run Pauli propagation on one device~\cite{begusic2024fast, rudolph2025pauli}, merge the terms across all GPUs after every gate~\cite{cupauliprop}, or fix the partition of the strings before the run~\cite{paulistrings}.
-A partition that follows both the gates and the live terms across nodes is not available in these systems.
-
 \subsection{Challenges in Distributed Pauli Propagation}
-Existing distributed systems merge the terms across all GPUs after every gate or partition the strings by rules fixed before the run~\cite{cupauliprop, orqa, paulistrings}.
-We measure the first design with \cuPP~v0.5.0 on the 127-qubit kicked Ising circuit and NVIDIA A100 GPUs, and the measurement exposes two challenges, a global step after every gate and a capacity bound by the GPU memory.
+Distributed propagation must combine contributions across partitions before truncation and provide sufficient memory for intermediate expansion.
+We examine these requirements in \cuPP~v0.5.0 using the 127-qubit kicked Ising circuit on NVIDIA A100 GPUs.
 
 \noindent\textbf{Global Step after Every Gate.}
-\cuPP merges the terms of every gate in a global step, since a new term may merge with a term on any GPU.
-Each MPI rank applies the gate to its terms and calls allgather 22 times to merge and redistribute the terms with all other ranks, and 57\% of the gates have no term to exchange.
+\cuPP performs a distributed merge after every gate because contributions to an identical string may reside on different GPUs.
+Each MPI rank applies the gate to its local terms and issues 22 allgather calls during merge and redistribution in the measured trace.
+These collectives occur even though 57\% of the gates exchange no terms.
 This global step adds a fixed cost of 5.9, 22.5, and 29.8~ms per gate on 4, 8, and 16 GPUs, against 0.05-0.8~ms on one GPU (Figure~\ref{fig:anatomy}).
-As a result, a run with 22.5 million terms takes 2.9-3.2~s on one GPU and 33-48, 65, and 71~s on 4, 8, and 16 GPUs.
-The GPUs compute during 9\% of this run, and the terms remain evenly spread at 1.001 times the mean on the largest rank.
-Thus, the cost of the global step, not an imbalance of the terms, slows the run as GPUs are added.
+The measured workload reaches 22.5 million intermediate terms and takes 2.9-3.2~s on one GPU, compared with 33-48, 65, and 71~s on 4, 8, and 16 GPUs.
+GPU computation occupies 9\% of execution time in this trace.
+The largest rank holds 1.001 times the mean term count, indicating nearly uniform term distribution.
+The increasing gate-level coordination cost limits performance despite this balance.
 
 \noindent\textbf{Capacity Bound by the GPU Memory.}
-\cuPP also keeps all terms of every gate in GPU memory.
-Within a group of consecutive gates, the number of terms rises to 2.9-36 times its value at the start of the group in the seven circuits, and the merge requires working space next to these terms.
-As a result, \cuPP runs out of memory at 88-104 million terms per rank on 1 to 16 GPUs, and these kept terms occupy about 4~GB of the 36~GB that it uses on each GPU.
-A deferred merge reduces the global steps, but its unmerged copies exceed the memory of 16 GPUs on two of the seven circuits.
-A run without the global merge does not lift this bound and returns a wrong answer, 0.1675 on 4 GPUs and 0.189 on 16 GPUs against 0.1531, since its truncation discards parts of equal strings.
+\cuPP stores each rank's expansion and execution workspace in GPU memory.
+Across the seven circuits, intermediate term counts reach 2.9-36 times the population at the start of a gate group.
+Merge workspace requires additional memory alongside these intermediate terms.
+\cuPP exhausts memory at 88-104 million retained terms per rank on 1-16 GPUs, although the retained payload occupies only about 4~GB of the 36~GB device-memory budget.
+Deferred deduplication reduces merge frequency, but duplicate strings exhaust the memory of 16 GPUs in two of the seven circuits.
+Without the global merge, local truncation also changes the expectation value to 0.1675 on four GPUs and 0.189 on 16 GPUs, compared with the merged value of 0.1531.
+Available storage must accommodate intermediate expansion and workspace while preserving the merge required for coefficient truncation.
 
 \begin{figure}[t]
 \centering
@@ -103,26 +102,29 @@ A run without the global merge does not lift this bound and returns a wrong answ
 \end{figure}
 
 \subsection{Opportunity in Parities Conserved by Windows}
-The two challenges require a partition that keeps every merge partner on the GPU of its parent without a global step.
-We examine where this partition exists with the generators of the seven circuits and with the terms of the kicked Ising circuit.
+A partition conserved across several gates can permit local merge and truncation throughout those gates.
+We examine the available conserved parities in seven circuits and their distribution over kicked Ising terms.
 
 \noindent\textbf{Parities Conserved by Windows of Gates.}
-A rotation with generator $Q$ changes a term $P$ into $P \oplus Q$, and every parity $r$ with $r \cdot Q = 0$ assigns the same value to both terms.
-A group of consecutive gates, a window, conserves every parity orthogonal to all of its generators, and these parities divide the terms into sectors that keep the merge partners together.
-We count the windows in the seven circuits under the rule that a window grows while at least $n$ conserved parities remain (Table~\ref{tab:windows}).
-The circuits with 1,100-7,960 gates form 8-45 windows, and a partition by window parities moves terms only at the window boundaries, 89-398 times fewer than the gates.
-In contrast, the whole circuit conserves at most two parities, and every term keeps the value of the observable on these parities.
-Thus, no parity divides the terms for the whole run, and the partition must change between windows.
+A rotation with generator $Q$ can produce the string $P\oplus Q$ from $P$.
+Every row $r$ satisfying $r\cdot Q=0$ assigns the same parity to both strings.
+A window of consecutive gates conserves rows orthogonal to all its generators, permitting independent propagation within the resulting sectors.
+Table~\ref{tab:windows} counts windows under a rule that retains at least $n$ independent conserved rows for an $n$-qubit circuit.
+The seven circuits contain 1,100-7,960 gates and form 8-45 windows, reducing potential term-exchange boundaries by factors of 89-398 relative to gate boundaries.
+The full circuits conserve at most two independent parities in this analysis, and their live terms have identical values on those parities.
+Full-circuit conserved rows consequently cannot divide the measured expansions, whereas window-specific rows provide nontrivial partitions.
 
-\noindent\textbf{Fixed Partitions Move Terms.}
-Existing partitions fix their parities for the whole run and apply every gate to the terms~\cite{paulistrings}.
-Under these partitions, every gate that changes a fixed parity moves terms between processes.
-With 16 parts, rows over all bits move terms at 93-96\% of the gates of the seven circuits, and rows over only the x bits or only the z bits move terms at 31-95\% of the gates.
+\noindent\textbf{Communication with Fixed Partitions.}
+The linear partition in paulistrings-rs retains fixed rows throughout propagation~\cite{paulistrings}.
+In the following analysis, gates act directly on strings without a Clifford frame.
+A generator that changes a partition label requires inter-partition communication when the affected terms are present.
+With 16 parts, random rows over all bits permit label changes at 93-96\% of the gates in the seven circuits, compared with 31-95\% for rows restricted to x bits or z bits.
 On the kicked Ising circuit, random rows change the owner of 94\% of the terms at a layer of two-qubit gates, and rows over lattice regions reduce this share to 68-89\% with the largest of 16 parts at 1.65-3.37 times the mean.
-The library that implements these partitions keeps its rows for the whole run, since a changed row would move the owner of every term, and it lists the automatic choice of rows as an open problem~\cite{paulistrings}.
+The implementation lists automatic row selection as an open problem~\cite{paulistrings}.
+A row change requires repartitioning the retained strings, making both its frequency and the resulting load balance relevant to execution cost.
 
 \begin{table}[t]
-\caption{Windows and fixed partitions in seven circuits (16 parts, rows fixed without a Clifford frame)}
+\caption{Window counts and fixed-partition communication in seven circuits}
 \label{tab:windows}
 \centering
 \small
@@ -141,12 +143,14 @@ Ansatz & 4,784 & 34 & 141 & 96\% & 95\% \\
 \end{tabular}
 \end{table}
 
-\noindent\textbf{Partitions that Follow the Run.}
-The parities of each window follow its gates, and the balance of the sectors follows the live terms.
-On the kicked Ising circuit at cutoff $10^{-5}$, the terms at the start of a window grow from 1 to 159 million over the run, and the first windows hold too few terms to divide (Figure~\ref{fig:windows}).
-The terms within a window then rise to 2.9-36 times this start in the seven circuits, and the sectors of a balanced partition differ from window to window.
-As a result, only the live terms of the run determine the number of sectors and the parities that balance them.
-Thus, distributed Pauli propagation requires a partition that the system recomputes for every window from its gates and from the live terms during the run.
+\noindent\textbf{Partition Selection from Live Terms.}
+Window generators determine valid rows, while the distribution of live strings determines the population of each sector.
+For kicked Ising at cutoff $10^{-5}$, the population at window starts increases from one to 159 million terms (Figure~\ref{fig:windows}).
+Early windows have insufficient terms to occupy all GPUs, whereas later windows require multiple sectors per node.
+Intermediate growth further changes sector sizes within a window.
+A row set that balances one boundary population need not balance the population at another boundary, even when it remains algebraically valid.
+The system can use the live distribution to select rows and sector counts subject to the conservation constraints.
+This separation between validity and load balance permits a partition that preserves merge locality while adapting execution granularity to the retained operator.
 
 \begin{figure}[t]
 \centering
@@ -157,5 +161,5 @@ Thus, distributed Pauli propagation requires a partition that the system recompu
 \label{fig:windows}
 \end{figure}
 
-These observations motivate partitions that preserve merge locality across each window and change with the live expansion.
-Execution must also separate the stored terms from each GPU's working set to use host memory for capacity.
+The design in Section~\ref{sec:design} combines window-conserved partitions with run-time row selection and host-memory sector storage.
+The partition supplies merge locality, while host storage accommodates sectors beyond the working set of an individual GPU.

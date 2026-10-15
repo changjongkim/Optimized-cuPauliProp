@@ -1,6 +1,6 @@
-% DRAFT (2026-10-14): five sentences, 140-180 words; numbers from README 1.5 (16 GPUs: as-is cuPauliProp; 512 GPUs: reach)
-This paper presents \SectorQ, a Pauli propagation system designed to compute the expectation values of quantum circuits with more than 100 qubits on GPU clusters.
-As tighter coefficient cutoffs increase the number of kept terms, the terms of a 127-qubit circuit exceed the memory of hundreds of GPUs, and the existing multi-GPU engine merges them across all GPUs after every gate.
-\SectorQ introduces window-conserved parity sectors, which divide the terms by the parities that every gate of a window leaves unchanged and keep each new term in the same sector as its merge partner.
-With this design, \SectorQ applies each window without exchanging terms between nodes, balances the sectors by choosing the parities at run time from a sample of the live terms, and holds the sectors in host memory beyond the capacity of the GPU memory.
-Our evaluation using seven circuits on up to 512 NVIDIA A100 GPUs shows that \SectorQ reduces the simulation time of \cuPP on 16 GPUs by 4.4-9.7$\times$ and increases the largest finished problem on 512 GPUs by 140$\times$.
+% Five sentences, 140-180 words; comparisons use original-circuit cuPauliProp.
+This paper presents \SectorQ, a distributed Pauli propagation system for observable simulation of quantum circuits with more than 100 qubits on GPU clusters.
+Lower coefficient cutoffs increase the retained expansion and its memory requirements, while gate-level global merges impose coordination costs on distributed GPU propagation.
+\SectorQ constructs window-conserved parity sectors from the generators of consecutive gates, assigning all contributions to an equal Pauli string to one sector and permitting local merge and truncation throughout each window.
+The runtime selects conserved rows using sampled live terms during GPU execution and stores sectors in distributed host memory, with one sector loaded per GPU worker and term exchange restricted to window boundaries.
+An evaluation of seven circuits on up to 512 NVIDIA A100 GPUs shows 4.4-9.7$\times$ speedups over original-circuit \cuPP at the largest common settings on 16 GPUs and a 140$\times$ larger completed term population on 512 GPUs.

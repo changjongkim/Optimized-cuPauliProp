@@ -1,55 +1,49 @@
 \section{Introduction}
 \label{sec:intro}
-% 구성(2026-10-14 사용자: "ScaleQsim처럼 서론 스타일을, 그림 넣는 것만 빼고"):
-%   ¶1 양자 컴퓨팅의 발전과 응용 -> ¶2 NISQ의 한계와 HPC 고전 시뮬레이션의 필요 -> ¶3 시뮬레이션 방법과 "Our work focuses on"
-%   -> ¶4 규모의 필요와 "However, the existing systems show limited performance and scalability" -> ¶5 시스템마다의 한계(수치)와 "To summarize"
-%   -> 표 1 + ¶6 "Many previous studies" -> ¶7 "SectorQ distinguishes itself" -> ¶8 In this paper(사용자가 받아들인 판)
-% ScaleQsim 형식이라 ¶4-¶5에 측정값이 여럿 들어감(사용자 지시가 "For example 한 문장" 규칙보다 우선).
-% References checked against primary sources on 2026-10-15.
+% ScaleQsim order: context, need, representations, constraints, prior work, design, contributions.
 
-% ¶1 DRAFT (2026-10-14)
-Quantum computers have advanced from demonstrations of quantum supremacy on sampling tasks to processors with more than 100 qubits that measure the expectation values of physical models~\cite{arute2019quantum, kim2023evidence}.
-These expectation values are the output of quantum simulation, the application that motivates quantum computing in physics, chemistry, and materials science~\cite{georgescu2014simulation}.
-A 127-qubit processor, for example, measured the magnetization of a kicked Ising model at a scale beyond the exact classical methods~\cite{kim2023evidence}.
-This scale moves the comparison between quantum and classical computation from small benchmarks to the circuits of these applications.
-As a result, the range of expectation values that a classical computer can still produce has become a central question for the development of quantum computers.
+Quantum processors with more than 100 qubits have enabled experiments beyond sampling demonstrations, including measurements of observables in interacting physical models~\cite{arute2019quantum,kim2023evidence}.
+Observable expectation values characterize quantities such as magnetization and energy in quantum simulation, with applications in physics, chemistry, and materials science~\cite{georgescu2014simulation}.
+For example, a 127-qubit processor measured the magnetization of a kicked Ising model at a scale beyond direct state-vector simulation~\cite{kim2023evidence}.
+Classical calculations of these observables provide a basis for assessing the accuracy and computational cost of the quantum experiment.
+The tractable circuit size depends on the classical representation, its approximation, and the computing resources available for the calculation.
 
-% ¶2 DRAFT (2026-10-14)
-Despite this progress, current processors remain noisy intermediate-scale quantum (NISQ) devices~\cite{preskill2018quantum}.
-The noise of these devices biases every measured expectation value, and error mitigation recovers an estimate from repeated runs at amplified noise~\cite{kim2023evidence}.
-These estimates require an independent reference, and classical simulation on high-performance computing (HPC) systems provides this reference without noise.
-This reference verifies the hardware, calibrates the error mitigation, and tests quantum algorithms before they run on a processor.
-Thus, several groups simulated the 127-qubit experiment soon after its publication, with tensor networks and with Pauli propagation~\cite{tindall2024efficient, begusic2024fast}.
+Current processors remain noisy intermediate-scale quantum (NISQ) devices, with errors that affect measured expectation values~\cite{preskill2018quantum}.
+Error mitigation estimates an observable from repeated measurements, including measurements at amplified noise levels~\cite{kim2023evidence}.
+Classical simulation on high-performance computing (HPC) systems provides an independent reference for evaluating these estimates.
+Such references support hardware validation, error-mitigation assessment, and algorithm development, subject to the numerical error of the classical method.
+Tensor network and Pauli propagation studies have reproduced observables from the 127-qubit experiment~\cite{tindall2024efficient,begusic2024fast}.
+These calculations establish the relevance of classical simulation even when a full state vector exceeds available memory.
 
-% ¶3 DRAFT (2026-10-14)
-Classical simulation of these circuits follows three approaches on HPC systems.
-State vector simulation stores all $2^n$ amplitudes of an $n$-qubit state, requiring 16~PiB for 50 qubits in double precision~\cite{haner2017petabyte}.
-Tensor network simulation stores the state as a network of small tensors, and its cost grows with the entanglement of the circuit~\cite{tindall2024efficient}.
-Pauli propagation tracks the observable, not the state, as a list of Pauli terms, and its cost follows the number of kept terms in place of the number of qubits~\cite{begusic2024fast, rudolph2025pauli}.
-This cost extends Pauli propagation to circuits with more than 100 qubits, and NVIDIA and IBM now provide Pauli propagation in their quantum software stacks~\cite{cupauliprop,qiskitpauliprop}.
-Our work focuses on Pauli propagation, since its accuracy follows the resources of the system in place of the number of qubits.
+Three representations are relevant to the classical simulation of these circuits.
+State vector simulation stores all $2^n$ complex amplitudes of an $n$-qubit state, requiring 16~PiB for 50 qubits in double precision~\cite{haner2017petabyte}.
+Tensor network simulation represents the state through tensors, with contraction cost determined by the network structure and the required tensor dimensions~\cite{tindall2024efficient}.
+Pauli propagation represents an observable as a sum of Pauli strings and propagates it through the circuit in the Heisenberg picture~\cite{begusic2024fast,rudolph2025pauli}.
+Its storage and execution costs depend on the number of retained terms as well as the string length and gate sequence.
+Current NVIDIA and IBM libraries support this representation~\cite{cupauliprop,qiskitpauliprop}.
+Our work focuses on distributed Pauli propagation, where coefficient truncation controls the retained expansion and permits calculations beyond the memory range of full state vectors.
 
-% ¶4 DRAFT (2026-10-14)
-The accuracy of Pauli propagation, however, requires far more terms than one GPU holds.
-A lower cutoff on the coefficients keeps more terms, and the terms grow within each layer of gates before the truncation removes the small ones.
-For example, the 127-qubit kicked Ising circuit retains up to 159 million terms at window boundaries at cutoff $10^{-5}$ and 11.9 billion at $10^{-6}$, requiring about 6.4~GB and 475~GB of term storage before working buffers.
-These counts place Pauli propagation on HPC systems, and recent systems run it on GPU clusters and on the Fugaku supercomputer with $2^{17}$ processes~\cite{cupauliprop, orqa}.
-However, the existing systems show limited performance and scalability as the number of terms grows.
+The retained expansion can exceed the capacity of one GPU as the coefficient cutoff decreases.
+Terms also accumulate between scheduled truncations, requiring temporary storage beyond the retained expansion.
+For the 127-qubit kicked Ising circuit, the maximum population at a window boundary increases from 159 million terms at cutoff $10^{-5}$ to 11.9 billion at $10^{-6}$.
+At 40 bytes per term, these populations require about 6.4~GB and 475~GB before execution buffers.
+Distributed implementations address this storage requirement on GPU clusters and on CPU systems, including Fugaku runs with $2^{17}$ processes~\cite{cupauliprop,orqa}.
+However, the distributed GPU implementations still incur coordination costs at individual gates and require their local expansions to fit device memory.
 
-% ¶5 DRAFT v2 (2026-10-14): 사용자 지적("Atlas/HyQuas식 나열은 별로, 메모리 부족이 생기는 이유가 간략히 나와야")에 따라
 %   시스템별 나열을 빼고 원인 두 가지(gate마다의 전역 단계, GPU 메모리)와 메모리가 모자라는 이유를 씀. 시스템별 배수는 평가로.
-Existing distributed GPU engines face two limits, and the first is the global step after every gate.
-Since a new term may merge with a term on another GPU, the distributed mode of \cuPP coordinates the merge across GPUs after every gate~\cite{cupauliprop}.
-This step adds a fixed cost to every gate, from 5.9~ms on 4 GPUs to 29.8~ms on 16 GPUs in \cuPP.
-The second limit is the GPU memory.
-Between two truncations, every rotation branches the terms, and the list grows to several times its size at the truncation.
-The merge of these terms also requires working space on the same GPU.
-As a result, \cuPP holds about 100 million kept terms on a GPU with 36~GB, and paulistrings-rs keeps its device partitions on the GPUs by the same rule~\cite{paulistrings}.
-A deferred merge reduces the global steps, but the unmerged copies of equal strings fill this memory faster.
-To summarize, these distributed GPU designs bind gate execution to global coordination and operator capacity to device storage, and our work aims to remove both constraints.
+Distributed GPU propagation has two principal constraints.
+First, terms with the same Pauli string must be merged before coefficient truncation, including contributions produced on different GPUs.
+The distributed mode of \cuPP coordinates this merge after every gate~\cite{cupauliprop}.
+The measured fixed cost increases from 5.9~ms per gate on four GPUs to 29.8~ms on 16 GPUs.
+Second, device memory must accommodate retained terms, intermediate branches, and merge workspace.
+An anticommuting rotation can produce two terms from one input, increasing the expansion between truncations.
+Under these requirements, \cuPP retains about 100 million terms per GPU with a 36~GB memory budget.
+The GPU implementation of paulistrings-rs also stores its assigned partitions in device memory~\cite{paulistrings}.
+Deferred deduplication reduces global merge frequency but increases storage for duplicate strings.
+Thus, a distributed design must provide merge locality across multiple gates and accommodate the stored operator beyond the working buffers of individual GPUs.
 
 \begin{table}[t]
-\caption{Comparison with existing Pauli propagation systems (MN: Multi-Node, GPU: GPU Execution, LP: Locality-Preserving Partition, RP: Run-Time Partition from the Gates and the Live Terms, HM: Host Memory beyond GPU Memory)}
+\caption{Features of Pauli propagation systems}
 \label{tab:prior}
 \centering
 \small
@@ -67,22 +61,27 @@ paulistrings-rs~\cite{paulistrings} & Fixed linear partition & \checkmark & \che
 \textbf{\SectorQ (Ours)} & \textbf{Window-conserved parity sectors} & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark \\
 \bottomrule
 \end{tabular}
+\par\smallskip
+\begin{minipage}{\linewidth}\footnotesize
+MN denotes multi-node execution, GPU device execution, LP locality-preserving partitions, RP run-time partitions derived from gates and live terms, and HM host storage beyond GPU capacity.
+\end{minipage}
 \end{table}
 
-% ¶6 DRAFT (2026-10-14): "Many previous studies, as shown in Table 1"
-Many previous studies, as shown in Table~\ref{tab:prior}, have optimized Pauli propagation from different algorithm and architecture perspectives.
-Single-node simulators reduce the cost of each gate with sparse data structures, symmetries of the circuit, and GPU kernels~\cite{begusic2024fast,rudolph2025pauli,spd}.
-ORQA uses a structured distribution map to limit communication partners as it advances through generators~\cite{orqa}, and MonoProp also supports distributed CPU propagation~\cite{monoprop}.
-Distributed GPU engines keep the strings of each gate across all GPUs and merge them in a global step~\cite{cupauliprop}.
-Linear partitions assign each string by parities of its bits, and these parities remain fixed for the whole run~\cite{paulistrings}.
-Theory on the commutator graph of a circuit also shows that the generators of the gates divide the Pauli strings into components that never mix~\cite{west2025graph}.
+Previous systems address arithmetic, distribution, and storage at different levels, as summarized in Table~\ref{tab:prior}.
+Single-node simulators use sparse data structures, circuit symmetries, and GPU kernels to reduce propagation cost~\cite{begusic2024fast,rudolph2025pauli,spd}.
+ORQA uses a structured distribution map to limit communication partners, and MonoProp supports distributed CPU propagation~\cite{orqa,monoprop}.
+The distributed mode of \cuPP combines contributions across GPUs after individual gates~\cite{cupauliprop}.
+The linear partition in paulistrings-rs assigns strings through fixed bit parities, with a predictable communication partner when a generator changes a partition label~\cite{paulistrings}.
+Commutator-graph analysis also identifies operator subspaces invariant under a set of generators~\cite{west2025graph}.
+None of these implementations combines window-conserved rows, row selection from live terms, and host-memory sector execution.
 
-% ¶7 DRAFT (2026-10-14): "SectorQ distinguishes itself from previous studies by"
-\SectorQ distinguishes itself from previous studies by recomputing the partition of the terms for every window of gates during the run.
-Previous systems merge the terms globally after every gate or fix the partition before the run, and these choices bind the exchange to the gates and the balance to rows chosen in advance.
-In contrast, \SectorQ derives the parities that each window conserves from the generators of its gates, chooses among them by the balance of a sample of the live terms, and assigns each sector to one node for the whole window.
-Each GPU loads one sector at a time from the host memory of its node, and the terms move between nodes only at window boundaries.
-This design removes the global step after every gate and the bound of the GPU memory, and enables scalable performance across circuits, problem sizes, and GPU counts.
+\SectorQ constructs a partition for each window of consecutive gates and selects its rows during execution.
+The window generators define conserved parities that assign every contribution to an equal Pauli string to the same sector.
+The runtime selects among these parities using a sample of the live terms, then assigns each sector to one node for the window.
+This assignment confines merge and truncation to sector execution until the next window boundary.
+The host-memory store retains the sectors, and each GPU loads one sector at a time with the workspace required by the propagation library.
+An oversized sector is subdivided using further rows valid for its remaining operations.
+Operator capacity consequently depends on distributed host storage and the availability of executable sector subdivisions, while term exchange occurs at window boundaries.
 
 % ¶8 "In this paper": ACCEPTED by the user (2026-10-14), keep as it is.
 % (ScaleQsim형 대안 "The goal of SectorQ is to 1) 2) 3). To achieve these goals, SectorQ 1) 2) 3)."은 사용자가 고르면 바꿈)

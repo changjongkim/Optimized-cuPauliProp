@@ -171,3 +171,18 @@ python3 paper/scripts/check_style.py
 - Background 데이터와 보관 중인 데이터 패널까지 모두 갱신했다. Figure 1은 원래의 설계 그림+데이터 두 패널을 한 행에 유지했다. 좁은 KI 패널에서 첫 수치가 선/다른 수치에 겹치지 않게 위치를 조정했다. 원고에서 사용하지 않는 항당 시간 패널도 같은 두 줄 형식을 적용하기 위해 3열 패널 폭을 사용한다.
 - 데이터 PDF 88개를 재생성했다. `overview`, `ops`, `resector`, `execution`, `sectors`의 다섯 PDF는 수정 전 SHA-256과 같다. 모든 생성 함수의 최종 실행에서 겹침/넘침 검사 0건이며, 선택된 세 눈금과 두 줄 형식·괄호를 assertion으로 확인한다. 시각 확인은 데이터 그림이 있는 4–6쪽과 12–21쪽을 대상으로 했고, Figure 1의 최종 수정은 `paper/build/terms-bg-final.png`에서 확인했다.
 - 최종 컴파일 성공, check_style 0건, 미해결 참조/인용과 Overfull 없음. **23쪽, 본문 8,742단어(Evaluation 2,872단어)**로 유지된다. 최종 PDF는 `paper/main.pdf`다. 이 변경은 로컬 커밋만 하며 새 push 요청은 아직 없다. job/실험 목록은 이번 라벨 수정에서 변경하지 않았다.
+
+## 후속 변경 — 원고 문체와 논증 구조 정리 (2026-10-15)
+
+- 항 수의 두 줄 정렬 변경은 사용자 요청으로 `3484a69`까지 push했으며, `git push origin main`과 원격 SHA 대조로 일치를 확인했다. 아래 문체 수정은 그 뒤의 별도 로컬 변경이다.
+- 활성 목표는 “미사여구·구어체·비유적 표현을 제거하고 ScaleQsim 논문 구조와 프로젝트 문장 규칙에 맞춰 수정”이다. ScaleQsim의 실제 절 구성과 CASCADE의 문단 구조, 원래 handoff와 논문 메모리의 규칙을 다시 확인했다. 이번 목표 완료는 문체·구성 수정의 완료이며 대기 실험을 포함한 연구 전체의 완료가 아니다.
+- 초록부터 결론까지 7개 절 파일의 문장을 검토했다. 배경의 `truncation must see`, `merge partners meet`, `partitions follow the run`, `wrong answer` 등은 실제 coefficient 합산·partition label·측정 expectation 설명으로 교체했다. 일반적인 장점의 반복이나 novelty 자체를 논평하던 문장은 구체적인 조건과 구현 차이로 바꿨다.
+- 서론은 수정 초안을 `paper/build/intro-prose-draft.tex`로 먼저 제시한 뒤 반영했다. ScaleQsim의 응용 맥락 → classical reference 필요 → 표현 방식 → 측정된 제약 → 선행 연구 → 설계 → 기여 순서를 유지했다. 승인된 마지막 `In this paper` 문단은 바이트 단위로 동일하며 190단어다. 제목과 공개 주소도 바꾸지 않았다.
+- Background는 3개 소절, Design은 N1/N2/N3 중심의 기존 5개 소절을 유지했다. 서론과 중복되던 표현 방식 소개는 Background 도입에서 Pauli propagation의 정의로 정리했다. fixed-row 구조 분석의 Clifford frame 없는 조건을 본문에 명시했다. Design에는 측정 결과를 넣지 않았고 파라미터·4-qubit 예시·단계 설명만 유지했다. row selection의 overlap이 항상 완전히 숨겨진다는 표현을 제거하고 worker 대기 조건을 설명했다.
+- Evaluation은 기존 6개 소절을 유지했다. 두 문단으로 되어 있던 시간 분석의 둘째 문단에 `Concurrency and Exchange Costs.` 제목을 부여했다. 수치와 비교 조건, 기준선의 작은 문제 우위, 다른 truncation rule, CPU reproduction, cap/chunk 동시 변경, 비단조 오차, Pending 및 TBD를 유지했다. 서로 다른 cutoff에서 계산한 항당 시간은 matched-size speedup이 아님을 명확히 했다. 시간 분석의 평균화와 Other 정의도 본문에 넣었다.
+- Related Work는 ScaleQsim처럼 주제별 두 소절로 정리했다. 첫 소절은 conserved subspaces/fixed partitions/staged state vectors, 둘째는 distributed CPU/libraries/repeated evaluation and gradients다. 전체 인용 key 집합은 수정 전과 동일하다.
+- 캡션은 명사구로 정리했다. Table 1 약어는 표 아래 설명으로, Figure 17의 별표·괄호·미완료 설명은 인접 본문으로 옮겼다. 설계 execution 그림의 chunk 색/빗금 설명은 캡션에 유지했다.
+- 최종 검증: `bash paper/scripts/build.sh` 성공, `python3 paper/scripts/check_style.py` 0건, `git diff --check` 통과, 미해결 인용·참조/Overfull/TeX 오류 없음. 기존 acmart의 익명 소속과 그림 description 경고는 남는다. `paper/main.pdf`와 `paper/build/main.pdf`는 동일하다. **23쪽, 본문 8,315단어, Evaluation 2,910단어, 초록 142단어·5문장, 결론 93단어·3문장**이다.
+- 정규식 검사 외에 문단 도입/끝의 논리, Design 숫자의 파라미터/예시 여부, 캡션, Evaluation 세미콜론 부재, 동사 do/did 부재, sentence-initial Thus/Therefore를 수동·보조 검사했다. 기존 checker는 `do not`을 허용하는 빈틈이 있으므로 해당 표현도 직접 제거했다. 검사기 코드는 바꾸지 않았다.
+- 그림 PDF 93개(설계 5개 + 데이터 88개)는 모두 수정 전 SHA-256과 같다. Figure 16 유지, Figure 17 3×3/22개 완료/5개 Pending, cutoff 윗줄·항 수 아랫줄 정렬은 그대로다. 렌더링한 1/2/4/7/10/12/17/18/19/20/21/23쪽에서 문단과 표·그림 배치를 확인했다. 검토 자료와 snapshot은 무시되는 `paper/build/prose-*`에 있다.
+- 상태 조회에서 기존 pp_ job 8개는 모두 PENDING이었다. 새 job/loop 제출, 바이너리 빌드, 실험 목록 변경은 없었다. `queue_f/ext.log`, `queue_f/runner.log`의 다른 작업 staged 변경과 untracked 자료는 보존했다.

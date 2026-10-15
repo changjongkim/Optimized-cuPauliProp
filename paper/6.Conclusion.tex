@@ -1,6 +1,6 @@
 \section{Conclusion}
 \label{sec:conclusion}
-% FORMAT: three sentences, 85-120 words, no future work. DRAFT (2026-10-14)
-In this paper, we design and implement \SectorQ, a Pauli propagation system for GPU clusters that partitions the terms by the parities that each window of gates conserves.
-By recomputing these parities for every window from the generators of its gates and the live terms, we confine the merging of terms to one sector during a window and hold the sectors in host memory.
-We evaluate \SectorQ with seven circuits on up to 512 NVIDIA A100 GPUs, reducing the simulation time of \cuPP by 4.4-9.7$\times$ on 16 GPUs and increasing the largest finished problem by 140$\times$ on 512 GPUs through exchanges at window boundaries and sectors in host memory.
+% Three sentences, 85-120 words, no future work.
+We present \SectorQ, a distributed Pauli propagation system that derives conserved parity sectors from the generators of each gate window and confines merge and truncation to sector execution within that window.
+The runtime selects conserved rows using sampled live terms during GPU execution and stores sectors in distributed host memory, with term redistribution at window boundaries and further sector subdivision when device buffers are insufficient.
+Across seven circuits, \SectorQ reduces simulation time relative to original-circuit \cuPP by 4.4-9.7$\times$ at the largest common settings on 16 GPUs and completes a 140$\times$ larger term population on 512 GPUs.
