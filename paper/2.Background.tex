@@ -10,7 +10,7 @@
 
 \subsection{Pauli Propagation beyond 100 Qubits}
 Classical simulation of a quantum circuit stores either the state or the observable.
-State vector simulation stores all $2^n$ amplitudes of the state, and this memory limits it to about 50 qubits on the largest HPC systems~\todo{cite}.
+State vector simulation stores all $2^n$ amplitudes of the state, requiring 16~PiB for 50 qubits in double precision~\cite{haner2017petabyte}.
 Tensor network simulation compresses the state into small tensors, and its cost grows with the entanglement of the circuit~\cite{tindall2024efficient}.
 Pauli propagation tracks the observable, not the state, as a list of Pauli terms in the Heisenberg picture and computes its expectation value for circuits with more than 100 qubits~\cite{begusic2024fast, rudolph2025pauli}.
 This list sets the cost of the simulation, and our work focuses on Pauli propagation, since its cost follows the number of kept terms in place of the number of qubits.
@@ -27,9 +27,11 @@ Clifford gates map each string to one string and keep the number of terms, and n
 The cutoff of the truncation sets the accuracy and the number of terms together.
 On a 30-qubit circuit with an exact answer, the error decreases from 0.019 at cutoff $10^{-3}$ to 0.00007 at cutoff $10^{-7}$.
 On the 127-qubit kicked Ising circuit, the expectation value moves from 0.153 at cutoff $10^{-4}$ to 0.229 at $10^{-5}$ and 0.322 at $10^{-6}$.
-This movement requires lower cutoffs, and the circuit holds up to 22.5 million terms within a group of gates at cutoff $10^{-4}$, 1.4 billion at $10^{-5}$, and 100 billion at $10^{-6}$.
-These peaks exceed the terms that remain after the group, since the rotations of a group branch the terms faster than its truncations remove them.
-With 40 bytes per term, the peak at cutoff $10^{-6}$ occupies 4~TB, the memory of about 1,000 GPUs.
+The largest boundary count rises to 159 million terms at cutoff $10^{-5}$ and 11.9 billion at $10^{-6}$.
+The latter occupies about 475~GB at 40 bytes per term before execution buffers.
+Within a window, we also sum the maximum term count reached by each sector execution.
+The largest of these sums reaches 1.4 billion and 100 billion at the two cutoffs, respectively.
+This counter captures intermediate expansion across sector executions, not a simultaneous memory footprint.
 
 \noindent\textbf{Merge before Truncation.}
 The truncation must see the merged coefficient of each string.
@@ -37,7 +39,8 @@ Equal strings that arise from different parents carry parts of one coefficient, 
 A truncation of these unmerged parts removes this sum and changes the answer.
 For example, the 127-qubit kicked Ising circuit at cutoff $10^{-4}$ yields 0.194-0.283 when the truncation sees unmerged parts, whereas the merged run yields 0.1531.
 The merge partner of a new term depends on the gate that creates it and not on the location of its parent.
-As a result, a distributed run cannot place the merge partners on one GPU in advance, in contrast to a state vector that places each amplitude by its index (Table~\ref{tab:sv_pp}).
+An arbitrary distribution of the parents does not guarantee that their merge partners are local.
+A locality-preserving partition must account for the generators that create these partners (Table~\ref{tab:sv_pp}).
 
 \begin{table}[t]
 \caption{Distribution of state vector simulation and Pauli propagation}
@@ -49,7 +52,7 @@ As a result, a distributed run cannot place the merge partners on one GPU in adv
  & \textbf{State Vector} & \textbf{Pauli Propagation} \\
 \midrule
 Data & $2^n$ amplitudes of fixed size & Terms that grow and shrink at every gate \\
-Location of the data & Known from the index & Known only at run time \\
+Location of the data & Fixed amplitude indices & Live strings and counts emerge at run time \\
 Work of a gate & Updates fixed positions & Creates, merges, and removes strings \\
 Communication & Gates on the qubits of the index & Every gate that may create a remote string \\
 Limit & Memory of $2^n$ amplitudes & Number of kept terms \\

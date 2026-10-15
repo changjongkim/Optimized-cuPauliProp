@@ -1,6 +1,5 @@
-% references of the SectorQ paper
-% Entries marked "TODO: verify" were written from notes of the literature search (2026-10-13) and must be checked
-% against the source before submission.
+% Metadata checked against publishers, arXiv records, and official software
+% repositories on 2026-10-15. Software years identify the version consulted.
 
 @article{kim2023evidence,
   author  = {Kim, Youngseok and Eddins, Andrew and Anand, Sajant and Wei, Ken Xuan and van den Berg, Ewout and Rosenblatt, Sami and Nayfeh, Hasan and Wu, Yantao and Zaletel, Michael and Temme, Kristan and Kandala, Abhinav},
@@ -8,49 +7,62 @@
   journal = {Nature},
   volume  = {618},
   pages   = {500--505},
-  year    = {2023}
+  year    = {2023},
+  doi     = {10.1038/s41586-023-06096-3}
 }
 
 @article{begusic2024fast,
-  author  = {Begu\v{s}i\'{c}, Toma\v{s} and Gray, Johnnie and Chan, Garnet Kin-Lic},
+  author  = {Begu\v{s}i\'{c}, Tomislav and Gray, Johnnie and Chan, Garnet Kin-Lic},
   title   = {Fast and converged classical simulations of evidence for the utility of quantum computing before fault tolerance},
   journal = {Science Advances},
   year    = {2024},
-  note    = {TODO: verify volume and pages}
+  volume  = {10},
+  pages   = {eadk4321},
+  doi     = {10.1126/sciadv.adk4321}
 }
 
-@misc{rudolph2025pauli,
-  author = {Rudolph, Manuel S. and others},
-  title  = {{PauliPropagation}: A Computational Framework for Simulating Quantum Systems},
-  year   = {2025},
-  note   = {arXiv:2505.21606. TODO: verify}
+@article{rudolph2025pauli,
+  author = {Rudolph, Manuel S. and Jones, Tyson and Teng, Yanting and Angrisani, Armando and Holmes, Zo\"e},
+  title  = {Pauli Propagation: A Computational Framework for Simulating Quantum Systems},
+  journal = {PRX Quantum},
+  volume = {7},
+  pages = {032001},
+  year   = {2026},
+  doi = {10.1103/6vd7-l9bn}
 }
 
 @misc{cupauliprop,
   author       = {{NVIDIA}},
-  title        = {{cuPauliProp}: Pauli propagation in the {cuQuantum} {SDK}},
-  howpublished = {\url{https://docs.nvidia.com/cuda/cuquantum/}},
-  year         = {2025},
-  note         = {Version 0.5.0. TODO: verify title and URL}
+  title        = {{cuPauliProp}: A High-Performance Library for Pauli Propagation Quantum Simulators},
+  url          = {https://docs.nvidia.com/cuda/cuquantum/latest/cupauliprop/index.html},
+  year         = {2026},
+  note         = {Version 0.5.0 used in the evaluation}
 }
 
-@misc{orqa,
-  title  = {{ORQA}},
-  year   = {2025},
-  note   = {arXiv:2506.13241. TODO: verify authors and title}
+@article{orqa,
+  author = {Broers, Lukas and Sun, Rong-Yang and Yunoki, Seiji},
+  title = {Scalable Simulation of Quantum Many-Body Dynamics with Or-Represented Quantum Algebra},
+  journal = {Physical Review Applied},
+  volume = {26},
+  pages = {024046},
+  year = {2026},
+  doi = {10.1103/y8ft-m61w}
 }
 
 @misc{monoprop,
-  title  = {{MonoProp}},
-  note   = {TODO: source and authors}
+  author = {{Algorithmiq}},
+  title = {{MonoProp}: Classical Simulation through Pauli and Majorana Propagation},
+  year = {2026},
+  url = {https://github.com/Algorithmiq/monoprop},
+  note = {Software repository}
 }
 
 @misc{paulistrings,
   author       = {{lkdvos}},
   title        = {paulistrings-rs},
-  howpublished = {\url{https://github.com/lkdvos/paulistrings-rs}},
+  url          = {https://github.com/lkdvos/paulistrings-rs/tree/99c34367f5cae3bb1f250fd4b1a56a8285f77e63},
   year         = {2026},
-  note         = {GitHub repository of the user lkdvos, commit 99c3436. TODO: verify authors}
+  note         = {Software repository, commit 99c3436}
 }
 
 @article{arute2019quantum,
@@ -59,7 +71,8 @@
   journal = {Nature},
   volume  = {574},
   pages   = {505--510},
-  year    = {2019}
+  year    = {2019},
+  doi     = {10.1038/s41586-019-1666-5}
 }
 
 @article{preskill2018quantum,
@@ -68,7 +81,8 @@
   journal = {Quantum},
   volume  = {2},
   pages   = {79},
-  year    = {2018}
+  year    = {2018},
+  doi     = {10.22331/q-2018-08-06-79}
 }
 
 @article{tindall2024efficient,
@@ -76,5 +90,101 @@
   title   = {Efficient Tensor Network Simulation of {IBM}'s Eagle Kicked Ising Experiment},
   journal = {PRX Quantum},
   year    = {2024},
-  note    = {TODO: verify volume and article number}
+  volume  = {5},
+  pages   = {010308},
+  doi     = {10.1103/PRXQuantum.5.010308}
+}
+
+% Verified against https://arxiv.org/abs/1701.08213, 2026-10-15.
+@misc{bravyi2017tapering,
+  author = {Bravyi, Sergey and Gambetta, Jay M. and Mezzacapo, Antonio and Temme, Kristan},
+  title = {Tapering off qubits to simulate fermionic Hamiltonians},
+  year = {2017},
+  eprint = {1701.08213},
+  archivePrefix = {arXiv},
+  url = {https://arxiv.org/abs/1701.08213}
+}
+
+@article{georgescu2014simulation,
+  author = {Georgescu, I. M. and Ashhab, S. and Nori, Franco},
+  title = {Quantum simulation},
+  journal = {Reviews of Modern Physics},
+  volume = {86},
+  pages = {153--185},
+  year = {2014},
+  doi = {10.1103/RevModPhys.86.153}
+}
+
+@inproceedings{haner2017petabyte,
+  author = {H\"aner, Thomas and Steiger, Damian S.},
+  title = {0.5 Petabyte Simulation of a 45-Qubit Quantum Circuit},
+  booktitle = {Proceedings of the International Conference for High Performance Computing, Networking, Storage and Analysis},
+  articleno = {33},
+  numpages = {10},
+  publisher = {Association for Computing Machinery},
+  year = {2017},
+  doi = {10.1145/3126908.3126947}
+}
+
+@inproceedings{xu2024atlas,
+  author = {Xu, Mingkuan and Cao, Shiyi and Miao, Xupeng and Acar, Umut A. and Jia, Zhihao},
+  title = {{Atlas}: Hierarchical Partitioning for Quantum Circuit Simulation on {GPUs}},
+  booktitle = {SC24: International Conference for High Performance Computing, Networking, Storage and Analysis},
+  numpages = {17},
+  publisher = {IEEE},
+  year = {2024},
+  url = {https://www.pdl.cmu.edu/ftp/associated/Xu-AtlasSC24.pdf}
+}
+
+@article{west2025graph,
+  author = {West, Maxwell and Dowling, Neil and Southwell, Angus and Sevior, Martin and Usman, Muhammad and Modi, Kavan and Quella, Thomas},
+  title = {A graph-theoretic approach to chaos and complexity in quantum systems},
+  journal = {SciPost Physics Core},
+  volume = {8},
+  pages = {081},
+  year = {2025},
+  doi = {10.21468/SciPostPhysCore.8.4.081}
+}
+
+@misc{genin2025chemistry,
+  author = {Genin, Scott N. and Kwon, Ohyun and Jenab, Seyyed Mehdi Hosseini and Lim, Seon-Jeong and Kim, Taehyung and Kim, Tae-Gon and Gherib, Rami and Harper, Angela F. and Ryabinkin, Ilya G. and Helander, Michael G.},
+  title = {Towards Quantum Advantage in Chemistry},
+  year = {2025},
+  eprint = {2512.13657},
+  archivePrefix = {arXiv},
+  url = {https://arxiv.org/abs/2512.13657}
+}
+
+@misc{spd,
+  author = {{Quantinuum}},
+  title = {{SPD}: Sparse Pauli Dynamics},
+  year = {2026},
+  url = {https://github.com/Quantinuum/spd},
+  note = {Software repository}
+}
+
+@misc{qiskitpauliprop,
+  author = {{Qiskit contributors}},
+  title = {Pauli Propagation},
+  year = {2026},
+  url = {https://github.com/Qiskit/pauli-prop},
+  note = {Software repository}
+}
+
+@misc{kim2026pado,
+  author = {Kim, Hyunwoo and Lee, Youngseok},
+  title = {{PADO-Pauli}: A {GPU}-Accelerated Implementation of Pauli Propagation},
+  year = {2026},
+  eprint = {2610.17755},
+  archivePrefix = {arXiv},
+  url = {https://arxiv.org/abs/2610.17755}
+}
+
+@misc{lin2026backpropagating,
+  author = {Lin, Sheng-Hsuan and Granet, Etienne and H{\'e}mery, Kevin and Dreyer, Henrik},
+  title = {Backpropagating Pauli Propagation},
+  year = {2026},
+  eprint = {2607.15184},
+  archivePrefix = {arXiv},
+  url = {https://arxiv.org/abs/2607.15184}
 }

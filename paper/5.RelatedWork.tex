@@ -1,14 +1,65 @@
 \section{Related Work}
 \label{sec:related}
-% 선행 연구는 무엇을 나누는지(분할 key)와 어디에서 실행하는지(한 GPU, CPU 분산, GPU 분산)로 보고함. "first"는 직접 확인한 범위로만.
+The relevant distinctions concern the partition rule, when it changes, and the memory that holds the propagated operator.
 
-\noindent\textbf{Pauli Propagation Simulators.}
-% 한 노드: PauliPropagation.jl, ppvm, Qiskit pauli-prop, SPD(GPU 1장), OBP. 분산: cuPauliProp(gate마다 전역 합치기), ORQA(Fugaku, 분배 함수와 gate마다 MPI_Put), MonoProp.
+\noindent\textbf{Conserved Operator Subspaces.}
+Symmetries and invariant subspaces are established tools in quantum simulation.
+Bravyi et al. identify binary symmetries of fermionic Hamiltonians and remove qubits after selecting a symmetry sector~\cite{bravyi2017tapering}.
+West et al. describe a commutator graph whose connected components identify invariant operator subspaces under a set of generators~\cite{west2025graph}.
+These results establish the algebraic basis for independent evolution and preclude a novelty claim based on parity conservation alone.
+\SectorQ uses binary rows as labels on Pauli strings, with the ordinary binary inner product expressing invariance under generator XOR.
+The labels are not symmetry eigenvalues of a quantum state, and their sectors need not be individual connected components of the commutator graph.
+The system derives sufficiently fine labels for a finite window and replaces them when the next window has different generators.
+This construction supplies an executable partition for distributed merge and truncation without requiring a useful nontrivial partition conserved by the entire circuit.
 
-\noindent\textbf{Partitioning by Conserved Quantities.}
-% paulistrings-rs(GF(2) 선형 행, 실행 내내 고정, 행 조정은 열린 문제로 적음), iQCC 병렬 구현(bitmask-XOR로 목적지 계산),
-% commutator graph(생성자 집합 아래 섞이지 않는 성분, 회로 전체에 대한 이론), symmetry merging(단일 노드).
-% SectorQ의 차이: 구간마다 그 구간의 gate로 다시 계산, 실행 중 균형으로 선택, host memory sector.
+\noindent\textbf{Fixed Linear Partitions.}
+The closest implementation-level comparison is paulistrings-rs, whose partition label is a binary matrix times the Pauli bit vector~\cite{paulistrings}.
+Its linear map identifies one communication partner for each nonlocal generator delta, and its local coset execution already exploits independent groups of strings.
+The documented partition rows remain fixed during a run, and automatic row selection that accounts for both balance and remote work is listed as an open problem.
+The parallel iQCC implementation also uses a bitmask to assign Pauli words to processes and computes the destination of a product through XOR~\cite{genin2025chemistry}.
+A predictable destination can still be remote.
+\SectorQ requires every chosen row to annihilate every generator in the current window, placing all resulting merge partners in one sector throughout that window.
+It then selects rows again for the next window and schedules sectors from host memory.
+Our same-engine fixed-row ablation isolates this temporal choice, while the paulistrings-rs comparison measures complete implementations with matched truncation.
 
-\noindent\textbf{Distributed Quantum Circuit Simulation.}
-% 상태 벡터: ScaleQsim, cusvaer, HyQuas -> global/local qubit 교환을 gate 묶음마다 하는 것과 같은 구조(구간마다 다시 나눔). tensor network: 분할 축약.
+\noindent\textbf{Distributed CPU Propagation.}
+ORQA demonstrates large-scale propagation on Fugaku with up to one trillion Pauli strings and $2^{17}$ processes~\cite{orqa}.
+Its distribution map is a structured enumeration of string bits designed to limit communication partners while maintaining balance.
+It is not a generic hash, and the sparsity of its communication is central to its scaling.
+The map still distributes updates as the propagation advances through generators, rather than deriving a partition conserved by a window.
+MonoProp provides distributed Pauli and Majorana propagation through a C++ implementation with Python interfaces~\cite{monoprop}.
+These systems establish that large operators can reside in distributed CPU memory.
+\SectorQ addresses the additional requirement of executing sectors through GPU kernels while the operator remains in host memory.
+Our evaluation labels the ORQA implementation as a reproduction, identifies the CPU resources used, and treats MonoProp's different truncation rule separately from comparisons with identical coefficient decisions.
+
+\noindent\textbf{Propagation Libraries and GPU Kernels.}
+Sparse Pauli dynamics and PauliPropagation.jl develop efficient observable simulation and truncation methods~\cite{begusic2024fast,rudolph2025pauli}.
+Quantinuum's SPD provides GPU execution, and Qiskit's Pauli propagation package supports Clifford operations, Pauli rotations, and noise channels~\cite{spd,qiskitpauliprop}.
+These libraries improve the cost and coverage of propagation within their supported execution environments.
+NVIDIA's \cuPP supplies GPU operations on sparse Pauli expansions and a distributed execution mode~\cite{cupauliprop}.
+\SectorQ uses its single-GPU operations for arithmetic and compares against its original-circuit distributed mode.
+Consequently, the contribution concerns the locality and storage of those operations, not a replacement arithmetic kernel.
+The measured element sequence separates Clifford preprocessing and deferred deduplication from window-sector execution.
+The single-GPU comparison also retains cases in which another implementation is faster.
+This distinction identifies the system benefit as the ability to execute growing operators across nodes without requiring the complete local expansion to remain in GPU memory.
+
+\noindent\textbf{Repeated Evaluations and Gradients.}
+PADO-Pauli compiles circuits and observables into sparse matrices that are reused for batches of parameter values and supports gradients through PyTorch~\cite{kim2026pado}.
+Its reuse of a compiled representation targets repeated evaluations during variational training.
+Backpropagating Pauli Propagation develops gradient evaluation whose computational complexity matches forward propagation and reduces its memory requirements through reversibility~\cite{lin2026backpropagating}.
+These objectives differ from the single forward propagation measured in our capacity and scaling experiments.
+\SectorQ follows the surviving terms of one specified circuit and cutoff, with new rows chosen from those live terms at window boundaries.
+It neither assumes a fixed sparse program shared by parameter batches nor evaluates derivatives in the reported experiments.
+The distinction is relevant because a faster batched or gradient evaluation is not directly comparable to the time of a single forward run with the same coefficient truncation.
+The methods address complementary workloads, and their integration would require a separate numerical and performance evaluation.
+
+\noindent\textbf{Staged State Vector Simulation.}
+State vector simulators already reduce communication through groups of gates.
+H\"aner and Steiger schedule gates to reduce communication in a distributed simulation of 45 qubits~\cite{haner2017petabyte}.
+Atlas partitions circuits into stages with an integer program, selects kernels with dynamic programming, and supports host-memory offloading~\cite{xu2024atlas}.
+Stage boundaries and host storage are therefore not new independently.
+Their state vector has a fixed index space, whereas Pauli propagation creates strings, combines equal strings, and removes coefficients during execution.
+A useful partition must preserve these merges before truncation, and the sizes of its parts depend on the surviving operator.
+\SectorQ derives this locality from the window generators and obtains execution granularity from a sample of the live terms.
+An oversized sector can be subdivided only by rows valid for its remaining operations.
+This constraint connects host-memory execution to the algebraic partition and distinguishes the proposed mechanism from applying a state-vector stage schedule to a sparse operator.

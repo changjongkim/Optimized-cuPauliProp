@@ -5,11 +5,11 @@
 %   -> ¶4 규모의 필요와 "However, the existing systems show limited performance and scalability" -> ¶5 시스템마다의 한계(수치)와 "To summarize"
 %   -> 표 1 + ¶6 "Many previous studies" -> ¶7 "SectorQ distinguishes itself" -> ¶8 In this paper(사용자가 받아들인 판)
 % ScaleQsim 형식이라 ¶4-¶5에 측정값이 여럿 들어감(사용자 지시가 "For example 한 문장" 규칙보다 우선).
-% \todo{cite}: 확인한 문헌을 찾아 넣을 자리(가짜 항목을 만들지 않음).
+% References checked against primary sources on 2026-10-15.
 
 % ¶1 DRAFT (2026-10-14)
 Quantum computers have advanced from demonstrations of quantum supremacy on sampling tasks to processors with more than 100 qubits that measure the expectation values of physical models~\cite{arute2019quantum, kim2023evidence}.
-These expectation values are the output of quantum simulation, the application that motivates quantum computing in physics, chemistry, and materials science~\todo{cite}.
+These expectation values are the output of quantum simulation, the application that motivates quantum computing in physics, chemistry, and materials science~\cite{georgescu2014simulation}.
 A 127-qubit processor, for example, measured the magnetization of a kicked Ising model at a scale beyond the exact classical methods~\cite{kim2023evidence}.
 This scale moves the comparison between quantum and classical computation from small benchmarks to the circuits of these applications.
 As a result, the range of expectation values that a classical computer can still produce has become a central question for the development of quantum computers.
@@ -23,30 +23,30 @@ Thus, several groups simulated the 127-qubit experiment soon after its publicati
 
 % ¶3 DRAFT (2026-10-14)
 Classical simulation of these circuits follows three approaches on HPC systems.
-State vector simulation stores all $2^n$ amplitudes of an $n$-qubit state, and this memory limits it to about 50 qubits on the largest systems~\todo{cite}.
-Tensor network simulation stores the state as a network of small tensors, and its cost grows with the entanglement of the circuit~\todo{cite}.
+State vector simulation stores all $2^n$ amplitudes of an $n$-qubit state, requiring 16~PiB for 50 qubits in double precision~\cite{haner2017petabyte}.
+Tensor network simulation stores the state as a network of small tensors, and its cost grows with the entanglement of the circuit~\cite{tindall2024efficient}.
 Pauli propagation tracks the observable, not the state, as a list of Pauli terms, and its cost follows the number of kept terms in place of the number of qubits~\cite{begusic2024fast, rudolph2025pauli}.
-This cost extends Pauli propagation to circuits with more than 100 qubits, and NVIDIA and IBM now provide Pauli propagation in their quantum software stacks~\cite{cupauliprop}~\todo{cite Qiskit}.
+This cost extends Pauli propagation to circuits with more than 100 qubits, and NVIDIA and IBM now provide Pauli propagation in their quantum software stacks~\cite{cupauliprop,qiskitpauliprop}.
 Our work focuses on Pauli propagation, since its accuracy follows the resources of the system in place of the number of qubits.
 
 % ¶4 DRAFT (2026-10-14)
 The accuracy of Pauli propagation, however, requires far more terms than one GPU holds.
 A lower cutoff on the coefficients keeps more terms, and the terms grow within each layer of gates before the truncation removes the small ones.
-For example, the 127-qubit kicked Ising circuit holds up to 1.4 billion terms within a layer at cutoff $10^{-5}$ and 100 billion terms at cutoff $10^{-6}$, the memory of about 14 and 1,000 GPUs.
+For example, the 127-qubit kicked Ising circuit retains up to 159 million terms at window boundaries at cutoff $10^{-5}$ and 11.9 billion at $10^{-6}$, requiring about 6.4~GB and 475~GB of term storage before working buffers.
 These counts place Pauli propagation on HPC systems, and recent systems run it on GPU clusters and on the Fugaku supercomputer with $2^{17}$ processes~\cite{cupauliprop, orqa}.
 However, the existing systems show limited performance and scalability as the number of terms grows.
 
 % ¶5 DRAFT v2 (2026-10-14): 사용자 지적("Atlas/HyQuas식 나열은 별로, 메모리 부족이 생기는 이유가 간략히 나와야")에 따라
 %   시스템별 나열을 빼고 원인 두 가지(gate마다의 전역 단계, GPU 메모리)와 메모리가 모자라는 이유를 씀. 시스템별 배수는 평가로.
-The existing systems have two limits, and the first is the global step after every gate.
-Since a new term may merge with a term on any GPU or process, these systems exchange the new terms of every gate across all GPUs or processes~\cite{cupauliprop, orqa, monoprop}.
+Existing distributed GPU engines face two limits, and the first is the global step after every gate.
+Since a new term may merge with a term on another GPU, the distributed mode of \cuPP coordinates the merge across GPUs after every gate~\cite{cupauliprop}.
 This step adds a fixed cost to every gate, from 5.9~ms on 4 GPUs to 29.8~ms on 16 GPUs in \cuPP.
 The second limit is the GPU memory.
 Between two truncations, every rotation branches the terms, and the list grows to several times its size at the truncation.
 The merge of these terms also requires working space on the same GPU.
 As a result, \cuPP holds about 100 million kept terms on a GPU with 36~GB, and paulistrings-rs keeps its device partitions on the GPUs by the same rule~\cite{paulistrings}.
 A deferred merge reduces the global steps, but the unmerged copies of equal strings fill this memory faster.
-To summarize, the existing systems bind the cost of every gate to the number of GPUs and the size of the problem to the GPU memory, and our work aims to remove both bounds.
+To summarize, these distributed GPU designs bind gate execution to global coordination and operator capacity to device storage, and our work aims to remove both constraints.
 
 \begin{table}[t]
 \caption{Comparison with existing Pauli propagation systems (MN: Multi-Node, GPU: GPU Execution, LP: Locality-Preserving Partition, RP: Run-Time Partition from the Gates and the Live Terms, HM: Host Memory beyond GPU Memory)}
@@ -58,8 +58,8 @@ To summarize, the existing systems bind the cost of every gate to the number of 
 \textbf{System} & \textbf{Method} & \textbf{MN} & \textbf{GPU} & \textbf{LP} & \textbf{RP} & \textbf{HM} \\
 \midrule
 PauliPropagation.jl~\cite{rudolph2025pauli} & Pauli propagation, one node & & & & & \\
-SPD~\cite{begusic2024fast} & Sparse Pauli dynamics & & \checkmark & & & \\
-ORQA~\cite{orqa} & Distributed strings by hash & \checkmark & & & & \\
+SPD~\cite{spd} & Sparse Pauli dynamics & & \checkmark & & & \\
+ORQA~\cite{orqa} & Structured distribution map & \checkmark & & & & \\
 MonoProp~\cite{monoprop} & Distributed Pauli propagation & \checkmark & & & & \\
 \cuPP~\cite{cupauliprop} & Global merge after every gate & \checkmark & \checkmark & & & \\
 paulistrings-rs~\cite{paulistrings} & Fixed linear partition & \checkmark & \checkmark & \checkmark & & \\
@@ -71,11 +71,11 @@ paulistrings-rs~\cite{paulistrings} & Fixed linear partition & \checkmark & \che
 
 % ¶6 DRAFT (2026-10-14): "Many previous studies, as shown in Table 1"
 Many previous studies, as shown in Table~\ref{tab:prior}, have optimized Pauli propagation from different algorithm and architecture perspectives.
-Single-node simulators reduce the cost of each gate with sparse data structures, symmetries of the circuit, and GPU kernels~\cite{begusic2024fast, rudolph2025pauli}~\todo{cite}.
-Distributed CPU systems assign each Pauli string to one process by a hash or a distribution function and exchange the new strings after every gate~\cite{orqa, monoprop}.
+Single-node simulators reduce the cost of each gate with sparse data structures, symmetries of the circuit, and GPU kernels~\cite{begusic2024fast,rudolph2025pauli,spd}.
+ORQA uses a structured distribution map to limit communication partners as it advances through generators~\cite{orqa}, and MonoProp also supports distributed CPU propagation~\cite{monoprop}.
 Distributed GPU engines keep the strings of each gate across all GPUs and merge them in a global step~\cite{cupauliprop}.
 Linear partitions assign each string by parities of its bits, and these parities remain fixed for the whole run~\cite{paulistrings}.
-Theory on the commutator graph of a circuit also shows that the generators of the gates divide the Pauli strings into components that never mix~\todo{cite West et al.}.
+Theory on the commutator graph of a circuit also shows that the generators of the gates divide the Pauli strings into components that never mix~\cite{west2025graph}.
 
 % ¶7 DRAFT (2026-10-14): "SectorQ distinguishes itself from previous studies by"
 \SectorQ distinguishes itself from previous studies by recomputing the partition of the terms for every window of gates during the run.

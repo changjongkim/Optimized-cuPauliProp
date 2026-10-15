@@ -1,31 +1,35 @@
 \section{SectorQ Design}
 \label{sec:design}
-% 구성(2026-10-14 사용자 승인: 노벨티로 디자인을 구성, CASCADE·ScaleQsim처럼 Overall + 노벨티마다 한 절 + 구현):
-%   3.1 Overall Architecture (그림 fig:overview)  3.2 Window-Conserved Parity Sectors = N1 (fig:sectors)
-%   3.3 Runtime Re-Sectoring = N2 (fig:resector)  3.4 Host-Memory Sector Execution and Exchange = N3 (fig:execution)  3.5 Implementation
-% 네 그림은 같은 예시(4 qubit, 구간 W_k와 W_{k+1}, 노드 2개 x GPU 2장, sector 4개)의 같은 경계를 다룬다:
-%   W_k 생성자 X0, Z2Z3, Z1Z2, Z0Z1 -> kernel x1, x2, x3, z0+z1+z2+z3 -> 행 r1 = x1, r2 = z0+..+z3
-%   W_{k+1} 생성자 X3(H를 거친 Z3), X2, X1, Z0Z1 -> kernel x0, z0+z1, z2, z3 -> 표본 8항에서 (x0, z2)가 2/2/2/2로 뽑힘
-%   sector 11(노드 1, GPU 1)의 항: Z0X1, Y0X1 -> W_k 뒤 Z0X1, Y0X1, Y1, Z0Y1Z2, X1Z2 (Y0Y1Z2는 잘림) -> 다음 sector 00', 10', 00', 01', 01'
-% 규칙: 설계에는 측정값을 쓰지 않고 파라미터만(표본 200,000항, sector 목표 항 수, GPU당 sector 2개, 상한 256개, chunk 262,144항, 노드당 GPU 4장).
-% 구성 요소 이름(본문에서 기울임): Window Builder, Sector Store, Sector Executor, Runtime Re-Sectoring(Row Solver, Sector Balancer), Sector Exchanger.
-% 차이를 적을 상대: 3.2 고정 parity 분할(paulistrings-rs)·hash 분배(ORQA, iQCC)와 state vector의 stage 분할(Atlas: 진폭 자리가 고정이라 합치기 문제가 없음),
-%   Z2 대칭(tapering)과 같은 선형대수임을 인용; 3.3 실행 전에 정하는 stage(Atlas ILP)와 고정 행(paulistrings-rs: 균형은 open research);
-%   3.4 모든 항을 GPU에 두는 방식(cuPauliProp), 분할 하나를 장치 하나에 묶는 방식(paulistrings-rs P <= 64 = rank).
-% 도입 문단(3-4문장): 2.2의 두 도전(gate마다 전역 단계, GPU 메모리에 묶인 용량)과 표 2의 요구사항에 대해 SectorQ가 답하는 세 가지
-%   (무엇으로 나누나: 구간이 보존하는 parity / 언제 고르나: 실행 중 / 어디에 두고 어떻게 옮기나: host memory, 경계 교환).
+\SectorQ addresses the requirements in Table~\ref{tab:req} with three mechanisms.
+Window-conserved parity sectors keep merge partners together throughout a group of gates.
+Runtime re-sectoring selects the next partition from the gates and the live terms during execution.
+Host-memory sector execution separates the stored expansion from the working set of each GPU and redistributes terms at window boundaries.
 
 \subsection{Overall Architecture}
-% 도입: 그림 fig:overview. 두 단계 - Window Formation(회로마다 한 번), Window Loop(구간마다, 실행 중).
+Figure~\ref{fig:overview} shows the circuit processing and the execution loop on each node.
+The CPU constructs windows and selects their rows, host memory holds the sectors, and each GPU processes one sector at a time.
 
 \noindent\textbf{Window Formation.}
-% Window Builder: Clifford gate를 frame에 모아 뒤 rotation의 생성자를 바꾸고(예: H 뒤의 Z3 -> X3), 처리 순서의 rotation을
-% 생성자가 n차원을 넘기 직전까지 한 구간으로 묶음. 구간 경계는 truncation 직후로 맞춤. frame은 노벨티가 아니라 입력 단계.
+The \emph{Window Builder} first expresses the circuit in the processing order of the observable.
+A Clifford frame absorbs eligible Clifford gates and transforms the generators of subsequent rotations, preserving the action on the observable.
+For example, a Hadamard maps the generator $Z_3$ to $X_3$ in the illustrated circuit.
+For each window, the builder accumulates the span of the branching generators over $\mathrm{GF}(2)$ and stops before its dimension exceeds the number of qubits.
+This bound reserves a space of conserved rows from which the runtime can select a partition.
+The default boundary moves to the last scheduled truncation in the second half of the window when one is available, reducing the terms that require redistribution.
+Clifford operations that remain explicit transform generators into a common coordinate system for this calculation.
+The resulting window defines a sequence of operations and a space of valid partitions, with the particular rows selected during execution.
 
 \noindent\textbf{Window Loop.}
-% 노드마다 같은 고리: (1) Sector Store(host memory)에서 sector 하나를 GPU로, (2) Sector Executor가 구간의 gate를 적용,
-% (3) 그동안 Runtime Re-Sectoring이 표본으로 다음 구간의 행을 고름, (4) GPU가 출력을 다음 행으로 나눔 - 자기 sector는 store로,
-% (5) 다른 노드의 sector는 Sector Exchanger가 구간 경계에서 보냄(sector d -> 노드 d mod N). 모든 결정은 실행 중에 내림.
+Each node follows the numbered steps in Figure~\ref{fig:overview}.
+At step (1), a GPU worker loads one sector from the \emph{Sector Store} in host memory.
+At step (2), its \emph{Sector Executor} applies the current window, including the merges and scheduled truncations.
+During these operations, \emph{Runtime Re-Sectoring} uses the CPU to select the rows of the next window.
+At step (3), the worker uses these rows to partition its output on the GPU.
+Step (4) appends output chunks to the host lists of the next sectors.
+The \emph{Sector Exchanger} transfers the remote lists at step (5), assigning sector $d$ to node $d\bmod N$ among $N$ nodes.
+Each node then processes its received sectors with the same loop.
+The last window evaluates the observable against the input state and reduces the partial answers across nodes.
+Thus, the data path repeats by window and keeps the distributed merge outside the sequence of gates within a sector.
 
 \begin{figure}[t]
 \centering
@@ -35,21 +39,39 @@
 \end{figure}
 
 \subsection{Window-Conserved Parity Sectors}
-% 도입(N1): 합칠 짝을 모두 모아야 자를 수 있다(R1-R3). 구간의 모든 gate가 보존하는 parity로 나누면 짝이 늘 한 sector에 있다(그림 fig:sectors).
-% 차이: state vector의 stage(Atlas)는 진폭 자리가 고정이라 이 문제가 없음; 고정 parity(paulistrings-rs)는 행을 깨는 gate마다 항을 옮김.
+The execution loop requires a partition that preserves merge locality through every operation of a window.
+Figure~\ref{fig:sectors} illustrates this condition on four qubits and two parity rows.
 
 \noindent\textbf{Rows Conserved by a Window.}
-% 항 = 2n bit(x, z), 행 r과의 내적이 parity. rotation(생성자 Q)은 P를 P와 P xor Q로 가름 -> r.Q = 0이면 같은 parity.
-% Row Solver: 구간 생성자들의 GF(2) 소거로 r.Q = 0인 행 공간(kernel)을 구함. 생성자가 n차원 이하라 kernel은 n차원 이상.
-% Z2 대칭(qubit tapering)과 같은 선형대수임을 밝히고 인용. 예: W_k의 kernel x1, x2, x3, z0+..+z3.
+A Pauli string has a binary representation $v=(x,z)\in\mathrm{GF}(2)^{2n}$, with its phase represented in the coefficient.
+For a row $r$, the parity is the binary inner product $r\cdot v$.
+A branching rotation with generator $q$ creates strings $v$ and $v\oplus q$.
+Their parities agree whenever $r\cdot q=0$.
+The \emph{Row Solver} computes the annihilator of the generator span with Gaussian elimination over $\mathrm{GF}(2)$.
+If that span has dimension $d$, its annihilator has dimension $2n-d$, at least $n$ under the window rule.
+The selected rows form a matrix $R$, and the bit vector $Rv$ labels the sector of $v$.
+This binary linear algebra is related to symmetry detection for qubit tapering~\cite{bravyi2017tapering}.
+Here its role is to partition the operator during one window, rather than remove qubits using a symmetry of the entire problem.
 
 \noindent\textbf{Merge Locality.}
-% 정리: 구간 안에서 sector의 항이 만드는 새 항은 같은 sector에 남는다 -> 같은 문자열은 같은 sector -> sector마다 합치고 자른 결과 = 전체 결과.
-% 증명 스케치(귀납). 예: sector 11의 Z0X1, Y0X1이 W_k 안에서 두 번 합쳐지고 넷이 새로 생겨도 모두 11에 남음.
+Every descendant of a term retains its sector label through the branching rotations of the window.
+This property follows by induction from $R(v\oplus q)=Rv$ for each generator in the window.
+A coefficient change from a Pauli noise channel also preserves the string and its label.
+For an explicit Clifford operation, the row coordinates transform with the strings to preserve the same label.
+Equal strings have equal labels, and all contributions to a string therefore belong to one sector before truncation.
+Consequently, a merge and coefficient truncation within each complete sector produce the same operator as a global merge and truncation at the same operations, apart from floating-point summation order.
+In the example, the rows $x_1$ and $z_0\oplus z_1\oplus z_2\oplus z_3$ label both $Z_0X_1$ and $Y_0X_1$ as sector $11$.
+Their descendants remain in this sector through $W_k$, including terms that merge or disappear at a truncation.
 
 \noindent\textbf{Exchange Only at Window Boundaries.}
-% 구간이 바뀌면 보존되는 행이 바뀜(W_{k+1}의 X1이 x1을 뒤집음) -> 경계에서만 다음 행으로 다시 나눔.
-% 회로 전체가 보존하는 행은 0-2개뿐(배경 표 tab:windows)이라 하나의 고정 분할로는 나눌 수 없음.
+The next window can contain generators that violate the current rows.
+For example, $X_1$ in $W_{k+1}$ changes the parity $x_1$ used by $W_k$.
+The runtime therefore computes a new matrix for $W_{k+1}$ and regroups the output of $W_k$ before the next window begins.
+This regrouping collects all fragments of each next sector on its owner, where equal strings meet before their next truncation.
+The construction differs from a fixed linear partition~\cite{paulistrings}, whose rows can require a remote transfer at a gate that changes a partition label.
+It also differs from a partition based only on symmetries of the full circuit, since these symmetries need not distinguish the live terms.
+The window rule requires conservation only over the operations assigned to the current sector execution.
+Thus, the system obtains a new space of valid partitions at each boundary without changing the prescribed truncation schedule.
 
 \begin{figure}[t]
 \centering
@@ -59,19 +81,40 @@
 \end{figure}
 
 \subsection{Runtime Re-Sectoring}
-% 도입(N2): 어느 유효 행이 고르게 나누는지와 sector 수는 살아 있는 항이 정함(R4, R6). 다음 구간의 행을 지금 구간이 도는 동안 고름(그림 fig:resector).
-% 차이: Atlas는 stage를 실행 전에 회로만 보고 정함; paulistrings-rs는 균형을 따지지 않음("open research").
+Conservation determines which rows are valid, but the live terms determine their load balance.
+Figure~\ref{fig:resector} shows how the runtime selects the next rows while the GPUs process the current window.
 
 \noindent\textbf{Sampling the Live Terms.}
-% 구간이 시작할 때 노드마다 자기 몫의 표본을 뜸(합계 200,000항), 구간의 Clifford 연산만 통과시킴(branch는 무시). rank 0에 모아 행을 정하고 알림.
+At the start of a window, each node samples strings from its host sectors with a regular stride determined by the global term count.
+The configured sample target is 200,000 terms across all nodes.
+The CPU applies the current window's bit-changing Clifford operations to these strings before the next partition is scored.
+This estimate omits branching and truncation, avoiding a second propagation of the sampled operator.
+The sample therefore approximates the coordinate distribution at the next boundary rather than predicting its exact population.
+An MPI gather collects the samples on rank zero, where the row solver and the \emph{Sector Balancer} make a common decision for every node.
+A broadcast distributes the selected rows and window description.
+All workers consequently use the same sector labels, even though their local input sizes differ.
+The sample affects performance decisions only, since every selected row must satisfy the generator constraints independently of the sampled terms.
 
 \noindent\textbf{Balanced Row Selection.}
-% Sector Balancer: kernel에서 무작위 행 조합 후보 여럿(8개)을 뽑아 표본의 sector 크기를 세고, 가장 큰 sector가 가장 작은 조합을 고름.
-% 예: (z0+z1, z3) 최대 8, (z2, z3) 최대 4, (x0, z2) 2/2/2/2. sector 수 g: 예상 항 수/목표 이하, GPU마다 하나 이상(긴 구간이면 둘), 상한 256.
-% 항이 적은 첫 구간은 sector 하나, GPU 하나(R6).
+The sector balancer generates eight candidate row sets from random combinations of the annihilator basis.
+For each candidate, it counts sampled strings by sector and selects the set with the smallest largest count.
+The illustrated pairs produce largest counts of eight, four, and two, and the selected pair $(x_0,z_2)$ divides the eight strings equally.
+The number of rows follows the estimated output size, the target terms per sector, and the available GPUs.
+The estimate uses the previous window's observed growth with a bounded growth factor.
+The runtime requests one task per GPU, or two when the preceding window exceeds the configured duration threshold, provided the resulting sectors remain sufficiently large.
+Early windows with few terms retain a smaller partition.
+A configurable cap bounds the number of sectors at a boundary.
+These choices adapt task size and placement to the evolving operator without assuming that any valid row set guarantees balanced work.
 
 \noindent\textbf{Overlap with the Running Window.}
-% 표본은 GPU가 시작하기 전에 뜨고, 행은 GPU가 구간을 도는 동안 CPU가 고름 -> GPU는 출력을 나누기 직전에만 행을 씀, 기다리지 않음.
+The host sample is captured before the workers consume their input sectors.
+After the workers start, the CPU main thread gathers the sample, computes the next window, scores the candidate rows, and broadcasts the result.
+Workers need those rows only when they partition their output for the next window.
+A worker that reaches this point before the rows are ready waits on a local condition variable.
+The implementation records this wait separately from the CPU selection time, allowing the evaluation to distinguish overlapped work from exposed delay.
+The process therefore has no separate global optimization phase between successive GPU executions.
+In contrast to a circuit schedule based solely on gates, the row selection responds to the distribution of terms present during the run.
+Correctness depends on the conservation constraints, whereas the value of the sample and candidate search depends on the resulting execution time and sector balance.
 
 \begin{figure}[t]
 \centering
@@ -81,30 +124,83 @@
 \end{figure}
 
 \subsection{Host-Memory Sector Execution and Exchange}
-% 도입(N3): sector를 장치에서 떼어 host memory에 두고 GPU가 하나씩 처리 -> 용량이 host memory를 따름(R5), 항은 경계에서만 이동(R2)(그림 fig:execution).
-% 차이: cuPauliProp은 모든 항을 GPU에 둠; paulistrings-rs는 분할 하나 = rank 하나(P <= 64).
+The selected sectors are units of execution rather than permanent GPU allocations.
+Figure~\ref{fig:execution} shows their storage, processing, and transfer across a window boundary.
 
 \noindent\textbf{Chunked Sector Store.}
-% sector = 고정 크기 chunk(262,144항) 목록, chunk는 한 번 pin하고 pool에서 재사용 -> GPU 복사와 MPI가 같은 메모리를 씀. sector 수는 GPU 수와 무관.
+The sector store represents each sector as a list of fixed-capacity host chunks, with 262,144 terms per chunk by default.
+Each term contains a binary string and a double-precision coefficient.
+A pool retains pinned chunks for reuse after GPU transfers or MPI sends, avoiding repeated registration for every sector.
+The same chunk representation supports input loading, output collection, and reception from another node.
+A sector can contain multiple chunks, and a node can hold more sectors than it has GPUs.
+The live expansion therefore occupies host memory while only the sectors under execution require GPU buffers.
+The total capacity depends on host storage, temporary output, and exchange buffers, rather than the sum of GPU buffers alone.
+Within a node, workers obtain sectors from a shared queue, initially ordered by decreasing size.
+This queue allows a GPU that finishes one sector to process another sector without a permanent binding between a sector and a device.
 
 \noindent\textbf{Sector Execution on GPUs.}
-% GPU마다 worker 하나, 노드의 다음 sector를 가져가 구간을 적용(GPU 메모리: 입력, 출력, 작업 공간). 출력이 버퍼를 넘으면
-% kernel의 행 하나를 더 써서 sector를 둘로 나누고 두 절반이 남은 gate부터 이어감(두 절반도 구간에 닫혀 있음, 답은 같음).
+Each worker maintains input and output expansions together with the library workspace on its GPU.
+The worker loads a complete sector, applies its window, and performs the required merges before coefficient truncation.
+If the sector is too large to load with sufficient workspace, an additional valid row divides it in host memory.
+If growth exhausts the GPU buffers during execution, the worker partitions the current expansion using a further row conserved by the remaining operations.
+The resulting pieces return to the local queue with the operation position and any pending merge or truncation.
+Each piece resumes from that position, retaining the merge-locality argument within the finer partition.
+A split succeeds only if the available rows distinguish enough terms to fit the working set.
+The system therefore records both GPU and host splits, and the capacity claim includes the requirement that these finer sectors remain executable on a GPU.
 
 \noindent\textbf{Boundary Exchange.}
-% 출력을 GPU 위에서 다음 행으로 나눠 chunk에 씀: 자기 노드의 sector는 store의 chunk 목록에 붙이고, 다른 노드 몫은 Sector Exchanger가
-% 경계에서 보냄. 라운드마다 (보내는 노드, sector)당 chunk 하나, 보낸 chunk는 pool로 -> 노드가 동시에 가지는 것은 자기 출력과 한 라운드의 도착분.
-% 경계의 상태는 checkpoint로도 씀.
+At the end of a window, a GPU partitions its surviving terms by the next matrix and copies them into host chunks.
+Chunks for local sectors remain on the node, and the sector exchanger sends the other chunks to their owners.
+The exchange first communicates counts and then transfers the chunks in rounds.
+For each sender and destination sector, a round transfers at most one chunk.
+After the outstanding requests complete, the sender returns transmitted chunks to the pool before the next round begins.
+The additional receive storage is therefore bounded by one round, and the request count depends on the active sender-sector pairs rather than all chunks in the expansion.
+At completion, the owner joins the received chunk lists into each complete next sector.
+A checkpoint can record this boundary state and its next-window description.
+Thus, the host representation supports both GPU execution and redistribution without a second full-size receive allocation.
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\textwidth]{figures/execution.pdf}
-\caption{Host-memory sector execution and the exchange at a window boundary}
+\caption{Host-memory sector execution and boundary exchange. Pale sector colors denote filling chunks, black hatching received chunks, and gray hatching pooled chunks}
 \label{fig:execution}
 \end{figure}
 
 \subsection{Implementation}
-% C++/CUDA, MPI(노드당 rank 하나, GPU 4장), sector마다 cuPauliProp v0.5.0의 단일 GPU 연산(gate 적용, merge, truncation) 호출.
-% Clifford frame의 세부(bit를 바꾸는 연산의 기록, 생성자 변환), GF(2) 소거, 행 계산과 분할 kernel, noise channel 묶음, checkpoint.
-% 파라미터 표: 표본 200,000항, 후보 8개, 목표 항 수, GPU당 sector 2개, 상한 256, chunk 262,144항, GPU 메모리 배분.
-% 코드 이름 bucket = 본문의 sector. 식별자 이름은 본문에 쓰지 않고 동작으로 설명.
+\SectorQ implements the host runtime in C++ and the string partition operations in CUDA.
+Each MPI rank owns one node and creates one worker per GPU, with four GPUs per node in our experiments.
+
+\noindent\textbf{Runtime and Library Operations.}
+Each worker uses \cuPP~v0.5.0 on one GPU.
+The library operations cover rotations, Clifford gates, Pauli noise, merging, and truncation.
+The runtime supplies the sector contents and manages their placement, while the library supplies the arithmetic on each expansion.
+CUDA kernels evaluate the row parities and group output terms by their next sectors.
+The CPU handles binary elimination, sample scoring, the host chunk pool, and MPI exchange.
+Consecutive Pauli noise channels can share a library call up to the next truncation, preserving the scheduled coefficient decisions.
+On one GPU, an expansion below the target sector size can remain in device memory between windows.
+This path avoids a host transfer when no other worker could receive a sector.
+These execution choices complement the window partition but are not the source of its merge-locality property.
+Table~\ref{tab:parameters} summarizes the default parameters and the larger sector caps used in the capacity experiments.
+
+\begin{table}[t]
+\caption{Runtime parameters}
+\label{tab:parameters}
+\centering
+\small
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Parameter} & \textbf{Setting} \\
+\midrule
+Sample target across nodes & 200,000 terms \\
+Candidate row sets & 8 \\
+Target sector input & 4 million terms, 6 million for kicked Ising \\
+Tasks per GPU & 1, or 2 after a window of at least 0.5~s \\
+Default sector cap & 256 \\
+Capacity experiment sector caps & 1,024 or 4,096 \\
+Host chunk capacity & 262,144 terms, 65,536 for selected large runs \\
+GPU memory budget & 90\% of available device memory \\
+Each expansion buffer & 20\% of the GPU memory budget \\
+Coefficient truncation & Every 10 operations by default \\
+\bottomrule
+\end{tabular}
+\end{table}

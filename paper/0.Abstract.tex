@@ -1,6 +1,6 @@
 % DRAFT (2026-10-14): five sentences, 140-180 words; numbers from README 1.5 (16 GPUs: as-is cuPauliProp; 512 GPUs: reach)
 This paper presents \SectorQ, a Pauli propagation system designed to compute the expectation values of quantum circuits with more than 100 qubits on GPU clusters.
-As the accuracy of Pauli propagation grows with the number of kept terms, the terms of a 127-qubit circuit exceed the memory of hundreds of GPUs, and the existing multi-GPU engine merges them across all GPUs after every gate.
+As tighter coefficient cutoffs increase the number of kept terms, the terms of a 127-qubit circuit exceed the memory of hundreds of GPUs, and the existing multi-GPU engine merges them across all GPUs after every gate.
 \SectorQ introduces window-conserved parity sectors, which divide the terms by the parities that every gate of a window leaves unchanged and keep each new term in the same sector as its merge partner.
 With this design, \SectorQ applies each window without exchanging terms between nodes, balances the sectors by choosing the parities at run time from a sample of the live terms, and holds the sectors in host memory beyond the capacity of the GPU memory.
 Our evaluation using seven circuits on up to 512 NVIDIA A100 GPUs shows that \SectorQ reduces the simulation time of \cuPP on 16 GPUs by 4.4-9.7$\times$ and increases the largest finished problem on 512 GPUs by 140$\times$.
