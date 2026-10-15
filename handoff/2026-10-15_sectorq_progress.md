@@ -137,3 +137,15 @@ python3 paper/scripts/check_style.py
 - `figures/make_paper_figures.py ev_runtime`으로 새 패널 9개와 공통 범례만 생성했다. 기존 PDF 83개는 SHA-256이 모두 같아 Figure 16과 설계 그림을 포함한 다른 그림은 바뀌지 않았다.
 - 컴파일 성공, check_style 0건, 미해결 인용/참조와 Overfull 없음. 19쪽을 렌더링해 배치와 가독성을 확인했다. 23쪽, 본문 8,647단어(Evaluation 2,781단어)다. 미리보기는 `paper/build/runtime-cutoffs.png`에 있다.
 - 새 변경은 코드/논문 커밋을 분리해 로컬에 남긴다. 이번 변경에 대한 새 push 요청은 아직 없다. 이 편집 작업에서는 실험/job 상태를 다시 조회하지 않았다.
+
+## 후속 변경 — 대표 cutoff, 축 표기, 요구사항 표 제거 (2026-10-15)
+
+- 앞선 Figure 17 변경은 사용자 요청으로 `daecc96`까지 GitHub main에 push했다. 아래 변경에 대한 새 push 요청은 아직 없다.
+- 사용자가 Figure 17을 cutoff 1e-4/1e-5/1e-6만 보이도록 줄이고, 빠진 결과가 대기 실험으로 채워지면 16/64/256 GPU 세 행을 유지하도록 요청했다. 세 회로의 세 점이 현재 엔진/기본 상한으로 모두 완료된 규모는 16 GPU다. 64/128/256/512 GPU의 TFIM/noise는 세 점이 있으나 KI의 1e-6은 다른 엔진 또는 상한을 바꾼 실행만 있었다.
+- 기존 대기 목록에는 KI 1e-6의 engine i / cap 256 측정이 없었다. 기존 `pp_s_g64w`(59768996, 16노드), `pp_s_g256w2`(59768999, 64노드)의 script가 시작 시 `queue_s/todo*.jsonl`을 읽는 것을 확인했다. 두 job은 확인 당시 PENDING(Priority), 3시간 할당이었다. 기존 pp_ job 8개도 모두 PENDING이었다.
+- `queue_s/todo_a00_runtime.jsonl`에 `i.ref.ki.1e-6.g64`와 `i.ref.ki.1e-6.g256` 두 항목을 추가했다. bin/pp_engine_i, target 6M, truncEvery 10, 기본 gmax=8/chunk/window, trace 1, vram fraction 0.9다. 예상 600/240초, 각 1,200초 제한이며 기존 목록 앞쪽에서 실행한다. 새 Slurm job/loop를 만들지 않았고 실행 중인 바이너리를 빌드하지 않았다. 각 ID의 done/log/lock이 없는지와 기존 실행기의 항목/바이너리 선택을 검증했다. 256 GPU의 다른 기존 할당이 먼저 claim해도 기존 lock으로 중복 실행을 막는다.
+- Figure 17은 세 cutoff의 25개 완료 값과 KI 2개 Pending이다. 미측정을 0으로 그리지 않는다. 16 GPU도 `logs/r/eng.*`의 재측정으로 통일해 전체 시간 분석 자료 103개가 모두 pp_engine_i, cap 256이다. 분석기는 두 보충 로그가 생기면 각각 독립적으로 읽을 수 있다. higher-cap/chunk 자료는 기존 별도 분석에 남긴다.
+- Evaluation의 일부 눈금이 비었던 원인은 겹침 방지용 생략 코드였고, 괄호는 그 코드의 축약 단계에서 제거되거나 fixed-row 생성기에서 처음부터 빠졌다. 처음에는 모든 눈금을 엇갈려 표시했으나, 사용자가 긴 라벨의 중간 생략을 허용하고 cutoff 축의 여러 줄 배치를 원하지 않는다고 명확히 수정했다. 최종 규칙은 cutoff와 `(항 수)` 또는 `(오차)`를 한 줄에 유지하고, 겹치면 중간 눈금만 생략하며 양 끝은 남기는 것이다. Figure 17은 cutoff 세 개만 한 줄로 표시한다. 그림의 측정점 자체는 생략하지 않는다.
+- Figure 9/11은 4+3 배치와 행별 동일 플롯 크기를 유지한다. Figure 16의 항 수 괄호를 복원했다. Figure 15에는 Execution Configuration 축 제목을 넣고, 범례의 규모를 intermediate 합산값(22.5M/1.4B)에서 본문 정의에 맞는 boundary 항 수(2.33M/159M)로 바로잡았다. Accuracy의 괄호는 항 수가 아니라 오차라는 구분을 유지한다.
+- 사용자가 기존 Table 4(Requirements of distributed Pauli propagation)의 역할을 지적했다. R1–R6은 후속 Design/Evaluation에서 쓰이지 않고 Background를 반복하며, R6의 작은 문제에서 손실이 없어야 한다는 요구는 결과보다 강했다. 해당 표와 참조를 삭제하고 Background의 locality/adaptation/capacity 관찰을 Design의 세 메커니즘으로 잇는 두 문장으로 대체했다. Evaluation 순서를 요구사항 번호에 맞춰 재편하지 않았다. 이제 Runtime parameters가 Table 4, fixed-row window/traffic이 Table 5다.
+- 최종 검증: 컴파일 성공, check_style 0건, 미해결 참조/인용과 Overfull 없음. 23쪽, 본문 8,674단어(Evaluation 2,804단어). Evaluation PDF 64개를 갱신했고 Background와 설계 그림은 모두 기존 SHA-256과 같다. 최종 6쪽 및 12–21쪽을 렌더링해 확인했다. 최종 패널 생성의 겹침/넘침 검사도 0건이다. 미리보기는 `paper/build/cutoff-final-*.png`와 `table-removal-final.png`에 있다. 보충 측정 두 건은 아직 미완료이며 기다리지 않고 현재 원고를 저장한다.

@@ -157,24 +157,5 @@ Thus, distributed Pauli propagation requires a partition that the system recompu
 \label{fig:windows}
 \end{figure}
 
-These observations define six requirements for distributed Pauli propagation, listed in Table~\ref{tab:req}.
-A partition that keeps every merge partner in the part of its parent satisfies the first three requirements together.
-
-\begin{table}[t]
-\caption{Requirements of distributed Pauli propagation}
-\label{tab:req}
-\centering
-\small
-\begin{tabular}{@{}lll@{}}
-\toprule
-\textbf{\#} & \textbf{Requirement} & \textbf{Evidence} \\
-\midrule
-R1 & Merge every equal string before each truncation & Unmerged parts change the answer \\
-R2 & No coordination among GPUs during the gates & The fixed cost per gate grows with the GPUs \\
-R3 & No accumulation of unmerged copies & A deferred merge exceeds the GPU memory \\
-R4 & A partition recomputed during the run & Fixed rows move terms at 31-96\% of the gates \\
-R5 & A capacity beyond the GPU memory & Kept terms fill 4 of 36~GB on one GPU \\
-R6 & No loss on small problems & 0.42~s on one GPU becomes 32-47~s on four \\
-\bottomrule
-\end{tabular}
-\end{table}
+These observations motivate partitions that preserve merge locality across each window and change with the live expansion.
+Execution must also separate the stored terms from each GPU's working set to use host memory for capacity.
