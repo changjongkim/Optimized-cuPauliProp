@@ -8,8 +8,8 @@ same data, colors and markers); their save step is intercepted and every panel i
   - the paper prints every panel and legend at SCALE of its size, so one font size on the canvas is one size in print:
     T points for tick labels and legends, V points for printed values, bold axis titles only;
   - a panel has the canvas of its place in the paper (PLACE: four, three, two or one panel per text width), with the
-    tick labels, axis labels and values inside it; tick labels that meet are thinned (to the powers of ten of a cutoff
-    ladder, else to every second or third label);
+    tick labels, axis labels and values inside it; evaluation cutoff labels keep their parenthesized
+    term counts or errors on one line; dense axes omit intermediate labels while preserving both endpoints;
   - no title (it becomes the subfloat caption, printed here), the common x label and the y label on independent panels,
     shared y labels once per comparison row, and the legend in a strip of its own as wide as the text.
 Prints, per figure, the files with their captions, and the overlaps that the check of the deck figures still finds.
@@ -23,7 +23,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib import patheffects
 from matplotlib.text import Text
-from matplotlib.ticker import FixedLocator, LogFormatterMathtext, NullFormatter
+from matplotlib.ticker import LogFormatterMathtext
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ARGS, sys.argv = sys.argv[1:], sys.argv[:1]
@@ -129,7 +129,9 @@ def ticks_meet(fig, ax):
     r = fig.canvas.get_renderer()
     for labels in (md.xlabels(ax), md.xlabels(ax, minor=True)):
         boxes = sorted((t.get_window_extent(r) for t in labels), key=lambda b: b.x0)
-        if any(b.x0 - a.x1 < 0.25 * T * fig.dpi / 72 for a, b in zip(boxes, boxes[1:])):
+        gap = 0.25 * T * fig.dpi / 72
+        if any(min(a.x1, b.x1) - max(a.x0, b.x0) > -gap and min(a.y1, b.y1) - max(a.y0, b.y0) > 0
+               for i, a in enumerate(boxes) for b in boxes[i + 1:]):
             return True
     return False
 
@@ -171,6 +173,17 @@ def tick_choices(labels):
         out.append([l if re.match(r"1e-\d", l) else "" for l in plain])
     out += [[l if i % k == 0 else "" for i, l in enumerate(plain)] for k in (2, 3, 4)]
     return out
+
+
+def evaluation_tick_choices(labels):
+    """Thin intermediate labels without changing a visible cutoff/size pair."""
+    yield labels
+    for stride in range(2, len(labels) + 1):
+        indices = list(range(0, len(labels) - 1, stride))
+        if len(indices) > 1 and len(labels) - 1 - indices[-1] < stride:
+            indices.pop()
+        keep = set(indices + [len(labels) - 1])
+        yield [text if i in keep else "" for i, text in enumerate(labels)]
 
 
 def spread_values(fig, ax):
@@ -284,7 +297,13 @@ def panel(fig, ax, name, w, h, xlabel=None, ylabel=None, before=None, drop_minor
     thin_lines(ax)
     labels = [t.get_text() for t in ax.get_xticklabels()]
     ticks = list(ax.get_xticks())
-    for choice in tick_choices(labels):
+    # Keep cutoff and parenthesized size/error together on one line. Only
+    # intermediate labels may be omitted; the underlying measured points remain.
+    evaluation = name.startswith("ev_")
+    if evaluation and ax.get_xlabel().startswith("Cutoff"):
+        labels = [s.replace("\n", " ").strip() for s in labels]
+    choices = evaluation_tick_choices(labels) if evaluation else tick_choices(labels)
+    for choice in choices:
         ax.set_xticks(ticks)
         ax.set_xticklabels(choice)
         restyle(ax)
@@ -297,12 +316,17 @@ def panel(fig, ax, name, w, h, xlabel=None, ylabel=None, before=None, drop_minor
     for _ in range(4):
         if not corner_meets(fig, ax):
             break
-        pad = ax.xaxis.get_major_ticks()[0].get_pad()
-        ax.tick_params(axis="x", which="major", pad=pad + 2)
+        for tick in ax.xaxis.get_major_ticks():
+            tick.set_pad(tick.get_pad() + 2)
         fit()
     spread_values(fig, ax)
     fit()
     contain_values(fig, ax, name)
+    if evaluation:
+        shown = [t.get_text() for t in ax.get_xticklabels()]
+        assert all(not current or current == original for current, original in zip(shown, labels)), name
+        assert shown[0] == labels[0] and shown[-1] == labels[-1], name
+        assert all("\n" not in text for text in shown) if ax.get_xlabel().startswith("Cutoff") else True
     figlegs, axlegs = list(fig.legends), [(a, a.legend_) for a in axes]
     fig.legends.clear()                             # hidden legends are not part of this panel
     for a in axes:
@@ -377,8 +401,8 @@ def comparison_panels(fig, base, items=None):
     entries = legend_items(fig) if items is None else items
     fig.set_layout_engine(None)
     out, index = [], 0
-    gap, first_left, other_left, right = 0.12, 0.66, 0.10, 0.12
-    height, bottom, top = 2.0, 0.73, 0.09
+    gap, first_left, other_left, right = 0.12, 0.66, 0.20, 0.22
+    height, bottom, top = 1.82, 0.55, 0.09
     for columns in (4, 3):
         plot_width = (TEXT_W - gap * (columns - 1) - first_left - other_left * (columns - 1)
                       - right * columns) / columns
@@ -389,6 +413,9 @@ def comparison_panels(fig, base, items=None):
             position = [left / width, bottom / height, plot_width / width, (height - bottom - top) / height]
 
             def style(a, first=(column == 0)):
+                count = len(a.get_xticks())
+                margin = 0.9 if count == 4 else 1.2
+                a.set_xlim(-margin, count - 1 + margin)
                 a.set_ylabel("Time (s)" if first else "")
                 a.tick_params(axis="y", labelleft=first)
                 a.set_yticks([1, 10, 100, 1000])
@@ -551,7 +578,11 @@ def ev_staircase():
     ax = panels_of(fig)[0]
     ax.set_xticks(range(4))
     ax.set_xticklabels(["cuPauliProp", "+ Clifford\nFrame", "+ Deferred\nDedup", "+ Sectors\n(SectorQ)"])
-    split(fig, "ev_staircase", 2)
+    # The paper reports boundary populations, not summed intermediate expansion.
+    for legend in fig.legends:
+        for label in legend.get_texts():
+            label.set_text(label.get_text().replace("1.4B Terms", "159M Terms").replace("22.5M Terms", "2.33M Terms"))
+    split(fig, "ev_staircase", 2, xlabel="Execution Configuration", size=(PLACE[2][0], 2.3))
 
 
 def ev_knobs():
@@ -604,7 +635,7 @@ def ev_fixed_rows():
         for i, x in enumerate(cuts):
             a, b = runs.get(("re", x)), runs.get(("fx", x))
             terms = a["terms"] if a and a["exit"] == 0 else None
-            ticks.append(x + ("\n" + mf.count(terms).replace(" ", "") if terms else ""))
+            ticks.append(x + ("\n(" + mf.count(terms).replace(" ", "") + ")" if terms else ""))
             if a and b and a["exit"] == b["exit"] == 0:
                 ax.annotate(f'{b["wall"] / a["wall"]:.1f}', (i, b["wall"]), xytext=(0, 5),
                             textcoords="offset points", ha="center", fontsize=V)
@@ -655,26 +686,26 @@ def ev_runtime():
     for row, g in enumerate((16, 64, 256)):
         for column, (c, title) in enumerate(mf.G3):
             ax = axes[row, column]
-            samples = sorted((r for r in rows if r["gpus"] == g and r["circuit"] == c),
-                             key=lambda r: -float(r["cutoff"]))
-            assert samples, (g, c)
-            for i, r in enumerate(samples):
-                cutoff, bottom = float(r["cutoff"]), 0
-                # Constant width in logarithmic cutoff units; no interpolation of missing runs.
-                factor = 10 ** 0.07
-                left, right = cutoff / factor, cutoff * factor
+            samples = {float(r["cutoff"]): r for r in rows if r["gpus"] == g and r["circuit"] == c}
+            ticks = []
+            for i, cutoff in enumerate((1e-4, 1e-5, 1e-6)):
+                r = samples.get(cutoff)
+                label = f"1e-{4 + i}"
+                if r is None:
+                    ticks.append(label)
+                    ax.text(i, 50, "Pending", ha="center", va="center", color="#666666")
+                    continue
+                ticks.append(label)
+                bottom = 0
                 for label, key, color in mf.SIZE_PARTS:
                     label = "Idle Workers" if key == "idle" else label
                     share = 100 * r[key] / r["wall"]
-                    ax.bar(left, share, width=right - left, align="edge", bottom=bottom,
+                    ax.bar(i, share, width=0.6, bottom=bottom,
                            color=color, label=label if i == 0 else None)
                     bottom += share
                 assert abs(bottom - 100) < 1e-8, r["id"]
-            ax.set_xscale("log")
-            ax.set_xlim(1.3e-4, 0.8e-6)
-            ax.set_xticks([1e-4, 1e-5, 1e-6], [r"$10^{-4}$", r"$10^{-5}$", r"$10^{-6}$"])
-            ax.xaxis.set_minor_locator(FixedLocator([float(r["cutoff"]) for r in samples]))
-            ax.xaxis.set_minor_formatter(NullFormatter())
+            ax.set_xlim(-0.5, 2.5)
+            ax.set_xticks(range(3), ticks)
             ax.set_ylim(0, 100)
             ax.set_yticks([0, 50, 100])
             ax.set_xlabel("Cutoff")

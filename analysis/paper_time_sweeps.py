@@ -19,10 +19,9 @@ def read_sweeps():
             prefixes = ('eng',) if g == 16 else (('i.ref', 'n.eng') if circuit == 'ki' else ('n.eng',))
             for prefix in prefixes:
                 if g == 16:
-                    # Preserve the existing 16-GPU breakdown's measured runs.
-                    paths = [ROOT / ('logs/{}/eng.{}.{}.g16.out'.format(folder, circuit, cutoff))
-                             for folder, cuts in (('g', ('1e-4', '3e-5', '1e-5')), ('r', ('3e-6', '1e-6')))
-                             for cutoff in cuts]
+                    # Use the completed remeasurements so all plotted scales use engine i.
+                    paths = [ROOT / ('logs/r/eng.{}.{}.g16.out'.format(circuit, cutoff))
+                             for cutoff in ('1e-4', '3e-5', '1e-5', '3e-6', '1e-6')]
                 else:
                     pattern = '{}.{}.*.g{}.out'.format(prefix, circuit, g)
                     paths = sorted((ROOT / 'logs/s').glob(pattern))
@@ -37,7 +36,7 @@ def read_sweeps():
                     args = shlex.split(text.splitlines()[0].split(' args: ', 1)[1])
                     options = dict(zip(args[::2], args[1::2]))
                     binary = re.search(r'^binary=(\S+)', text, re.M).group(1)
-                    assert binary in (('pp_engine_h', 'pp_engine_i') if g == 16 else ('pp_engine_i',)), path
+                    assert binary == 'pp_engine_i', path
                     assert 'gmax=8 window=ann host=pinned chunks' in text, path
                     assert 'truncEvery=10 ' in text, path
                     assert r['workers'] == g, path
@@ -68,7 +67,11 @@ def read_sweeps():
     rows.sort(key=lambda r: (r['gpus'], CIRCUITS.index(r['circuit']), -float(r['cutoff'])))
     for circuit in CIRCUITS:
         cuts = [{r['cutoff'] for r in rows if r['circuit'] == circuit and r['gpus'] == g} for g in GPUS if g != 16]
-        assert cuts[0] and all(c == cuts[0] for c in cuts), (circuit, cuts)
+        # KI 1e-6 at 64/256 GPUs is queued separately. Accept each completed
+        # fill independently without requiring unrequested runs at other scales.
+        base = {'1e-4', '5e-5', '3e-5', '2e-5', '1e-5', '5e-6', '3e-6', '2e-6'} if circuit == 'ki' else \
+               {'1e-4', '3e-5', '1e-5', '5e-6', '3e-6', '2e-6', '1e-6'}
+        assert all(base <= c <= base | {'1e-6'} for c in cuts), (circuit, cuts)
         assert len({r['target_terms'] for r in rows if r['circuit'] == circuit}) == 1, circuit
     return rows
 

@@ -1,0 +1,2 @@
+{"id": "i.ref.ki.1e-6.g64", "nodes": 16, "kind": "eng", "bin": "bin/pp_engine_i", "per": 4, "limit": 1200, "coef": 1e-06, "est": 600, "args": "--circuit ki_lab --weight 0 --coef 1e-6 --target 6000000 --trace 1 --vram-frac 0.9"}
+{"id": "i.ref.ki.1e-6.g256", "nodes": 64, "kind": "eng", "bin": "bin/pp_engine_i", "per": 4, "limit": 1200, "coef": 1e-06, "est": 240, "args": "--circuit ki_lab --weight 0 --coef 1e-6 --target 6000000 --trace 1 --vram-frac 0.9"}
