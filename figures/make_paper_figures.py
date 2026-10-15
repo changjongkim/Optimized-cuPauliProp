@@ -428,14 +428,28 @@ def ev_accuracy():
 
 
 def ev_breakdown():
-    md.d_breakdown()
-    fig = CAUGHT.pop("d_breakdown")
-    for ax in fig.axes:
-        for t in ax.texts:                          # the shares too small to print inside their bar
-            m = re.match(r"(\d+)%$", t.get_text())
-            if m and int(m.group(1)) < 10:
-                t.set_text("")
-    split(fig, "ev_breakdown", 1, size=(TEXT_W, 1.9), xlabel="Share of the Run Time (%)")
+    """The existing cutoff sweeps as three vertical stacks, matching ev_large_time."""
+    source, source_axes = plt.subplots(1, 3)
+    rows = mf.g_breakdown_sizes(md.campaign(), axes=source_axes)
+    plt.close(source)
+    fig, axes = plt.subplots(1, 3)
+    for ax, (_, title) in zip(axes, mf.G3):
+        samples = [(coef, share) for name, coef, wall, share in rows if name == title]
+        for i, (coef, share) in enumerate(samples):
+            bottom = 0
+            for label, key, color in mf.SIZE_PARTS:
+                label = "Idle Workers" if key == "idle" else label
+                value = 100 * share[key]
+                ax.bar(i, value, bottom=bottom, width=0.65, color=color, label=label if i == 0 else None)
+                bottom += value
+        ax.set_xticks(range(len(samples)), [coef for coef, share in samples])
+        ax.set_xlabel("Cutoff")
+        ax.set_ylim(0, 100)
+        ax.set_yticks([0, 50, 100])
+        ax.set_ylabel("Time Share (%)")
+        ax.set_title(title)
+    fig.legend(*axes[0].get_legend_handles_labels())
+    split(fig, "ev_breakdown", 3)
 
 
 def ev_variability():
