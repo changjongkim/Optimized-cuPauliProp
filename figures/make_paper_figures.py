@@ -8,8 +8,8 @@ same data, colors and markers); their save step is intercepted and every panel i
   - the paper prints every panel and legend at SCALE of its size, so one font size on the canvas is one size in print:
     T points for tick labels and legends, V points for printed values, bold axis titles only;
   - a panel has the canvas of its place in the paper (PLACE: four, three, two or one panel per text width), with the
-    tick labels, axis labels and values inside it; evaluation cutoff labels keep their parenthesized
-    term counts or errors on one line; dense axes omit intermediate labels while preserving both endpoints;
+    tick labels, axis labels and values inside it; cutoff labels have the parenthesized
+    term count or error directly below, centered at the same tick; left, middle and right labels are shown;
   - no title (it becomes the subfloat caption, printed here), the common x label and the y label on independent panels,
     shared y labels once per comparison row, and the legend in a strip of its own as wide as the text.
 Prints, per figure, the files with their captions, and the overlaps that the check of the deck figures still finds.
@@ -84,6 +84,10 @@ def restyle(ax):
         ax.tick_params(axis="both", which="minor", length=2, width=0.6)
     for t in ax.get_xticklabels(which="both") + ax.get_yticklabels(which="both"):
         t.set_fontweight("normal")
+    for t in ax.get_xticklabels(which="both"):
+        t.set_horizontalalignment("center")
+        t.set_multialignment("center")
+        t.set_linespacing(1.1)
     for t in (ax.xaxis.get_offset_text(), ax.yaxis.get_offset_text()):
         t.set_fontsize(T)
         t.set_fontweight("normal")
@@ -162,28 +166,49 @@ def merge_rows(ax, drop_minor):
     ax.grid(False, which="minor", axis="x")
 
 
-def tick_choices(labels):
-    """Ever sparser sets of the x tick labels: as drawn, without brackets on the second lines, the powers of ten of a
-    ladder of cutoffs, every second, third, fourth label. Labels that are not numbers (names) are never thinned."""
-    plain = [re.sub(r"\n\((.*)\)$", r"\n\1", l) for l in labels]
-    out = [labels, plain]
-    if not all(re.match(r"[0-9]", l) for l in labels if l):
-        return out
-    if sum(bool(re.match(r"1e-\d", l)) for l in plain) >= 2:
-        out.append([l if re.match(r"1e-\d", l) else "" for l in plain])
-    out += [[l if i % k == 0 else "" for i, l in enumerate(plain)] for k in (2, 3, 4)]
-    return out
+def stacked_tick_labels(labels):
+    """Center a numeric tick and its parenthesized quantity on two aligned lines."""
+    numeric = all(re.match(r"[0-9]", s) for s in labels if s.strip())
+    secondary = numeric and any("(" in s for s in labels)
+    if not secondary:
+        return labels, False
+    out = []
+    for text in labels:
+        if not text.strip():
+            out.append("")
+            continue
+        top, sep, bottom = text.partition("(")
+        quantity = sep + " ".join(bottom.split()) if sep else ""
+        count = re.fullmatch(r"\(([\d.]+)\s*([KMBT])\)", quantity)
+        if count:
+            # Two significant digits keep three counts legible in narrow panels.
+            value = float(f"{float(count.group(1)):.2g}")
+            quantity = f"({value:g}{count.group(2)})"
+        # An unmeasured point reserves the lower line without inventing a count.
+        out.append(top.strip() + "\n" + quantity)
+    return out, True
 
 
-def evaluation_tick_choices(labels):
-    """Thin intermediate labels without changing a visible cutoff/size pair."""
+def representative_labels(labels, ticks):
+    """Keep endpoints and the available tick nearest their horizontal midpoint."""
+    visible = [i for i, s in enumerate(labels) if s.strip()]
+    if len(visible) <= 3:
+        return labels
+    first, last = visible[0], visible[-1]
+    midpoint = (ticks[first] + ticks[last]) / 2
+    middle = min(visible[1:-1], key=lambda i: abs(ticks[i] - midpoint))
+    keep = {first, middle, last}
+    return [s if i in keep else "" for i, s in enumerate(labels)]
+
+
+def tick_choices(labels, ticks, representative=False):
+    """Keep each label intact; paired quantities use three positions from the outset."""
+    if representative:
+        yield representative_labels(labels, ticks)
+        return
     yield labels
-    for stride in range(2, len(labels) + 1):
-        indices = list(range(0, len(labels) - 1, stride))
-        if len(indices) > 1 and len(labels) - 1 - indices[-1] < stride:
-            indices.pop()
-        keep = set(indices + [len(labels) - 1])
-        yield [text if i in keep else "" for i, text in enumerate(labels)]
+    if all(re.match(r"[0-9]", s) for s in labels if s.strip()):
+        yield representative_labels(labels, ticks)
 
 
 def spread_values(fig, ax):
@@ -297,12 +322,9 @@ def panel(fig, ax, name, w, h, xlabel=None, ylabel=None, before=None, drop_minor
     thin_lines(ax)
     labels = [t.get_text() for t in ax.get_xticklabels()]
     ticks = list(ax.get_xticks())
-    # Keep cutoff and parenthesized size/error together on one line. Only
-    # intermediate labels may be omitted; the underlying measured points remain.
-    evaluation = name.startswith("ev_")
-    if evaluation and ax.get_xlabel().startswith("Cutoff"):
-        labels = [s.replace("\n", " ").strip() for s in labels]
-    choices = evaluation_tick_choices(labels) if evaluation else tick_choices(labels)
+    labels, secondary = stacked_tick_labels(labels)
+    representative = secondary or ax.get_xlabel().startswith("Cutoff")
+    choices = tick_choices(labels, ticks, representative)
     for choice in choices:
         ax.set_xticks(ticks)
         ax.set_xticklabels(choice)
@@ -322,13 +344,18 @@ def panel(fig, ax, name, w, h, xlabel=None, ylabel=None, before=None, drop_minor
     spread_values(fig, ax)
     fit()
     contain_values(fig, ax, name)
-    if evaluation:
-        shown = [t.get_text() for t in ax.get_xticklabels()]
-        assert all(not current or current == original for current, original in zip(shown, labels)), name
+    shown = [t.get_text() for t in ax.get_xticklabels()]
+    assert all(not current or current == original for current, original in zip(shown, labels)), name
+    if labels:
         assert shown[0] == labels[0] and shown[-1] == labels[-1], name
-        assert all("\n" not in text for text in shown) if ax.get_xlabel().startswith("Cutoff") else True
-        if getattr(ax, '_paper_require_all_xticks', False):
-            assert shown == labels, name
+    if representative:
+        assert shown == representative_labels(labels, ticks), name
+        assert not ticks_meet(fig, ax), name
+    if secondary:
+        assert all(s.count("\n") == 1 for s in shown if s), name
+        assert all(not s.split("\n")[1] or s.split("\n")[1].startswith("(") for s in shown if s), name
+    if getattr(ax, '_paper_require_all_xticks', False):
+        assert shown == labels, name
     figlegs, axlegs = list(fig.legends), [(a, a.legend_) for a in axes]
     fig.legends.clear()                             # hidden legends are not part of this panel
     for a in axes:
@@ -403,8 +430,8 @@ def comparison_panels(fig, base, items=None):
     entries = legend_items(fig) if items is None else items
     fig.set_layout_engine(None)
     out, index = [], 0
-    gap, first_left, other_left, right = 0.12, 0.66, 0.20, 0.22
-    height, bottom, top = 1.82, 0.55, 0.09
+    gap, first_left, other_left, right = 0.09, 0.66, 0.23, 0.22
+    height, bottom, top = 2.02, 0.72, 0.09
     for columns in (4, 3):
         plot_width = (TEXT_W - gap * (columns - 1) - first_left - other_left * (columns - 1)
                       - right * columns) / columns
@@ -416,7 +443,7 @@ def comparison_panels(fig, base, items=None):
 
             def style(a, first=(column == 0)):
                 count = len(a.get_xticks())
-                margin = 0.9 if count == 4 else 1.2
+                margin = 0.08 if count == 4 else 0.45
                 a.set_xlim(-margin, count - 1 + margin)
                 a.set_ylabel("Time (s)" if first else "")
                 a.tick_params(axis="y", labelleft=first)
@@ -458,8 +485,17 @@ def bg_anatomy():
 
 def bg_accuracy():
     md.n02()
-    fewer = lambda ax: ax.set_yticks([0, 0.2, 0.4]) if ax.get_ylabel().startswith("Expectation") else None
-    split(CAUGHT.pop("n02_accuracy_terms"), "bg_accuracy", 4, size=(2.6, 2.0), legend=False, before=fewer)
+    def style(ax):
+        if ax.get_ylabel().startswith("Expectation"):
+            ax.set_yticks([0, 0.2, 0.4])
+            ax.set_xlim(-0.12, 3.15)
+            for text in ax.texts:
+                if hasattr(text, 'xyann') and text.xy[0] == 0:
+                    text.xyann = (5, -8)
+                    text.set_horizontalalignment('left')
+                    text.set_verticalalignment('top')
+    # Keep both data panels beside the unchanged operations diagram in Figure 1.
+    split(CAUGHT.pop("n02_accuracy_terms"), "bg_accuracy", 4, size=(2.6, 2.0), legend=False, before=style)
 
 
 def bg_windows():
@@ -506,7 +542,7 @@ def ev_circuits():
 
 def ev_cost():
     md.d_cost_all()
-    split(CAUGHT.pop("d_cost_all"), "ev_cost", 4)
+    split(CAUGHT.pop("d_cost_all"), "ev_cost", 3)
 
 
 def ev_prs():
@@ -697,12 +733,7 @@ def ev_runtime():
                     ticks.append(label)
                     ax.text(i, 50, r['status'].title(), ha="center", va="center", color="#666666")
                     continue
-                # All three cutoffs remain visible. Show size at the endpoints
-                # so the middle label fits on the same single line.
-                if i != 1:
-                    scale, suffix = (1e9, 'B') if r['terms'] >= 1e9 else (1e6, 'M')
-                    count = float(f"{r['terms'] / scale:.2g}")
-                    label += f" ({count:g}{suffix})"
+                label += "\n(" + mf.count(r['terms']).replace(" ", "") + ")"
                 ticks.append(label)
                 bottom = 0
                 for label, key, color in mf.SIZE_PARTS:
