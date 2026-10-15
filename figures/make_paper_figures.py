@@ -23,7 +23,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib import patheffects
 from matplotlib.text import Text
-from matplotlib.ticker import LogFormatterMathtext
+from matplotlib.ticker import FixedLocator, LogFormatterMathtext, NullFormatter
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ARGS, sys.argv = sys.argv[1:], sys.argv[:1]
@@ -647,8 +647,45 @@ def ev_large_time():
     split(fig, "ev_large_time", 3)
 
 
+def ev_runtime():
+    """Cutoff-dependent activity shares, with one GPU count per row and circuit per column."""
+    import json
+    rows = json.load(open(os.path.join(os.path.dirname(HERE), "analysis", "paper_time_sweeps.json")))
+    fig, axes = plt.subplots(3, 3)
+    for row, g in enumerate((16, 64, 256)):
+        for column, (c, title) in enumerate(mf.G3):
+            ax = axes[row, column]
+            samples = sorted((r for r in rows if r["gpus"] == g and r["circuit"] == c),
+                             key=lambda r: -float(r["cutoff"]))
+            assert samples, (g, c)
+            for i, r in enumerate(samples):
+                cutoff, bottom = float(r["cutoff"]), 0
+                # Constant width in logarithmic cutoff units; no interpolation of missing runs.
+                factor = 10 ** 0.07
+                left, right = cutoff / factor, cutoff * factor
+                for label, key, color in mf.SIZE_PARTS:
+                    label = "Idle Workers" if key == "idle" else label
+                    share = 100 * r[key] / r["wall"]
+                    ax.bar(left, share, width=right - left, align="edge", bottom=bottom,
+                           color=color, label=label if i == 0 else None)
+                    bottom += share
+                assert abs(bottom - 100) < 1e-8, r["id"]
+            ax.set_xscale("log")
+            ax.set_xlim(1.3e-4, 0.8e-6)
+            ax.set_xticks([1e-4, 1e-5, 1e-6], [r"$10^{-4}$", r"$10^{-5}$", r"$10^{-6}$"])
+            ax.xaxis.set_minor_locator(FixedLocator([float(r["cutoff"]) for r in samples]))
+            ax.xaxis.set_minor_formatter(NullFormatter())
+            ax.set_ylim(0, 100)
+            ax.set_yticks([0, 50, 100])
+            ax.set_xlabel("Cutoff")
+            ax.set_ylabel("Time Share (%)")
+            ax.set_title(f"{title}, {g} GPUs")
+    fig.legend(*axes[0, 0].get_legend_handles_labels())
+    split(fig, "ev_runtime", 3)
+
+
 FIGURES = [bg_anatomy, bg_accuracy, bg_windows, ev_single, ev_circuits, ev_cost, ev_prs, ev_size, ev_accuracy, ev_breakdown, ev_variability,
-           ev_staircase, ev_knobs, ev_weak, ev_scaleout, ev_fixed_rows, ev_large_time, ev_circuits128]
+           ev_staircase, ev_knobs, ev_weak, ev_scaleout, ev_fixed_rows, ev_large_time, ev_circuits128, ev_runtime]
 
 if __name__ == "__main__":
     want = [a for a in ARGS if not a.startswith("-")]
