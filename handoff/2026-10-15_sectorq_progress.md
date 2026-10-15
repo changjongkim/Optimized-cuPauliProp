@@ -88,3 +88,18 @@ python3 paper/scripts/check_style.py
 코드와 논문 커밋을 분리하고 경로를 명시했다. 논문 커밋에는 Co-Authored-By를 넣지 않는다. push하지 않는다. 다른 작업의 staged `queue_f/ext.log`, `queue_f/runner.log`, untracked `jobs/e14_scaleout.sh`, compare 그림과 로그는 손대지 않았다.
 
 공개 저장소 익명화와 승인된 서론 마지막의 anonymous URL 유효성은 아직 사용자 결정/확인이 필요하다. 새 8노드 이상 실험이 필요해지면 결과와 구체적 계획을 준비한 뒤 승인받는다.
+
+## 후속 변경 — Evaluation 통합 (2026-10-15)
+
+- 사용자의 후속 요청으로 `af8e176`까지 GitHub main에 push를 완료했다. 위의 push 전 상태 설명은 00:50 시점 기록이다.
+- 이후 사용자가 Evaluation의 분리된 결과를 합칠 수 있는지 점검해 달라고 요청했다. 기존 11개 소절, 15개 그림, 24개 제목 문단을 6개 소절, 12개 그림, 19개 제목 문단으로 재구성했다.
+- 새 순서는 Setup → Performance Compared with Existing Systems → Scalability and Capacity → Contribution of the Design Choices → Numerical Agreement and Accuracy → Parameter Sensitivity and Repeatability다.
+- 성능 비교에 single-node, 16 GPU, 128 GPU, paulistrings-rs를 모았다. paulistrings-rs는 truncation 주기가 다르므로 cuPauliProp 비교 곡선과 합치지 않았다.
+- 항당 시간 7개 패널은 실행 시간/항 수의 재표현이므로 본문에서 중복 그림을 제거하고 지표 정의와 수치를 16 GPU 성능 문단에 통합했다. 원본 ev_cost PDF와 생성 코드는 저장소에 그대로 있다.
+- Strong/weak scaling, 회로 크기/깊이, 최대 operator/host 사용량을 한 소절로 모았다. 회로 크기/깊이는 한 문단, 최대 항 수/host 사용량도 한 문단으로 통합했다.
+- 고정 행 ablation과 요소별 계단, 시간 분해를 같은 소절에 배치했다. KI의 구간 수/전송량 중복 설명을 제거했다. N2가 완료되면 이 소절 안에 추가하며 새 독립 소절을 만들지 않는다.
+- 16 GPU 및 128–512 GPU 시간 분해는 한 그림의 6개 패널로 합쳤다. 동일한 색상 범주를 확인하고 기존 large-time 범례를 공통으로 썼다. 퍼센트/초 축의 차이는 캡션에 명시했다.
+- Parameter sensitivity와 반복 측정은 한 소절 및 한 그림으로 묶되, 실험 조건과 범례를 각 패널 묶음에 유지했다. 구현 간 답 일치는 Accuracy로 옮겼다.
+- 새 데이터/설계 그림은 그리지 않았다. 기존 그림 PDF 83개가 모두 수정 전 SHA-256과 같음을 확인했다. 합친 그림을 PDF 19/21쪽에서 렌더링해 확인했다.
+- 결과: Evaluation 본문 3,601 → 2,757단어, 전체 본문 9,467 → 8,623단어, 원고 26 → 24쪽. 컴파일 성공, check_style 0건, 미해결 인용/참조와 Overfull 없음. 대기 실험의 TBD 주석 다섯 곳은 유지했다.
+- 이 구조 변경은 로컬 커밋으로 남긴다. 앞선 push 요청은 이전 버전에 대해 완료했으며 이번 구조 변경은 아직 push하지 않았다.
