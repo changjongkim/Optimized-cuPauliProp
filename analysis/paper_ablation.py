@@ -61,7 +61,7 @@ def main():
     out.write_text(json.dumps(rows, indent=2) + '\n')
     fields = [k for k in rows[0] if k != 'trace']
     with (ROOT / 'analysis/paper_fixed_rows.csv').open('w') as f:
-        writer = csv.DictWriter(f, fieldnames=fields, extrasaction='ignore')
+        writer = csv.DictWriter(f, fieldnames=fields, extrasaction='ignore', lineterminator='\n')
         writer.writeheader()
         writer.writerows(rows)
     for g in (16, 4):

@@ -25,7 +25,7 @@ def main():
     (ROOT/'analysis/paper_large_time.json').write_text(json.dumps(rows,indent=2)+'\n')
     fields=[k for k in rows[0] if k!='trace']
     with (ROOT/'analysis/paper_large_time.csv').open('w') as f:
-        writer=csv.DictWriter(f,fieldnames=fields,extrasaction='ignore')
+        writer=csv.DictWriter(f,fieldnames=fields,extrasaction='ignore',lineterminator='\n')
         writer.writeheader(); writer.writerows(rows)
     for r in rows:
         if (r['id'].startswith(('i.ref.','n.eng.')) and '.3e-6.' in r['id']) or r['id']=='i12.ki.1.5e-7.g512':
