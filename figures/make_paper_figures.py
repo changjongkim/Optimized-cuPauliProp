@@ -6,12 +6,12 @@
 The panels are drawn by the functions of the README and deck figures (make_eval_figures.py, make_deck_figures.py: the
 same data, colors and markers); their save step is intercepted and every panel is placed again on a canvas of its own:
   - the paper prints every panel and legend at SCALE of its size, so one font size on the canvas is one size in print:
-    T points for tick labels, axis labels and legends, V points for printed values, no bold text;
+    T points for tick labels and legends, V points for printed values, bold axis titles only;
   - a panel has the canvas of its place in the paper (PLACE: four, three, two or one panel per text width), with the
     tick labels, axis labels and values inside it; tick labels that meet are thinned (to the powers of ten of a cutoff
     ladder, else to every second or third label);
-  - no title (it becomes the subfloat caption, printed here), the common x label and the y label on every panel, the
-    legend in a strip of its own as wide as the text.
+  - no title (it becomes the subfloat caption, printed here), the common x label and the y label on independent panels,
+    shared y labels once per comparison row, and the legend in a strip of its own as wide as the text.
 Prints, per figure, the files with their captions, and the overlaps that the check of the deck figures still finds.
 """
 import os
@@ -23,6 +23,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib import patheffects
 from matplotlib.text import Text
+from matplotlib.ticker import LogFormatterMathtext
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ARGS, sys.argv = sys.argv[1:], sys.argv[:1]
@@ -35,9 +36,9 @@ OUT = os.path.join(os.path.dirname(HERE), "paper", "figures")
 os.makedirs(OUT, exist_ok=True)
 SCALE = 0.6                                         # \includegraphics[scale=0.6] for every file of this script
 TEXT_W = 5.48 / SCALE                               # the text width of acmsmall (395.8 pt) on the canvas
-T, V = 12, 11                                       # points on the canvas: 7.2 and 6.6 points in print
+T, V, AXIS = 11, 10, 11.5                           # points on the canvas: 6.6, 6.0 and 6.9 points in print
 PLACE = {4: (2.17, 2.0), 3: (2.95, 2.0), 2: (4.5, 2.1), 1: (TEXT_W, 2.3)}      # canvas of a panel, by panels per text width
-HALO = [patheffects.withStroke(linewidth=2.4, foreground="white")]
+HALO = [patheffects.withStroke(linewidth=1.4, foreground="white")]
 CAUGHT = {}
 
 
@@ -69,8 +70,8 @@ def legend_items(fig):
 def restyle(ax):
     """Sizes for print: text, lines, markers, frame."""
     for t in [ax.xaxis.label, ax.yaxis.label]:
-        t.set_fontsize(T)
-        t.set_fontweight("normal")
+        t.set_fontsize(AXIS)
+        t.set_fontweight("bold")
     ax.tick_params(axis="both", which="major", labelsize=T, length=3.5, width=0.8, pad=2.5)
     minor = [t for t in ax.xaxis.get_minor_ticks() if t.label1.get_text().strip()]
     if minor:                                       # the second line of md.one_row, or the lower row of md.stagger
@@ -82,6 +83,9 @@ def restyle(ax):
     else:
         ax.tick_params(axis="both", which="minor", length=2, width=0.6)
     for t in ax.get_xticklabels(which="both") + ax.get_yticklabels(which="both"):
+        t.set_fontweight("normal")
+    for t in (ax.xaxis.get_offset_text(), ax.yaxis.get_offset_text()):
+        t.set_fontsize(T)
         t.set_fontweight("normal")
     for t in ax.texts:
         t.set_fontsize(V)
@@ -212,8 +216,39 @@ def corner_meets(fig, ax):
                for b in (t.get_window_extent(r) for t in ys))
 
 
-def panel(fig, ax, name, w, h, xlabel=None, ylabel=None, before=None, drop_minor=False):
+def contain_values(fig, ax, name):
+    """Keep data labels inside the plot by moving their text, preserving their data anchors."""
+    fig.canvas.draw()
+    renderer = fig.canvas.get_renderer()
+    box = ax.get_window_extent(renderer)
+    pad = 2 * fig.dpi / 72
+    for text in ax.texts:
+        if not text.get_visible() or not text.get_text().strip():
+            continue
+        bounds = text.get_window_extent(renderer)
+        dx = max(0, box.x0 + pad - bounds.x0) - max(0, bounds.x1 - box.x1 + pad)
+        dy = max(0, box.y0 + pad - bounds.y0) - max(0, bounds.y1 - box.y1 + pad)
+        if dx or dy:
+            transform = text.get_transform()
+            x, y = transform.transform(text.get_position())
+            text.set_position(transform.inverted().transform((x + dx, y + dy)))
+    fig.canvas.draw()
+    for text in ax.texts:
+        if text.get_visible() and text.get_text().strip():
+            bounds = text.get_window_extent(fig.canvas.get_renderer())
+            if bounds.x0 < box.x0 - 0.5 or bounds.y0 < box.y0 - 0.5 or bounds.x1 > box.x1 + 0.5 or bounds.y1 > box.y1 + 0.5:
+                print(f"CHECK {name}: data label leaves the plot: {text.get_text()!r}", file=sys.stderr)
+
+
+def panel(fig, ax, name, w, h, xlabel=None, ylabel=None, before=None, drop_minor=False, position=None):
     """Writes the panel `ax` of `fig` alone on a w x h canvas as OUT/<name>.pdf; returns its title."""
+    def fit():
+        if position is None:
+            place(fig, ax, w, h)
+        else:
+            fig.set_size_inches(w, h)
+            ax.set_position(position)
+
     axes = fig.axes
     state = [(a, a.get_visible(), a.axison) for a in axes]
     texts = [(t, t.get_visible()) for a in axes for t in a.texts] + [(t, t.get_visible()) for t in fig.texts]
@@ -253,18 +288,21 @@ def panel(fig, ax, name, w, h, xlabel=None, ylabel=None, before=None, drop_minor
         ax.set_xticks(ticks)
         ax.set_xticklabels(choice)
         restyle(ax)
-        place(fig, ax, w, h)
+        fit()
         if not ticks_meet(fig, ax):
             break
     if yticks_meet(fig, ax):                        # every second y tick
         ax.set_yticks(ax.get_yticks()[::2])
-        place(fig, ax, w, h)
-    if corner_meets(fig, ax):
-        lo, hi = ax.get_xlim()
-        ax.set_xlim(lo - 0.3, hi)
-        place(fig, ax, w, h)
+        fit()
+    for _ in range(4):
+        if not corner_meets(fig, ax):
+            break
+        pad = ax.xaxis.get_major_ticks()[0].get_pad()
+        ax.tick_params(axis="x", which="major", pad=pad + 2)
+        fit()
     spread_values(fig, ax)
-    place(fig, ax, w, h)
+    fit()
+    contain_values(fig, ax, name)
     figlegs, axlegs = list(fig.legends), [(a, a.legend_) for a in axes]
     fig.legends.clear()                             # hidden legends are not part of this panel
     for a in axes:
@@ -331,6 +369,50 @@ def split(fig, base, per_row, xlabel=None, ylabel=None, legend=True, size=None, 
     return out, items
 
 
+def comparison_panels(fig, base, items=None):
+    """Seven comparisons in full-width rows of four and three, with a shared y scale per row."""
+    axes = panels_of(fig)
+    assert len(axes) == 7
+    assert all(ax.get_yscale() == "log" and ax.get_ylim() == axes[0].get_ylim() for ax in axes)
+    entries = legend_items(fig) if items is None else items
+    fig.set_layout_engine(None)
+    out, index = [], 0
+    gap, first_left, other_left, right = 0.12, 0.66, 0.10, 0.12
+    height, bottom, top = 2.0, 0.73, 0.09
+    for columns in (4, 3):
+        plot_width = (TEXT_W - gap * (columns - 1) - first_left - other_left * (columns - 1)
+                      - right * columns) / columns
+        for column in range(columns):
+            ax = axes[index]
+            left = first_left if column == 0 else other_left
+            width = left + plot_width + right
+            position = [left / width, bottom / height, plot_width / width, (height - bottom - top) / height]
+
+            def style(a, first=(column == 0)):
+                a.set_ylabel("Time (s)" if first else "")
+                a.tick_params(axis="y", labelleft=first)
+                a.set_yticks([1, 10, 100, 1000])
+                a.yaxis.set_major_formatter(LogFormatterMathtext())
+                a.grid(False, which="both", axis="both")
+                a.grid(True, which="major", axis="y", color="#d0d4da", linestyle="--", linewidth=0.65)
+                for spine in a.spines.values():
+                    spine.set_edgecolor("#737b85")
+                for text in a.texts:
+                    if hasattr(text, "xyann"):
+                        dx, dy = text.xyann
+                        if text.xy[0] == a.get_xticks()[0]:
+                            dx = max(dx, 2)
+                        text.xyann = (dx, max(dy, 11))
+
+            name = f"{base}_{chr(97 + index)}"
+            title = panel(fig, ax, name, width, height, xlabel="Cutoff (# of Terms)", before=style, position=position)
+            out.append((name, title))
+            index += 1
+    strip(entries, base + "_legend")
+    plt.close(fig)
+    print(f"{base}: " + "  ".join(f"{name} [{title}]" for name, title in out))
+
+
 # ----------------------------------------------------------------------------------------------- background
 def bg_anatomy():
     """cuPauliProp's distributed mode on kicked Ising: time, fixed cost per gate, terms per GPU at the failure."""
@@ -377,7 +459,9 @@ def bg_windows():
     fig.legend(*ax.get_legend_handles_labels())
     split(fig, "bg_windows", 2)
     md.n11()
-    split(CAUGHT.pop("n11_window_terms"), "bg_window_terms", 2, legend=False)
+    fig = CAUGHT.pop("n11_window_terms")
+    fig.axes[0].set_ylim(0.5, 3e11)                   # room above the dashed reference for its label
+    split(fig, "bg_window_terms", 2, ylabel="Terms at\nWindow Start", legend=False)
 
 
 # ----------------------------------------------------------------------------------------------- evaluation
@@ -388,7 +472,10 @@ def ev_single():
 
 def ev_circuits():
     md.d_circuits_all()
-    split(CAUGHT.pop("d_circuits_all"), "ev_circuits", 4)
+    comparison_panels(CAUGHT.pop("d_circuits_all"), "ev_circuits")
+
+
+def ev_cost():
     md.d_cost_all()
     split(CAUGHT.pop("d_cost_all"), "ev_cost", 4)
 
@@ -401,8 +488,9 @@ def ev_prs():
         ax.set_ylabel("Time (s)")
         ax.set_xlabel(mf.xl_cut())
     handles, names = axes[0].get_legend_handles_labels()
-    fig.legend(handles, names)
-    split(fig, "ev_prs", 4)
+    items = list(zip(handles, names))
+    items.append((plt.Line2D([], [], color="none"), "N×: paulistrings-rs / SectorQ time"))
+    comparison_panels(fig, "ev_prs", items=items)
 
 
 def ev_size():
@@ -468,7 +556,9 @@ def ev_staircase():
 
 def ev_knobs():
     md.n13()
-    split(CAUGHT.pop("n13_knobs"), "ev_knobs", 3)
+    fig = CAUGHT.pop("n13_knobs")
+    fig.axes[0].set_ylim(8, 900)                     # shared headroom for labels of the 219/274 s points
+    split(fig, "ev_knobs", 3)
 
 
 def ev_weak():
@@ -557,7 +647,7 @@ def ev_large_time():
     split(fig, "ev_large_time", 3)
 
 
-FIGURES = [bg_anatomy, bg_accuracy, bg_windows, ev_single, ev_circuits, ev_prs, ev_size, ev_accuracy, ev_breakdown, ev_variability,
+FIGURES = [bg_anatomy, bg_accuracy, bg_windows, ev_single, ev_circuits, ev_cost, ev_prs, ev_size, ev_accuracy, ev_breakdown, ev_variability,
            ev_staircase, ev_knobs, ev_weak, ev_scaleout, ev_fixed_rows, ev_large_time, ev_circuits128]
 
 if __name__ == "__main__":
