@@ -289,15 +289,17 @@ Ansatz & 34 & 1,392 & 8.3 & 107.7 \\
 \end{table}
 
 \noindent\textbf{Balanced Selection and Overlap.}
-A same-allocation control uses one sampled row-set candidate in place of eight across 30 circuit-cutoff pairs on 16 GPUs.
-Eight candidates reduce the maximum imbalance over nonempty sectors in 28 pairs; the median maximum decreases from 1.069 to 1.029.
-The median one-to-eight-candidate time ratio is 1.00, and their total times are 852.9 and 836.9~s.
-Median row-selection time increases from 0.113 to 0.459~s.
-Candidate scoring improves balance without a consistent independent speedup.
-A separate control disables overlap between row selection and sector execution for three circuits at cutoffs $10^{-4}$ and $10^{-5}$, with three repetitions per setting.
+Figure~\ref{fig:resector-ablation} compares candidate selection and overlap within one allocation on 16 GPUs.
+Panels (a) and (b) contain 30 circuit-cutoff pairs, with one measurement per variant and a fixed random seed.
+Imbalance is the largest sector divided by the mean nonempty sector size, maximized over windows.
+Eight candidates reduce this maximum in 28 pairs, with its median decreasing from 1.069 to 1.029.
+The median one-to-eight-candidate time ratio is 1.00.
+Median row-selection time increases from 0.113 to 0.459~s, limiting the overall time benefit.
+Panel (c) compares overlap enabled and disabled for three circuits and two cutoffs.
+Markers show ratios of mean times over three repetitions, and whiskers span the three paired ratios.
 Disabling overlap increases mean wall time by 3-47\% across all six settings, with a geometric-mean increase of 21\%.
-The increase is 30-47\% for the shorter $10^{-4}$ runs and 3-9\% at $10^{-5}$.
-All 48 matched pairs print identical expectation values.
+All 48 pairs print identical expectation values.
+Candidate competition improves balance without a consistent independent speedup, and overlap reduces the exposed selection cost.
 
 \noindent\textbf{Time Breakdown across GPU Counts.}
 Figure~\ref{fig:runtime} uses cutoff $10^{-4}$ as a small reference and increases the other workloads with GPU count.
@@ -334,6 +336,16 @@ The fixed-input trace identifies limited task concurrency under the default cap,
 \subfloat[Noisy kicked Ising, 256 GPUs]{\panel{ev_runtime_i}}
 \caption{Time shares for a fixed small reference and larger workloads by GPU count}
 \label{fig:runtime}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\panel{ev_resector_legend}\\[-2pt]
+\subfloat[Sector balance]{\panel{ev_resector_a}}\hfill
+\subfloat[Candidate selection time effect]{\panel{ev_resector_b}}\hfill
+\subfloat[Overlap time effect]{\panel{ev_resector_c}}
+\caption{Candidate selection and overlap on 16 GPUs, with ratios above one favoring eight candidates or enabled overlap}
+\label{fig:resector-ablation}
 \end{figure}
 
 \subsection{Numerical Agreement and Accuracy}

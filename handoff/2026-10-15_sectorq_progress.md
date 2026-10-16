@@ -199,3 +199,12 @@ python3 paper/scripts/check_style.py
 - **현재 할당 `59842747`, 이름 pp_b, 4노드/16 GPU, 4시간, 06:16:27 UTC 시작, loop PID 1872405**. 노드는 nid001212,nid001213,nid001909,nid002064다. 시작 코드 `cbcf9cdd5f6dbda17202c770b0601f06fd602cd1`, pp_engine_x SHA-256 `d426695d7053e6bf629120bb61c1ea0d808e8e771fbdbd80627a2da9f4fe20be`. `/proc/1872405/cmdline`과 pgrep으로 loop 하나를 확인했고 여러 후속 실행까지 정상 진행했다. 실행 목록은 `logs/b/plan.59842747.tsv`, 진행 로그는 `logs/b/loop.log`다. **실행 중 jobs/b_ablate.sh를 편집하거나 같은 할당에 다른 loop를 시작하지 않는다.**
 - 중간 확인에서 10회 성공/0회 실패/0회 invalid, 5개 성공 비교쌍의 출력 기대값 차이 0이었다. 작은 cutoff 1e-4에서는 후보 1개가 8개보다 빠른 초기 결과(1/8 시간비 0.659-0.987)가 나왔다. 사용자에게 알렸으며, 첫 실행의 초기화·순서 영향과 단일 측정이라는 한계를 포함해 해석해야 한다. 큰 문제 완료 전 N2의 속도 이득을 단정하지 않는다. 후보 1개도 표본 수집과 sector 수 선택은 유지하므로 N2 전체를 끈 비교가 아니다.
 - 상태 확인은 `squeue -j 59842747`, `tail logs/b/loop.log`, `PYTHONDONTWRITEBYTECODE=1 python3 analysis/paper_n2.py --allocation 59842747`. 종료 후 같은 명령에 `--write`를 추가하고 결과를 평가 4.4의 N2 위치와 시간 분석에 반영한다. 원고 수정 시 기존 컴파일/check_style/PDF 링크 규칙을 적용한다. 이번 실행 준비에서는 원고·그림을 바꾸지 않았고 새 커밋은 push하지 않았다. 긴 대기 loop 없이 현재 상태를 보고한다.
+
+## 후속 변경 — 16 GPU ablation 완료와 Figure 18 (2026-10-16)
+
+- 할당 59842747은 06:58:29 UTC에 96회 전부 성공해 종료했다. 30개 후보 비교쌍과 18개 overlap 반복 비교쌍 모두 같은 할당/바이너리/입력 조건 검증을 통과했고 출력 기대값 차이는 0이다. loop가 할당을 반납했으므로 sacct의 CANCELLED 표시는 측정 실패가 아니다. 이전의 현재 실행 중 표시는 이 항목으로 대체한다.
+- 후보 8개는 30조건 중 28조건에서 최대 nonempty-sector 불균형을 줄였다(최대값들의 중앙값 1.069 → 1.029). 후보 1개/8개의 시간비 중앙값은 0.9967, 전체 범위는 0.6594–1.0571이다. 각 조건은 seed 7의 단일 측정이므로 작은 시간 차이를 일반적인 가속으로 주장하지 않는다. 후보 1개도 표본 수집과 sector 수 결정을 유지한다.
+- Overlap은 KI/TFIM/noisy KI × cutoff 1e-4/1e-5의 6조건에 각 3회 반복이다. 비활성/활성 평균 시간비는 1.030–1.466(6조건 기하평균 1.215)이다. 96회 데이터와 원고 단락은 로컬 커밋 9e07e85에 보존했다. 당시 보고한 23쪽은 잘못이며 실제 빌드 로그는 24쪽이었다.
+- 사용자가 그림 반영을 요청해 `make_paper_figures.py ev_resector`를 추가했다. Figure 18의 (a)는 최대 불균형의 후보 1/8 비율, (b)는 wall time의 후보 1/8 비율로 30조건 모두를 색/마커와 세로 오프셋으로 구별한다. (c)는 overlap off/on의 평균 시간비 6개와 3개 개별 반복 시간비의 최소–최대 whisker다. Whisker는 신뢰구간이 아니다. 점선 1보다 오른쪽이면 기본 구성에 유리하다.
+- `analysis/paper_n2.59842747.json`을 입력으로 사용하고 생성 시 96회/48쌍과 provenance를 재검증한다. 새 패널 `paper/figures/ev_resector_{a,b,c,legend}.pdf` 네 개만 추가했다. Figure 17 번호는 유지하며 새 그림은 그 다음이다. 본문에 불균형 정의, 단일 측정/고정 seed, 3회 반복과 whisker 정의를 명시했다. 그림 속 숫자 주석 없이 축 제목만 bold인 기존 스타일을 따른다. 최종 렌더는 `paper/build/resector-page.png`, 독립 미리보기는 `paper/build/resector-preview.pdf`다.
+- 최종 검증: 저장 JSON과 현재 96개 로그/48개 비교쌍이 일치한다. 원고 24쪽, prose 8,472단어(Evaluation 3,067), check_style 0건, 미정의 참조/인용과 Overfull 및 TeX 오류 0건이다. paper/main.pdf와 build/main.pdf가 일치한다. 새 그림/본문은 로컬 커밋으로 보존하고 push하지 않는다.
