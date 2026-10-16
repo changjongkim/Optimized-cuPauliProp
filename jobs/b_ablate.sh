@@ -119,7 +119,7 @@ run() {
   printf '\n' >> "$log"
   timeout --signal=TERM --kill-after=30 "$limit" srun --jobid="$JOB" --nodelist="$hosts" --exclusive --exact \
     -N "$n" -n "$n" --ntasks-per-node=1 -c 128 --gpus-per-node=4 --cpu-bind=none \
-    stdbuf -oL ./bin/pp_engine_x "${args[@]}" >> "$log" 2>&1
+    stdbuf -oL ./bin/pp_engine_x "${args[@]}" < /dev/null >> "$log" 2>&1
   local code=$?
   if [ "$code" -ne 0 ] && [ "$(squeue -h -j "$JOB" -o %T)" != RUNNING ]; then
     echo "allocation ended; incomplete log retained: $log"
@@ -137,9 +137,9 @@ run() {
   fi
   return 0
 }
-while IFS=$'\t' read -r mode circuit gpus cutoff repetition; do
+while IFS=$'\t' read -r mode circuit gpus cutoff repetition <&7; do
   run "$mode" "$circuit" "$gpus" "$cutoff" "$repetition" || exit $?
-done < "logs/b/plan.$JOB.tsv"
+done 7< "logs/b/plan.$JOB.tsv"
 python3 analysis/paper_n2.py --allocation "$JOB" --write || exit $?
 # The exit trap releases only an allocation created by this invocation.
 echo "$(date -u +%FT%TZ) finished"
