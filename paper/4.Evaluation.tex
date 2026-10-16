@@ -288,10 +288,16 @@ Ansatz & 34 & 1,392 & 8.3 & 107.7 \\
 \end{tabular}
 \end{table}
 
-% TBD N2: compare candidates 1 and 8 using jobs/b_ablate.sh, logs/b/.
-% The 2026-10-15 interactive submission was rejected by QOSMaxSubmitJobPerUserLimit.
-% Add Balanced Row Selection here when time, occupancy, split, and answer data exist.
-% Distinguish imbalance over nonempty sectors from imbalance over all 2**rows labels.
+\noindent\textbf{Balanced Selection and Overlap.}
+A same-allocation control uses one sampled row-set candidate in place of eight across 30 circuit-cutoff pairs on 16 GPUs.
+Eight candidates reduce the maximum imbalance over nonempty sectors in 28 pairs; the median maximum decreases from 1.069 to 1.029.
+The median one-to-eight-candidate time ratio is 1.00, and their total times are 852.9 and 836.9~s.
+Median row-selection time increases from 0.113 to 0.459~s.
+Candidate scoring improves balance without a consistent independent speedup.
+A separate control disables overlap between row selection and sector execution for three circuits at cutoffs $10^{-4}$ and $10^{-5}$, with three repetitions per setting.
+Disabling overlap increases mean wall time by 3-47\% across all six settings, with a geometric-mean increase of 21\%.
+The increase is 30-47\% for the shorter $10^{-4}$ runs and 3-9\% at $10^{-5}$.
+All 48 matched pairs print identical expectation values.
 
 \noindent\textbf{Time Breakdown across GPU Counts.}
 Figure~\ref{fig:runtime} uses cutoff $10^{-4}$ as a small reference and increases the other workloads with GPU count.
