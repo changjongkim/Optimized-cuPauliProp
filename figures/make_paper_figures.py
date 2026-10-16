@@ -755,8 +755,86 @@ def ev_runtime():
     split(fig, "ev_runtime", 3)
 
 
+def ev_resector():
+    """All 30 candidate pairs and six triplicated overlap settings from one allocation.
+
+    Candidate points are single matched measurements. Overlap markers are ratios
+    of mean wall times; whiskers span the three individual paired ratios, not CIs.
+    Each imbalance is the maximum, over windows, of largest / mean occupied sector.
+    """
+    import json
+    from matplotlib.lines import Line2D
+
+    sys.path.insert(0, os.path.join(os.path.dirname(HERE), "analysis"))
+    from paper_n2 import compare
+
+    path = os.path.join(os.path.dirname(HERE), "analysis", "paper_n2.59842747.json")
+    with open(path) as source:
+        data = json.load(source)
+    rows = data["rows"]
+    pairs = compare(rows)
+    assert len(rows) == 96 and len(pairs) == 48
+    assert all(r["status"] == "complete" and r["allocation"] == "59842747"
+               and r["gpus"] == 16 for r in rows)
+    assert all(p["status"] == "complete" for p in pairs)
+    runs = {(r["mode"], r["circuit"], r["cutoff"], r["repetition"]): r for r in rows}
+    cases = [("ki", "Kicked Ising"), ("tfim", "TFIM HH"), ("noise", "Noisy KI"),
+             ("tfimsq", r"TFIM $11\times11$"), ("xxz", r"XXZ $8\times8$"),
+             ("qaoa", "QAOA"), ("hea", "Ansatz")]
+    styles = [("1e-4", r"$10^{-4}$", "#0072B2", "o"),
+              ("3e-5", r"$3\times10^{-5}$", "#E69F00", "s"),
+              ("1e-5", r"$10^{-5}$", "#009E73", "^"),
+              ("3e-6", r"$3\times10^{-6}$", "#CC79A7", "D"),
+              ("1e-6", r"$10^{-6}$", "#6E6E6E", "v")]
+    fig, axes = plt.subplots(1, 3)
+    plotted = 0
+    for i, (circuit, _) in enumerate(cases):
+        for j, (cutoff, _, color, marker) in enumerate(styles):
+            a = runs.get(("re", circuit, cutoff, 0))
+            b = runs.get(("rb", circuit, cutoff, 0))
+            if a is None or b is None:
+                continue
+            y = i + (j - 2) * 0.15
+            values = [b["max_imbalance_nonempty"] / a["max_imbalance_nonempty"],
+                      b["wall"] / a["wall"]]
+            for ax, value in zip(axes[:2], values):
+                ax.plot(value, y, marker=marker, color=color, markersize=7,
+                        linestyle="none", markeredgewidth=0.5)
+            plotted += 1
+    assert plotted == 30
+    for i, (circuit, _) in enumerate(cases[:3]):
+        for offset, j in zip((-0.14, 0.14), (0, 2)):
+            cutoff, _, color, marker = styles[j]
+            on = [runs[("ov1", circuit, cutoff, rep)]["wall"] for rep in (1, 2, 3)]
+            off = [runs[("ov0", circuit, cutoff, rep)]["wall"] for rep in (1, 2, 3)]
+            ratio = sum(off) / sum(on)
+            ratios = [b / a for a, b in zip(on, off)]
+            axes[2].errorbar(ratio, i + offset,
+                            xerr=[[ratio - min(ratios)], [max(ratios) - ratio]],
+                            fmt=marker, color=color, markersize=7, capsize=2.5,
+                            elinewidth=1, markeredgewidth=0.5)
+    settings = [((0.94, 1.76), [1.0, 1.2, 1.4, 1.6], "Imbalance ratio (1 / 8)"),
+                ((0.62, 1.10), [0.7, 0.8, 0.9, 1.0, 1.1], "Time ratio (1 / 8)"),
+                ((0.97, 1.53), [1.0, 1.2, 1.4], "Time ratio (off / on)")]
+    for k, (ax, (limits, ticks, xlabel)) in enumerate(zip(axes, settings)):
+        labels = cases if k < 2 else cases[:3]
+        ax.set_yticks(range(len(labels)), [label for _, label in labels])
+        ax.set_ylim(len(labels) - 0.45, -0.55)
+        ax.set_xlim(*limits)
+        ax.set_xticks(ticks)
+        ax.set_xlabel(xlabel)
+        ax.axvline(1, color="#52575E", linestyle="--", linewidth=1)
+        ax.grid(axis="y", color="#E1E4E8", linewidth=0.6)
+    handles = [Line2D([], [], marker=m, color=c, linestyle="none", markersize=7)
+               for _, _, c, m in styles]
+    labels = [label for _, label, _, _ in styles]
+    labels[0] = "Cutoff " + labels[0]
+    fig.legend(handles, labels)
+    split(fig, "ev_resector", 3, size=(PLACE[3][0], 2.55))
+
+
 FIGURES = [bg_anatomy, bg_accuracy, bg_windows, ev_single, ev_circuits, ev_cost, ev_prs, ev_size, ev_accuracy, ev_breakdown, ev_variability,
-           ev_staircase, ev_knobs, ev_weak, ev_scaleout, ev_fixed_rows, ev_large_time, ev_circuits128, ev_runtime]
+           ev_staircase, ev_knobs, ev_weak, ev_scaleout, ev_fixed_rows, ev_large_time, ev_circuits128, ev_runtime, ev_resector]
 
 if __name__ == "__main__":
     want = [a for a in ARGS if not a.startswith("-")]
